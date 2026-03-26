@@ -14,7 +14,7 @@ contract GameVault is ReentrancyGuard {
     bool    public paused;
 
     uint256 public maxBetBps  = 100;      // 1% of vault
-    uint256 public minBet     = 100_000;  // $0.10 USDC (6 decimals)
+    uint256 public minBet     = 500_000;  // $0.50 USDC (6 decimals)
     uint256 public houseProfit;
 
     mapping(address => bool) public authorizedGames;
