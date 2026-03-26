@@ -1,0 +1,25 @@
+# Secrets — NEVER commit
+.env
+.env.local
+.env.production
+
+# Hardhat
+cache/
+artifacts/
+typechain-types/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Next.js
+.next/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+coverage/
+deployments/
