@@ -1,5 +1,6 @@
-# BaseCast 🎲
-**Provably Fair On-Chain Casino on Base**
+# BaseCast — Provably Fair On-Chain Casino
+
+**Pyth Entropy v2 · CoinFlip + Dice · Leaderboard · Base Network**
 
 ---
 
@@ -8,172 +9,134 @@
 ```
 basecast/
 ├── contracts/
-│   ├── GameVault.sol      # House treasury — holds USDC bankroll
-│   ├── CoinFlip.sol       # Heads/Tails game (1.94x payout, 3% edge)
-│   └── DiceRoll.sol       # Dice game (1.94x range / 5.82x exact, 3% edge)
+│   ├── BaseGame.sol      ← Abstract: Pyth Entropy v2 scaffold (all games inherit)
+│   ├── GameVault.sol     ← USDC treasury + leaderboard tracking
+│   ├── CoinFlip.sol      ← Heads/Tails — 1.94× (3% edge)
+│   ├── DiceRoll.sol      ← Range (1.94×) or Exact (5.82×) — 3% edge
+│   └── MockUSDC.sol      ← Local testing only
 ├── scripts/
-│   └── deploy.js          # Deployment script (testnet + mainnet)
-├── hooks/
-│   └── useBaseCast.js     # wagmi hooks for frontend
+│   └── deploy.js         ← Deploy all contracts in one command
+├── app/
+│   ├── layout.js         ← Next.js root layout + wagmi providers
+│   └── page.jsx          ← Full frontend SPA
 ├── lib/
-│   └── wagmi.js           # wagmi + RainbowKit provider setup
+│   └── wagmi.js          ← wagmi + RainbowKit config
+├── public/               ← logo.png, favicon.ico, og-image.png
 ├── hardhat.config.js
+├── next.config.js
 ├── package.json
 └── .env.example
 ```
 
 ---
 
-## Quick Start
+## How Pyth Entropy v2 Works
 
-### 1. Install dependencies
+No subscriptions. No LINK. Pay per request.
+
+1. Player calls `placeBet(wager, choice, userRandom)` + sends ETH for fee (~$0.01)
+2. Contract calls `entropy.requestWithCallback{value: fee}(provider, userRandom)`
+3. Pyth fulfills randomness and calls back `entropyCallback(seqNum, provider, randomNumber)`
+4. Game resolves, vault pays winner
+
+---
+
+## Pyth Entropy Addresses
+
+| Network      | Entropy                                    | Provider                                   |
+|--------------|--------------------------------------------|--------------------------------------------|
+| Base Sepolia | 0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4C | 0x39CC977C83a9b0AEf1C0f4e5a85c8CdA7fB2a9C |
+| Base Mainnet | 0x4374e5a8b9C22271E9EB878A2AA31DE97DF15DA  | 0x52DeaA1c84233F7bb8C8A45baeDE41091c616506 |
+
+---
+
+## Deploy to Base Sepolia
 
 ```bash
-# In Termux or your dev environment
+# 1. Install
 npm install
-```
 
-### 2. Set up environment
-
-```bash
+# 2. Configure
 cp .env.example .env
-# Edit .env and fill in:
-# - PRIVATE_KEY
-# - BASESCAN_API_KEY
-# - VRF_SUBSCRIPTION_ID
-```
+# Fill: PRIVATE_KEY, BASE_SEPOLIA_RPC
 
-### 3. Get a Chainlink VRF Subscription
-
-1. Go to https://vrf.chain.link
-2. Select **Base** network
-3. Click **Create Subscription**
-4. Fund it with LINK tokens (get from https://faucets.chain.link)
-5. Copy the **Subscription ID** → paste into `.env`
-
-### 4. Compile contracts
-
-```bash
+# 3. Compile
 npm run compile
-```
 
-### 5. Deploy to Base Sepolia (testnet first!)
-
-```bash
+# 4. Deploy
 npm run deploy:test
 ```
 
-Copy the output addresses into your `.env` file.
+Copy output addresses into your `.env` / Netlify env vars.
 
-### 6. Add VRF consumers
+### Post-deploy (required)
 
-After deployment, go back to https://vrf.chain.link and:
-- Add **CoinFlip contract address** as a consumer
-- Add **DiceRoll contract address** as a consumer
-
-⚠️ This step is required — without it, VRF callbacks will fail.
-
-### 7. Fund the vault
-
-```bash
-# Using Hardhat console or Basescan's Write Contract:
-# 1. Approve USDC spend to vault address
-# 2. Call vault.depositHouseFunds(amount)
-# Recommended: start with $100–$500 USDC on testnet
+**Fund vault with USDC:**
+```
+In Remix → GameVault → approve USDC → depositHouseFunds(amount)
 ```
 
-### 8. Run the frontend
-
-```bash
-npm run dev
-# Opens at http://localhost:3000
+**Fund game contracts with ETH (for Pyth fees):**
+```
+Send 0.05 ETH to CoinFlip address
+Send 0.05 ETH to DiceRoll address
 ```
 
 ---
 
 ## Deploy to Mainnet
 
-Once testnet works end-to-end:
-
 ```bash
 npm run deploy:main
 ```
 
-Same post-deploy steps apply (add VRF consumers, fund vault).
+Update env vars:
+- `NEXT_PUBLIC_CHAIN_ID=8453`
+- `NEXT_PUBLIC_USDC_ADDRESS=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
+- Pyth Mainnet addresses (see table above)
 
 ---
 
-## Using the wagmi Hooks
+## Frontend (Netlify)
 
-```jsx
-import { useCoinFlip, useDiceRoll, useVaultStats, useUsdcBalance } from "@/hooks/useBaseCast";
+1. Push to GitHub
+2. Import repo on Netlify
+3. Set **Base directory**: `basecast`
+4. Add all `NEXT_PUBLIC_*` env vars
+5. Deploy
 
-function CoinFlipGame() {
-  const { placeBet, state, result, error, reset, isPending } = useCoinFlip();
-  const { balance } = useUsdcBalance();
-  const { maxBet, vaultBalance } = useVaultStats();
+---
 
-  const handleBet = async () => {
-    await placeBet(10, "HEADS"); // $10 USDC on Heads
-  };
+## Adding New Games
 
-  if (state === "pending_vrf") return <div>Waiting for Chainlink VRF...</div>;
-  if (state === "settled") return (
-    <div>
-      {result.won
-        ? `You won $${result.payout}!`
-        : `You lost $${result.wager}`}
-      <button onClick={reset}>Play Again</button>
-    </div>
-  );
+```solidity
+import "./BaseGame.sol";
 
-  return (
-    <div>
-      <p>Balance: ${balance} USDC</p>
-      <p>Max Bet: ${maxBet} USDC</p>
-      <button onClick={handleBet} disabled={isPending}>
-        Flip $10 on HEADS
-      </button>
-    </div>
-  );
+contract MyGame is BaseGame {
+    constructor(address _vault, address _entropy, address _provider)
+        BaseGame(_vault, _entropy, _provider) {}
+
+    function placeBet(uint256 wager, bytes32 userRandom) external payable {
+        vault.receiveBet(msg.sender, wager);
+        uint64 seq = _requestEntropy(userRandom);
+        _pendingPlayer[seq] = msg.sender;
+        // store bet data...
+    }
+
+    function _resolveGame(uint64 seq, bytes32 random) internal override {
+        // resolve with random, call vault.settleBet(player, wager, payout)
+    }
 }
 ```
 
----
-
-## Adding New Games (Future)
-
-1. Deploy your new game contract (e.g. `Crash.sol`)
-2. Call `vault.setGameAuthorized(newGameAddress, true)`
-3. Done — GameVault never changes
+Then: deploy → `vault.setGameAuthorized(newGame, true)` → fund with ETH.
 
 ---
 
-## House Edge Reference
+## Odds Reference
 
-| Game          | Win Chance | Payout | Edge |
-|---------------|-----------|--------|------|
-| Coin Flip     | 48.5%     | 1.94×  | 3%   |
-| Dice Range    | 48.5%     | 1.94×  | 3%   |
-| Dice Exact    | 16.17%    | 5.82×  | 3%   |
-
----
-
-## Revenue Estimate
-
-At $25,000 daily volume with 2.1% blended edge:
-- Daily revenue: **~$525**
-- Monthly revenue: **~$15,750**
-- Scales linearly with volume — no extra work
-
----
-
-## Security Checklist Before Mainnet
-
-- [ ] Contracts compiled with `evmVersion: "paris"`
-- [ ] All contracts verified on Basescan
-- [ ] VRF consumers added for both game contracts
-- [ ] Emergency pause tested on testnet
-- [ ] Max bet set conservatively (1% of vault)
-- [ ] Stuck bet refund tested (1 hour timeout)
-- [ ] Consider a Code4rena audit for mainnet launch
+| Game        | Win %  | Payout | Edge |
+|-------------|--------|--------|------|
+| Coin Flip   | 48.5%  | 1.94×  | 3%   |
+| Dice Range  | 48.5%  | 1.94×  | 3%   |
+| Dice Exact  | 16.17% | 5.82×  | 3%   |
