@@ -461,8 +461,8 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       </div>
 
       <div style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)"}}>
-        {[{id:"coinflip",l:"🪙 Coin Flip"},{id:"dice",l:"🎲 Dice Roll"},{id:"leaderboard",l:"🏆 Leaderboard"}].map(t=>(
-          <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)}>{t.l}</button>
+        {[{id:"coinflip",l:"🪙 Coin Flip"},{id:"dice",l:"🎲 Dice Roll"},{id:"leaderboard",l:"🏆 Leaderboard"},{id:"more",l:"🎮 More Coming..."}].map(t=>(
+  <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} disabled={t.id==="more"} style={t.id==="more"?{opacity:.4,cursor:"default"}:{}}>{t.l}</button>
         ))}
       </div>
 
