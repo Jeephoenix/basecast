@@ -245,7 +245,7 @@ function SignScreen({isSigning,error,onSign}) {
       </div>
       {error && <div style={{fontSize:12,color:"var(--red)",textAlign:"center"}}>⚠ {error}</div>}
       <button className="btn primary spulse" style={{fontSize:15}} onClick={onSign} disabled={isSigning}>
-        {isSigning ? <><Spin/>Waiting...</> : "✍ Sign to Enter"}
+        {isSigning ? <><Spin/>Waiting...</> : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{display:"inline",verticalAlign:"middle",marginRight:7,flexShrink:0}}><path d="M12 22c0-4 0-7-4-9" strokeLinecap="round"/><path d="M12 22c0-4 0-7 4-9" strokeLinecap="round"/><path d="M8 9a4 4 0 0 1 8 0c0 5-1 8-2 11" strokeLinecap="round"/><path d="M6 10.5A6 6 0 0 1 18 9" strokeLinecap="round"/><path d="M4.5 12A7.5 7.5 0 0 1 12 4.5a7.5 7.5 0 0 1 7.5 7.5" strokeLinecap="round"/></svg>Sign to Enter</>}
       </button>
       <div style={{fontSize:10,color:"var(--dim)"}}>Session valid 24 hours</div>
     </div>
