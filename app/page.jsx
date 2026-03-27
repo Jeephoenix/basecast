@@ -367,7 +367,7 @@ if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${us
       });
       const hash = await wc.writeContract(request);
       const rx   = await pub.waitForTransactionReceipt({hash});
-      const seq = getSeqNum(rx.logs, COINFLIP);
+      const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
       setCfS("pending");
       if(seq!==null) pollBet(seq,COINFLIP,CF_ABI,(bet)=>{
         const won = bet.status===1;
@@ -408,7 +408,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       }
       const hash = await wc.writeContract(req);
       const rx   = await pub.waitForTransactionReceipt({hash});
-      const seq = getSeqNum(rx.logs, DICEROLL);
+      const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
       setDS("pending");
       if(seq!==null) pollBet(seq,DICEROLL,DR_ABI,(bet)=>{
         const rolled = Number(bet.rolledNumber);
