@@ -215,7 +215,7 @@ const PayInfo = ({wager,mult}) => (
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.15)",borderRadius:8,padding:"10px 14px"}}>
     <div>
       <div style={{fontSize:10,color:"var(--sub)"}}>WIN PAYOUT</div>
-      <div className="mono" style={{fontSize:16,color:"var(--blue)",marginTop:2}}>${(parseFloat(wager||0)*mult).toFixed(2)}</div>
+      <div className="mono" style={{fontSize:16,color:"var(--green)",marginTop:2}}>${(parseFloat(wager||0)*mult).toFixed(2)}</div>
     </div>
     <div style={{textAlign:"right"}}>
       <div style={{fontSize:10,color:"var(--sub)"}}>MULTIPLIER</div>
