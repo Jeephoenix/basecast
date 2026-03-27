@@ -8,7 +8,7 @@ import {
   useSignMessage,
 } from "wagmi";
 import { ConnectButton }                      from "@rainbow-me/rainbowkit";
-import { parseUnits, formatUnits, keccak256, encodePacked } from "viem";
+import { parseUnits, formatUnits } from "viem";
 
 // ── Addresses ─────────────────────────────────────────────────────────────────
 const VAULT    = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
@@ -35,7 +35,7 @@ const VAULT_ABI = [
 ];
 const CF_ABI = [
   {name:"placeBet",      type:"function", stateMutability:"payable",
-    inputs:[{name:"wager",type:"uint256"},{name:"choice",type:"uint8"},{name:"userRandom",type:"bytes32"}],
+    inputs:[{name:"wager",type:"uint256"},{name:"choice",type:"uint8"}],
     outputs:[{name:"seqNum",type:"uint64"}]},
   {name:"getBet",        type:"function", stateMutability:"view",
     inputs:[{name:"seqNum",type:"uint64"}],
@@ -51,10 +51,10 @@ const CF_ABI = [
 ];
 const DR_ABI = [
   {name:"placeBetRange", type:"function", stateMutability:"payable",
-    inputs:[{name:"wager",type:"uint256"},{name:"high",type:"bool"},{name:"userRandom",type:"bytes32"}],
+    inputs:[{name:"wager",type:"uint256"},{name:"high",type:"bool"}],
     outputs:[{name:"seqNum",type:"uint64"}]},
   {name:"placeBetExact", type:"function", stateMutability:"payable",
-    inputs:[{name:"wager",type:"uint256"},{name:"number",type:"uint8"},{name:"userRandom",type:"bytes32"}],
+    inputs:[{name:"wager",type:"uint256"},{name:"number",type:"uint8"}],
     outputs:[{name:"seqNum",type:"uint64"}]},
   {name:"getBet",        type:"function", stateMutability:"view",
     inputs:[{name:"seqNum",type:"uint64"}],
@@ -73,10 +73,6 @@ const DR_ABI = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const usd  = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
 const pnl  = (v) => `${v<0n?"-":"+"}$${parseFloat(formatUnits(v<0n?-v:v,6)).toFixed(2)}`;
-const rand = (addr) => keccak256(encodePacked(
-  ["address","uint256","uint256"],
-  [addr, BigInt(Date.now()), BigInt(Math.floor(Math.random()*1e15))]
-));
 
 // ── Session auth helpers ──────────────────────────────────────────────────────
 const SESSION_KEY = "bc_session";
@@ -230,27 +226,18 @@ export default function App() {
   const {data:wc}                 = useWalletClient();
   const {signMessageAsync}        = useSignMessage();
 
-  // Auth
   const [authed,  setAuthed]  = useState(false);
   const [signing, setSigning] = useState(false);
   const [signErr, setSignErr] = useState(null);
-
-  // Tab
   const [tab, setTab] = useState("coinflip");
-
-  // Balances
   const [bal,   setBal]   = useState(0n);
   const [vault, setVault] = useState({b:0n,max:0n,min:0n});
-
-  // CoinFlip
   const [cfChoice,setCfChoice] = useState("HEADS");
   const [cfWager, setCfWager]  = useState("10");
   const [cfS,     setCfS]      = useState("idle");
   const [cfRes,   setCfRes]    = useState(null);
   const [cfCoin,  setCfCoin]   = useState("HEADS");
   const [cfErr,   setCfErr]    = useState(null);
-
-  // Dice
   const [dMode,  setDMode]  = useState("range");
   const [dHigh,  setDHigh]  = useState(true);
   const [dExact, setDExact] = useState(1);
@@ -259,19 +246,15 @@ export default function App() {
   const [dRes,   setDRes]   = useState(null);
   const [dNum,   setDNum]   = useState(1);
   const [dErr,   setDErr]   = useState(null);
-
-  // Leaderboard
   const [lb,    setLb]    = useState([]);
   const [lbSrt, setLbSrt] = useState("volume");
   const [lbLd,  setLbLd]  = useState(false);
 
-  // ── Check session ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (address && getSession(address)) setAuthed(true);
     else setAuthed(false);
   }, [address]);
 
-  // ── Sign message ──────────────────────────────────────────────────────────
   const doSign = async () => {
     setSigning(true); setSignErr(null);
     try {
@@ -285,7 +268,6 @@ export default function App() {
     setSigning(false);
   };
 
-  // ── Fetch stats ───────────────────────────────────────────────────────────
   const fetchStats = useCallback(async () => {
     if (!pub || !USDC || !VAULT) return;
     try {
@@ -301,7 +283,6 @@ export default function App() {
 
   useEffect(()=>{ fetchStats(); },[fetchStats]);
 
-  // ── Leaderboard ───────────────────────────────────────────────────────────
   const fetchLb = useCallback(async () => {
     if (!pub || !VAULT) return;
     setLbLd(true);
@@ -318,7 +299,6 @@ export default function App() {
 
   useEffect(()=>{ if(tab==="leaderboard") fetchLb(); },[tab,fetchLb]);
 
-  // ── Allowance ─────────────────────────────────────────────────────────────
   const ensureAllow = async (amt) => {
     const al = await pub.readContract({address:USDC,abi:USDC_ABI,functionName:"allowance",args:[address,VAULT]});
     if (al >= amt) return;
@@ -327,7 +307,6 @@ export default function App() {
     await pub.waitForTransactionReceipt({hash:h});
   };
 
-  // ── Poll bet ──────────────────────────────────────────────────────────────
   const pollBet = (seqNum, addr, abi, cb) => {
     let i=0;
     const iv = setInterval(async()=>{
@@ -339,7 +318,6 @@ export default function App() {
     },2000);
   };
 
-  // ── CoinFlip ──────────────────────────────────────────────────────────────
   const doFlip = async () => {
     setCfErr(null); setCfRes(null);
     try {
@@ -349,7 +327,7 @@ export default function App() {
       setCfS("placing");
       const {request} = await pub.simulateContract({
         address:COINFLIP,abi:CF_ABI,functionName:"placeBet",
-        args:[w, cfChoice==="HEADS"?0:1, rand(address)],
+        args:[w, cfChoice==="HEADS"?0:1],
         value:fee, account:address,
       });
       const hash = await wc.writeContract(request);
@@ -369,7 +347,6 @@ export default function App() {
     }
   };
 
-  // ── Dice ──────────────────────────────────────────────────────────────────
   const doDice = async () => {
     setDErr(null); setDRes(null);
     try {
@@ -379,10 +356,10 @@ export default function App() {
       setDS("placing");
       let req;
       if(dMode==="range"){
-        const {request} = await pub.simulateContract({address:DICEROLL,abi:DR_ABI,functionName:"placeBetRange",args:[w,dHigh,rand(address)],value:fee,account:address});
+        const {request} = await pub.simulateContract({address:DICEROLL,abi:DR_ABI,functionName:"placeBetRange",args:[w,dHigh],value:fee,account:address});
         req=request;
       } else {
-        const {request} = await pub.simulateContract({address:DICEROLL,abi:DR_ABI,functionName:"placeBetExact",args:[w,dExact,rand(address)],value:fee,account:address});
+        const {request} = await pub.simulateContract({address:DICEROLL,abi:DR_ABI,functionName:"placeBetExact",args:[w,dExact],value:fee,account:address});
         req=request;
       }
       const hash = await wc.writeContract(req);
@@ -409,7 +386,6 @@ export default function App() {
     <div style={{minHeight:"100vh",background:"var(--bg)"}}>
       <style>{CSS}</style>
 
-      {/* Header */}
       <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <img src="/logo.png" width={32} height={32} style={{borderRadius:8,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
@@ -429,7 +405,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Wrong network */}
       {wrongNet && (
         <div style={{background:"rgba(239,68,68,.1)",borderBottom:"1px solid rgba(239,68,68,.3)",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
           <span style={{fontSize:12,color:"var(--red)"}}>⚠ Wrong network</span>
@@ -437,7 +412,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Vault bar */}
       <div style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)",overflowX:"auto"}}>
         {[{l:"VAULT",v:usd(vault.b)},{l:"MAX BET",v:usd(vault.max)},{l:"MIN BET",v:usd(vault.min)}].map(({l,v},i)=>(
           <div key={i} style={{padding:"8px 20px",borderRight:"1px solid var(--bd)",flexShrink:0}}>
@@ -447,17 +421,14 @@ export default function App() {
         ))}
       </div>
 
-      {/* Tabs */}
       <div style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)"}}>
         {[{id:"coinflip",l:"🪙 Coin Flip"},{id:"dice",l:"🎲 Dice Roll"},{id:"leaderboard",l:"🏆 Leaderboard"}].map(t=>(
           <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)}>{t.l}</button>
         ))}
       </div>
 
-      {/* Content */}
       <main style={{maxWidth:480,margin:"0 auto",padding:"20px 16px"}}>
 
-        {/* Not connected */}
         {!isConnected && tab!=="leaderboard" && (
           <div className="card fi" style={{textAlign:"center",padding:"48px 24px"}}>
             <img src="/logo.png" width={64} height={64} style={{borderRadius:16,marginBottom:20}} onError={e=>e.target.style.display="none"}/>
@@ -474,12 +445,10 @@ export default function App() {
           </div>
         )}
 
-        {/* Connected but not signed */}
         {isConnected && !authed && tab!=="leaderboard" && (
           <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
         )}
 
-        {/* COIN FLIP */}
         {tab==="coinflip" && isConnected && authed && (
           <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
             <div className="card" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,padding:"32px 20px",minHeight:180,position:"relative",overflow:"hidden"}}>
@@ -521,7 +490,6 @@ export default function App() {
           </div>
         )}
 
-        {/* DICE */}
         {tab==="dice" && isConnected && authed && (
           <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
             <div className="card" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,padding:"32px 20px",minHeight:180,position:"relative",overflow:"hidden"}}>
@@ -574,7 +542,6 @@ export default function App() {
           </div>
         )}
 
-        {/* LEADERBOARD */}
         {tab==="leaderboard" && (
           <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
             <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
