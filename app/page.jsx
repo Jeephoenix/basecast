@@ -322,6 +322,8 @@ export default function App() {
     setCfErr(null); setCfRes(null);
     try {
       const w = parseUnits(cfWager,6);
+      if (vault.max > 0n && w > vault.max) { setCfErr(`Bet too high — max bet is ${usd(vault.max)}`); return; }
+if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
       setCfS("approving"); await ensureAllow(w);
       const fee = await pub.readContract({address:COINFLIP,abi:CF_ABI,functionName:"getEntropyFee"});
       setCfS("placing");
@@ -351,6 +353,8 @@ export default function App() {
     setDErr(null); setDRes(null);
     try {
       const w = parseUnits(dWager,6);
+      if (vault.max > 0n && w > vault.max) { setDErr(`Bet too high — max bet is ${usd(vault.max)}`); return; }
+if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
       setDS("approving"); await ensureAllow(w);
       const fee = await pub.readContract({address:DICEROLL,abi:DR_ABI,functionName:"getEntropyFee"});
       setDS("placing");
