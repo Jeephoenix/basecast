@@ -472,7 +472,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
         {[{l:"VAULT",v:usd(vault.b)},{l:"MAX BET",v:usd(vault.max)},{l:"MIN BET",v:usd(vault.min)}].map(({l,v},i)=>(
           <div key={i} style={{padding:"8px 20px",borderRight:"1px solid var(--bd)",flexShrink:0}}>
             <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px"}}>{l}</div>
-            <div className="mono" style={{fontSize:13,marginTop:2}}>{v}</div>
+            <div className="mono" style={{fontSize:13,marginTop:2,color:"var(--tx)",transition:"color 0.4s ease"}}>{v}</div>
           </div>
         ))}
       </div>
