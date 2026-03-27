@@ -166,6 +166,8 @@ body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050
 .tab{background:none;border:none;border-bottom:2px solid transparent;font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;padding:12px 20px;cursor:pointer;color:var(--sub);transition:all .15s}
 .tab.on{color:var(--tx);border-bottom-color:var(--blue)}
 .mono{font-family:'JetBrains Mono',monospace}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+.shimmer{background:linear-gradient(90deg,#00F5A0,#a8ff78,#FFD166,#00D4AA,#00F5A0);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 2.5s linear infinite;font-weight:700}
 `;
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -468,10 +470,15 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       </div>
 
       <div style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)"}}>
-        {[{id:"coinflip",l:"🪙 Coin Flip"},{id:"dice",l:"🎲 Dice Roll"},{id:"leaderboard",l:"🏆 Leaderboard"},{id:"more",l:"🎮 More Coming..."}].map(t=>(
-  <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} disabled={t.id==="more"} style={t.id==="more"?{opacity:.4,cursor:"default"}:{}}>{t.l}</button>
-        ))}
-      </div>
+  {[
+    {id:"coinflip",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M8 2l4 3-4 3" strokeLinecap="round"/></svg>,label:"Coin Flip"},
+    {id:"dice",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>,label:"Dice Roll"},
+    {id:"leaderboard",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="2" y="14" width="4" height="8"/><rect x="9" y="9" width="4" height="13"/><rect x="16" y="4" width="4" height="18"/></svg>,label:"Leaderboard"},
+    {id:"more",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>,label:"More Coming..."},
+  ].map(t=>(
+    <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} disabled={t.id==="more"} style={{display:"flex",alignItems:"center",gap:6,...(t.id==="more"?{opacity:.4,cursor:"default"}:{})}}>{t.icon}{t.label}</button>
+  ))}
+</div>
 
       <main style={{maxWidth:480,margin:"0 auto",padding:"20px 16px"}}>
 
@@ -531,7 +538,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
               <PayInfo wager={cfWager} mult={1.94}/>
             </div>
             <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(cfS)||!parseFloat(cfWager)||parseFloat(cfWager)>parseFloat(formatUnits(bal,6))} onClick={doFlip}>
-              {busy(cfS)?<><Spin/>{cfS==="approving"?"Approving...":cfS==="placing"?"Placing...":"Waiting for result..."}</>:`FLIP $${cfWager} USDC`}
+              {busy(cfS)?<><Spin/>{cfS==="approving"?"Approving...":cfS==="placing"?"Placing...":"Waiting for result..."}</>:<span className="shimmer">{`FLIP $${cfWager} USDC`}</span>}
             </button>
             <div style={{fontSize:10,color:"var(--dim)",textAlign:"center"}}>Pyth Entropy v2 · Provably fair · 3% house edge</div>
           </div>
@@ -584,7 +591,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
               <PayInfo wager={dWager} mult={dMode==="range"?1.94:5.82}/>
             </div>
             <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(dS)||!parseFloat(dWager)||parseFloat(dWager)>parseFloat(formatUnits(bal,6))} onClick={doDice}>
-              {busy(dS)?<><Spin/>{dS==="approving"?"Approving...":dS==="placing"?"Placing...":"Rolling..."}</>:`ROLL $${dWager} USDC`}
+              {busy(dS)?<><Spin/>{dS==="approving"?"Approving...":dS==="placing"?"Placing...":"Rolling..."}</>:<span className="shimmer">{`ROLL $${dWager} USDC`}</span>}
             </button>
             <div style={{fontSize:10,color:"var(--dim)",textAlign:"center"}}>Pyth Entropy v2 · Provably fair · 3% house edge</div>
           </div>
