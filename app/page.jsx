@@ -367,7 +367,7 @@ if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${us
       });
       const hash = await wc.writeContract(request);
       const rx   = await pub.waitForTransactionReceipt({hash});
-      const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
+      const seq = getSeqNum(rx.logs, COINFLIP);
       setCfS("pending");
       if(seq!==null) pollBet(seq,COINFLIP,CF_ABI,(bet)=>{
         const won = bet.status===1;
@@ -390,6 +390,12 @@ if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${us
       if (vault.max > 0n && w > vault.max) { setDErr(`Bet too high — max bet is ${usd(vault.max)}`); return; }
 if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
       setDS("approving"); await ensureAllow(w);
+      const getSeqNum = (logs, contractAddr) => {
+  const log = [...logs].reverse().find(
+    l => l.address.toLowerCase() === contractAddr.toLowerCase() && l.topics.length >= 2
+  );
+  return log?.topics?.[1] ? BigInt(log.topics[1]) : null;
+};
       const fee = await pub.readContract({address:DICEROLL,abi:DR_ABI,functionName:"getEntropyFee"});
       setDS("placing");
       let req;
@@ -402,7 +408,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       }
       const hash = await wc.writeContract(req);
       const rx   = await pub.waitForTransactionReceipt({hash});
-      const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
+      const seq = getSeqNum(rx.logs, DICEROLL);
       setDS("pending");
       if(seq!==null) pollBet(seq,DICEROLL,DR_ABI,(bet)=>{
         const rolled = Number(bet.rolledNumber);
