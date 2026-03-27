@@ -630,11 +630,16 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       </main>
 
       <footer style={{textAlign:"center",padding:"24px 20px",borderTop:"1px solid var(--bd)",marginTop:20}}>
-        <div style={{fontSize:10,color:"var(--dim)",lineHeight:1.8}}>
-          BaseCast · Pyth Entropy v2 · Base Network<br/>
-          Gambling involves risk. 18+ only. Play responsibly.
-        </div>
-      </footer>
+  <div style={{fontSize:10,color:"var(--dim)",lineHeight:1.8}}>
+    BaseCast · Pyth Entropy v2 · Base Network<br/>
+    Gambling involves risk. 18+ only. Play responsibly.
+  </div>
+  <div style={{marginTop:12}}>
+    <a href="https://t.me/Jeephoenix" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(37,99,235,.1)",border:"1px solid rgba(37,99,235,.25)",borderRadius:8,padding:"7px 14px",fontSize:11,color:"var(--blue)",textDecoration:"none",fontFamily:"'Outfit',sans-serif"}}>
+      💬 Feedback & Bug Reports
+    </a>
+  </div>
+</footer>
     </div>
   );
 }
