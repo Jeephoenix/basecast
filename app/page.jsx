@@ -374,7 +374,7 @@ if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${us
         const res = (parseInt(bet.randomSeed.slice(-2),16)&1)===0?"HEADS":"TAILS";
         won ? playWin() : playLose();
         setCfCoin(res);
-        setCfRes({won,payout:bet.payout,wager:bet.wager,result:res});
+        setCfRes({won,payout:bet.payout,wager:bet.wager,result:res,hash});
         setCfS("settled");
       });
     } catch(e){
@@ -415,7 +415,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
   const rolled = Number(bet.rolledNumber);
   won ? playWin() : playLose();
   setDNum(rolled);
-  setDRes({won,payout:bet.payout,wager:bet.wager,rolled});
+  setDRes({won,payout:bet.payout,wager:bet.wager,rolled,hash});
   setDS("settled");
 });
     } catch(e){
@@ -446,7 +446,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
             </div>
           )}
           <ConnectButton chainStatus="icon" accountStatus="avatar" showBalance={false}/>
-          {authed && <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 12px",fontSize:11,borderRadius:8,width:"auto"}}
+          {authed && <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 12px",fontSize:11,borderRadius:8,width:"auto"}}
             onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);}}>Sign out</button>}
         </div>
       </header>
@@ -506,6 +506,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
                   <Coin side={cfRes.result}/>
                   <div style={{fontWeight:700,fontSize:28,color:cfRes.won?"var(--green)":"var(--red)"}}>{cfRes.won?`+${usd(cfRes.payout)}`:`-${usd(cfRes.wager)}`}</div>
                   <div style={{fontSize:12,color:"var(--sub)"}}>Rolled <b style={{color:"var(--tx)"}}>{cfRes.result}</b> · You picked <b style={{color:cfRes.won?"var(--green)":"var(--red)"}}>{cfChoice}</b></div>
+                  <a href={`${EXPLORER}/tx/${cfRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)",fontFamily:"'JetBrains Mono',monospace"}}>View on Explorer ↗</a>
                   <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 18px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>{setCfS("idle");setCfRes(null);setCfCoin("HEADS")}}>Play again</button>
                 </div>
               )}
@@ -547,6 +548,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
                   <Die n={dRes.rolled} size={72}/>
                   <div style={{fontWeight:700,fontSize:28,color:dRes.won?"var(--green)":"var(--red)"}}>{dRes.won?`+${usd(dRes.payout)}`:`-${usd(dRes.wager)}`}</div>
                   <div style={{fontSize:12,color:"var(--sub)"}}>Rolled <b style={{color:"var(--tx)"}}>{dRes.rolled}</b></div>
+                  <a href={`${EXPLORER}/tx/${dRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)",fontFamily:"'JetBrains Mono',monospace"}}>View on Explorer ↗</a>
                   <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 18px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>{setDS("idle");setDRes(null);setDNum(1)}}>Roll again</button>
                 </div>
               )}
