@@ -411,12 +411,13 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
       setDS("pending");
       if(seq!==null) pollBet(seq,DICEROLL,DR_ABI,(bet)=>{
-        const rolled = Number(bet.rolledNumber);
-        won ? playWin() : playLose();
-        setDNum(rolled);
-        setDRes({won:bet.status===1,payout:bet.payout,wager:bet.wager,rolled});
-        setDS("settled");
-      });
+  const won = bet.status===1;            // ← ADD this line
+  const rolled = Number(bet.rolledNumber);
+  won ? playWin() : playLose();
+  setDNum(rolled);
+  setDRes({won,payout:bet.payout,wager:bet.wager,rolled});
+  setDS("settled");
+});
     } catch(e){
       setDErr(e.shortMessage||e.message||"Failed");
       setDS("idle");
