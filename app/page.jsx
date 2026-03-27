@@ -137,7 +137,7 @@ const CSS = `
   --blue:#2563EB;--blue2:#1D4ED8;--green:#10B981;--red:#EF4444;
   --gold:#F59E0B;--tx:#F0F2F8;--sub:#6B7280;--dim:#374151;
 }
-body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh}
+body{background:linear-gradient(135deg,#0f0c29 0%,#1a1a4e 40%,#0d2137 100%);background-attachment:fixed;color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh}
 ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--blue);border-radius:2px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin2{to{transform:rotate(360deg)}}
@@ -429,7 +429,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
   const wrongNet = isConnected && chainId !== CHAIN_ID;
 
   return (
-    <div style={{minHeight:"100vh",background:"var(--bg)"}}>
+    <div style={{minHeight:"100vh",background:"transparent"}}>
       <style>{CSS}</style>
 
       <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
