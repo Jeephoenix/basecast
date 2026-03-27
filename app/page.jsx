@@ -137,6 +137,7 @@ const CSS = `
   --blue:#6C63FF;--blue2:#4F46E5;--green:#00F5A0;--red:#FF4D6D;
   --gold:#FFD166;--tx:#F0F2FF;--sub:#9094B0;--dim:#3D4060;
 }
+.light{--bg:#F0F4FF;--s1:rgba(255,255,255,0.85);--s2:rgba(240,244,255,0.9);--bd:rgba(0,0,0,0.1);--tx:#0A0B1A;--sub:#5560A0;--dim:#9AA5CC;--blue:#4338CA;--blue2:#3730A3;--green:#059669;--gold:#D97706;--red:#DC2626}
 body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050f 100%);background-attachment:fixed;color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#6C63FF,#00F5A0);border-radius:4px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -284,6 +285,7 @@ export default function App() {
   const [lb,    setLb]    = useState([]);
   const [lbSrt, setLbSrt] = useState("volume");
   const [lbLd,  setLbLd]  = useState(false);
+  const [light, setLight] = useState(false);
 
   useEffect(() => {
     if (address && getSession(address)) setAuthed(true);
@@ -431,7 +433,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
   const wrongNet = isConnected && chainId !== CHAIN_ID;
 
   return (
-    <div style={{minHeight:"100vh",background:"transparent"}}>
+    <div className={light?"light":""} style={{minHeight:"100vh",background:light?"linear-gradient(125deg,#e8eeff 0%,#f5f0ff 40%,#e0f0ff 100%)":"transparent",transition:"background 0.4s ease"}}>
       <style>{CSS}</style>
 
       <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
@@ -448,6 +450,12 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
             </div>
           )}
           <ConnectButton chainStatus="icon" accountStatus="avatar" showBalance={false}/>
+          <button className="btn" onClick={()=>setLight(l=>!l)} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 10px",borderRadius:8,width:"auto"}}>
+  {light
+    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+  }
+</button>
           {authed && <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 12px",fontSize:11,borderRadius:8,width:"auto"}}
             onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);}}>Sign out</button>}
         </div>
