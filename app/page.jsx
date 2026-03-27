@@ -73,6 +73,39 @@ const DR_ABI = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const usd  = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
 const pnl  = (v) => `${v<0n?"-":"+"}$${parseFloat(formatUnits(v<0n?-v:v,6)).toFixed(2)}`;
+function playWin() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.35);
+      osc.start(ctx.currentTime + i * 0.1);
+      osc.stop(ctx.currentTime + i * 0.1 + 0.35);
+    });
+  } catch {}
+}
+
+function playLose() {
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.4);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch {}
+}
 
 // ── Session auth helpers ──────────────────────────────────────────────────────
 const SESSION_KEY = "bc_session";
@@ -339,6 +372,7 @@ if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${us
       if(seq!==null) pollBet(seq,COINFLIP,CF_ABI,(bet)=>{
         const won = bet.status===1;
         const res = (parseInt(bet.randomSeed.slice(-2),16)&1)===0?"HEADS":"TAILS";
+        won ? playWin() : playLose();
         setCfCoin(res);
         setCfRes({won,payout:bet.payout,wager:bet.wager,result:res});
         setCfS("settled");
@@ -372,6 +406,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       setDS("pending");
       if(seq!==null) pollBet(seq,DICEROLL,DR_ABI,(bet)=>{
         const rolled = Number(bet.rolledNumber);
+        won ? playWin() : playLose();
         setDNum(rolled);
         setDRes({won:bet.status===1,payout:bet.payout,wager:bet.wager,rolled});
         setDS("settled");
