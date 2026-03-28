@@ -1,7 +1,7 @@
 "use client";
 // app/page.jsx — BaseCast v2
 
-import { AppFooter } from "@/components/PolicyModal";
+import { AppFooter, ConsentModal, hasConsented } from "@/components/PolicyModal";
 import { useState, useEffect, useCallback } from "react";
 import {
   useAccount, useChainId, useSwitchChain,
@@ -287,6 +287,7 @@ export default function App() {
   const [lbSrt, setLbSrt] = useState("volume");
   const [lbLd,  setLbLd]  = useState(false);
   const [light, setLight] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
     if (address && getSession(address)) setAuthed(true);
@@ -357,6 +358,7 @@ export default function App() {
   };
 
   const doFlip = async () => {
+    if (!hasConsented()) { setShowConsent(true); return; }
     setCfErr(null); setCfRes(null);
     try {
       const w = parseUnits(cfWager,6);
@@ -389,6 +391,7 @@ export default function App() {
   };
 
   const doDice = async () => {
+    if (!hasConsented()) { setShowConsent(true); return; }
     setDErr(null); setDRes(null);
     try {
       const w = parseUnits(dWager,6);
@@ -430,6 +433,10 @@ export default function App() {
   return (
     <div className={light?"light":""} style={{minHeight:"100vh",background:light?"linear-gradient(125deg,#e8eeff 0%,#f5f0ff 40%,#e0f0ff 100%)":"transparent",transition:"background 0.4s ease"}}>
       <style>{CSS}</style>
+
+      {showConsent && (
+  <ConsentModal onAccept={() => setShowConsent(false)} />
+)}
 
       <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
