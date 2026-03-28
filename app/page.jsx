@@ -644,7 +644,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
         )}
       </main>
 
-      <footer style={{textAlign:"center",padding:"24px 20px",borderTop:"1px solid var(--bd)",marginTop:20}}>
+      <AppFooter style={{textAlign:"center",padding:"24px 20px",borderTop:"1px solid var(--bd)",marginTop:20}}>
   <div style={{fontSize:10,color:"var(--dim)",lineHeight:1.8}}>
     BaseCast · Pyth Entropy v2 · Base Network<br/>
     Gambling involves risk. 18+ only. Play responsibly.
@@ -654,7 +654,7 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       💬 Feedback & Bug Reports
     </a>
   </div>
-</footer>
+</AppFooter>
     </div>
   );
 }
