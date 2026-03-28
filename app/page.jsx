@@ -501,9 +501,9 @@ export default function App() {
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:18}}>
                 <div style={{flex:1,height:1,background:"linear-gradient(to right,transparent,#4A90D9)",maxWidth:60}}/>
                 <span style={{fontFamily:"'Courgette',cursive",fontSize:11,color:"#9094B0",whiteSpace:"nowrap"}}>
-  Provably fair on-chain game hub <span style={{color:"#9094B0"}}>■</span> Base chain
+  Provably fair on-chain game hub <span style={{color:"#60C8FF"}}>■</span> Base chain
 </span>
-                <div style={{flex:1,height:1,background:"linear-gradient(to left,transparent,#4A90D9)",maxWidth:60}}/>
+                <div style={{flex:1,height:1,background:"linear-gradient(to left,transparent,#FFD166)",maxWidth:60}}/>
               </div>
             </div>
             <div style={{display:"flex",justifyContent:"center"}}>
