@@ -1,6 +1,7 @@
 "use client";
 // app/page.jsx — BaseCast v2
 
+import { AppFooter } from "@/components/PolicyModal";
 import { useState, useEffect, useCallback } from "react";
 import {
   useAccount, useChainId, useSwitchChain,
