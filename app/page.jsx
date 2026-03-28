@@ -170,6 +170,20 @@ body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050
 .mono{font-family:'JetBrains Mono',monospace}
 @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
 .shimmer{background:linear-gradient(90deg,#00F5A0,#a8ff78,#FFD166,#00D4AA,#00F5A0);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 2.5s linear infinite;font-weight:700}
+@media(max-width:520px){
+  .hdr{padding:10px 12px!important}
+  .hdr-logo{font-size:13px!important}
+  .hdr-right{gap:6px!important}
+  .hdr-balance{display:none!important}
+  .hdr-signout span{display:none}
+  .tab{padding:9px 11px!important;font-size:12px!important}
+  .stats-bar>div{padding:6px 10px!important}
+  .main-pad{padding:14px 10px!important}
+  .card{padding:14px!important;border-radius:14px!important}
+  .primary{padding:12px!important;font-size:14px!important}
+  .choice{padding:11px!important;font-size:13px!important}
+  .inp{font-size:16px!important;padding:10px 13px!important}
+}
 `;
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -438,14 +452,14 @@ export default function App() {
   <ConsentModal onAccept={() => setShowConsent(false)} />
 )}
 
-      <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
+      <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <img src="/logo.png" width={32} height={32} style={{borderRadius:8,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
           <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.05em",textTransform:"uppercase"}}>
             <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
             <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
           </span>
-          <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px"}}>BETA</span>
+          <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px"}}>Testnet</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           {isConnected && authed && (
@@ -461,8 +475,8 @@ export default function App() {
               : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             }
           </button>
-          {authed && <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 12px",fontSize:11,borderRadius:8,width:"auto"}}
-            onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);}}>Sign out</button>}
+          {authed && <button className="btn hdr-signout" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 12px",fontSize:11,borderRadius:8,width:"auto"}}
+            onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);}}><span>Sign out</span></button>}
         </div>
       </header>
 
@@ -473,7 +487,7 @@ export default function App() {
         </div>
       )}
 
-      <div style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)",overflowX:"auto"}}>
+      <div className="stats-bar" style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)",overflowX:"auto"}}>
         {[{l:"VAULT",v:usd(vault.b)},{l:"MAX BET",v:usd(vault.max)},{l:"MIN BET",v:usd(vault.min)}].map(({l,v},i)=>(
           <div key={i} style={{padding:"8px 20px",borderRight:"1px solid var(--bd)",flexShrink:0}}>
             <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px"}}>{l}</div>
@@ -493,7 +507,7 @@ export default function App() {
         ))}
       </div>
 
-      <main style={{maxWidth:480,margin:"0 auto",padding:"20px 16px"}}>
+      <main className="main-pad" style={{maxWidth:480,margin:"0 auto",padding:"20px 16px"}}>
 
         {!isConnected && tab!=="leaderboard" && (
           <div className="card fi" style={{textAlign:"center",padding:"48px 24px"}}>
