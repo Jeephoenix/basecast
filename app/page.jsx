@@ -506,7 +506,9 @@ export default function App() {
                 <div style={{flex:1,height:1,background:"linear-gradient(to left,transparent,#4A90D9)",maxWidth:60}}/>
               </div>
             </div>
-            <ConnectButton label="Connect Wallet to Play"/>
+            <div style={{display:"flex",justifyContent:"center"}}>
+  <ConnectButton label="Connect Wallet to Play"/>
+</div>
           </div>
         )}
 
