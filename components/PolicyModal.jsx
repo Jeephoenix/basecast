@@ -257,6 +257,123 @@ export function PolicyModal({ defaultTab = "privacy", onClose }) {
   );
 }
 
+// ── Consent gate — shown once before a user places their first bet ────────────
+const CONSENT_KEY = "bc_consent_v1";
+export function hasConsented() {
+  try { return !!localStorage.getItem(CONSENT_KEY); } catch { return false; }
+}
+
+export function ConsentModal({ onAccept }) {
+  const [agreedTerms,   setAgreedTerms]   = useState(false);
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
+  const [reading,       setReading]       = useState(null); // null | "terms" | "privacy"
+
+  const canContinue = agreedTerms && agreedPrivacy;
+
+  function accept() {
+    try { localStorage.setItem(CONSENT_KEY, "1"); } catch {}
+    onAccept();
+  }
+
+  if (reading) {
+    return (
+      <PolicyModal
+        defaultTab={reading}
+        onClose={() => setReading(null)}
+      />
+    );
+  }
+
+  return (
+    <>
+      <style>{css}</style>
+      <div className="policy-overlay">
+        <div className="policy-card" style={{ maxWidth: 520 }}>
+
+          {/* Header */}
+          <div className="policy-header">
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#F0F2F8", fontFamily: "'Outfit',sans-serif" }}>
+                Before you play
+              </div>
+              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
+                Please read and agree to continue
+              </div>
+            </div>
+            <div style={{ fontSize: 28 }}>🎲</div>
+          </div>
+
+          {/* Body */}
+          <div className="policy-body" style={{ padding: "24px" }}>
+            <div style={{ fontSize: 12, color: "#9CA3AF", lineHeight: 1.8, marginBottom: 24, fontFamily: "'Outfit',sans-serif" }}>
+              BaseCast is a decentralised, provably fair on-chain casino running on the Base blockchain.
+              All bets are irreversible blockchain transactions. Only play with funds you can afford to lose.
+              You must be 18 years old or older (or the legal gambling age in your jurisdiction).
+            </div>
+
+            {/* Checkbox — Terms */}
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer", marginBottom: 16, userSelect: "none" }}>
+              <input
+                type="checkbox"
+                checked={agreedTerms}
+                onChange={e => setAgreedTerms(e.target.checked)}
+                style={{ width: 16, height: 16, marginTop: 2, accentColor: "#2563EB", flexShrink: 0, cursor: "pointer" }}
+              />
+              <span style={{ fontSize: 13, color: "#D1D5DB", lineHeight: 1.6, fontFamily: "'Outfit',sans-serif" }}>
+                I have read and agree to the{" "}
+                <button
+                  onClick={() => setReading("terms")}
+                  style={{ background: "none", border: "none", color: "#60A5FA", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "'Outfit',sans-serif" }}
+                >
+                  Terms of Service
+                </button>
+              </span>
+            </label>
+
+            {/* Checkbox — Privacy */}
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer", userSelect: "none" }}>
+              <input
+                type="checkbox"
+                checked={agreedPrivacy}
+                onChange={e => setAgreedPrivacy(e.target.checked)}
+                style={{ width: 16, height: 16, marginTop: 2, accentColor: "#2563EB", flexShrink: 0, cursor: "pointer" }}
+              />
+              <span style={{ fontSize: 13, color: "#D1D5DB", lineHeight: 1.6, fontFamily: "'Outfit',sans-serif" }}>
+                I have read and agree to the{" "}
+                <button
+                  onClick={() => setReading("privacy")}
+                  style={{ background: "none", border: "none", color: "#60A5FA", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "'Outfit',sans-serif" }}
+                >
+                  Privacy Policy
+                </button>
+              </span>
+            </label>
+          </div>
+
+          {/* Footer */}
+          <div style={{ padding: "14px 24px", borderTop: "1px solid #1E2130", display: "flex", justifyContent: "flex-end", flexShrink: 0 }}>
+            <button
+              onClick={accept}
+              disabled={!canContinue}
+              style={{
+                background: canContinue ? "#2563EB" : "#1E2130",
+                color: canContinue ? "#fff" : "#4B5563",
+                border: "none", borderRadius: 8, padding: "10px 28px",
+                fontFamily: "'Outfit',sans-serif", fontSize: 14,
+                fontWeight: 600, cursor: canContinue ? "pointer" : "not-allowed",
+                transition: "all 0.2s",
+              }}
+            >
+              Continue to BaseCast
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Footer component — drop this at the bottom of page.jsx ───────────────────
 export function AppFooter() {
   const [modal, setModal] = useState(null); // null | "privacy" | "terms"
