@@ -131,7 +131,7 @@ const DOTS = {
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@900&family=Courgette&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#07050f;--s1:rgba(255,255,255,0.04);--s2:rgba(255,255,255,0.07);--bd:rgba(255,255,255,0.1);
@@ -500,9 +500,9 @@ export default function App() {
               </div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:18}}>
                 <div style={{flex:1,height:1,background:"linear-gradient(to right,transparent,#4A90D9)",maxWidth:60}}/>
-                <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:700,fontSize:9,letterSpacing:"0.2em",color:"#7AADCC",textTransform:"uppercase",whiteSpace:"nowrap"}}>
-                  Provably fair on-chain game hub <span style={{color:"#60C8FF",fontSize:10}}>■</span> Base chain
-                </span>
+                <span style={{fontFamily:"'Courgette',cursive",fontSize:11,color:"#9094B0",whiteSpace:"nowrap"}}>
+  Provably fair on-chain game hub <span style={{color:"#9094B0"}}>■</span> Base chain
+</span>
                 <div style={{flex:1,height:1,background:"linear-gradient(to left,transparent,#4A90D9)",maxWidth:60}}/>
               </div>
             </div>
