@@ -238,7 +238,7 @@ function SignScreen({isSigning,error,onSign}) {
         </div>
       </div>
       <div style={{background:"rgba(37,99,235,.07)",border:"1px solid rgba(37,99,235,.2)",borderRadius:10,padding:"14px 16px",width:"100%",textAlign:"left"}}>
-        <div style={{fontSize:10,color:"var(--blue)",letterSpacing:"2px",marginBottom:8}}>YOU'RE SIGNING</div>
+        <div style={{fontSize:10,color:"var(--blue)",letterSpacing:"2px",marginBottom:8}}>YOU&#39;RE SIGNING</div>
         <div className="mono" style={{fontSize:11,color:"var(--sub)",lineHeight:1.8}}>
           Welcome to BaseCast!<br/>
           Verify wallet ownership<br/>
@@ -361,7 +361,7 @@ export default function App() {
     try {
       const w = parseUnits(cfWager,6);
       if (vault.max > 0n && w > vault.max) { setCfErr(`Bet too high — max bet is ${usd(vault.max)}`); return; }
-if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
+      if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
       setCfS("approving"); await ensureAllow(w);
       const fee = await pub.readContract({address:COINFLIP,abi:CF_ABI,functionName:"getEntropyFee"});
       setCfS("placing");
@@ -393,14 +393,8 @@ if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${us
     try {
       const w = parseUnits(dWager,6);
       if (vault.max > 0n && w > vault.max) { setDErr(`Bet too high — max bet is ${usd(vault.max)}`); return; }
-if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
+      if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
       setDS("approving"); await ensureAllow(w);
-      const getSeqNum = (logs, contractAddr) => {
-  const log = [...logs].reverse().find(
-    l => l.address.toLowerCase() === contractAddr.toLowerCase() && l.topics.length >= 2
-  );
-  return log?.topics?.[1] ? BigInt(log.topics[1]) : null;
-};
       const fee = await pub.readContract({address:DICEROLL,abi:DR_ABI,functionName:"getEntropyFee"});
       setDS("placing");
       let req;
@@ -416,13 +410,13 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
       setDS("pending");
       if(seq!==null) pollBet(seq,DICEROLL,DR_ABI,(bet)=>{
-  const won = bet.status===1;            // ← ADD this line
-  const rolled = Number(bet.rolledNumber);
-  won ? playWin() : playLose();
-  setDNum(rolled);
-  setDRes({won,payout:bet.payout,wager:bet.wager,rolled,hash});
-  setDS("settled");
-});
+        const won = bet.status===1;
+        const rolled = Number(bet.rolledNumber);
+        won ? playWin() : playLose();
+        setDNum(rolled);
+        setDRes({won,payout:bet.payout,wager:bet.wager,rolled,hash});
+        setDS("settled");
+      });
     } catch(e){
       setDErr(e.shortMessage||e.message||"Failed");
       setDS("idle");
@@ -441,12 +435,9 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <img src="/logo.png" width={32} height={32} style={{borderRadius:8,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
           <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.05em",textTransform:"uppercase"}}>
-  <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
-  <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
-</span>
-  <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
-  <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
-</span>
+            <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
+            <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
+          </span>
           <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px"}}>BETA</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -458,11 +449,11 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
           )}
           <ConnectButton chainStatus="icon" accountStatus="avatar" showBalance={false}/>
           <button className="btn" onClick={()=>setLight(l=>!l)} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 10px",borderRadius:8,width:"auto"}}>
-  {light
-    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-  }
-</button>
+            {light
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            }
+          </button>
           {authed && <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 12px",fontSize:11,borderRadius:8,width:"auto"}}
             onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);}}>Sign out</button>}
         </div>
@@ -485,39 +476,39 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       </div>
 
       <div style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)"}}>
-  {[
-    {id:"coinflip",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M8 2l4 3-4 3" strokeLinecap="round"/></svg>,label:"Coin Flip"},
-    {id:"dice",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>,label:"Dice Roll"},
-    {id:"leaderboard",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="2" y="14" width="4" height="8"/><rect x="9" y="9" width="4" height="13"/><rect x="16" y="4" width="4" height="18"/></svg>,label:"Leaderboard"},
-    {id:"more",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>,label:"More Coming..."},
-  ].map(t=>(
-    <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} disabled={t.id==="more"} style={{display:"flex",alignItems:"center",gap:6,...(t.id==="more"?{opacity:.4,cursor:"default"}:{})}}>{t.icon}{t.label}</button>
-  ))}
-</div>
+        {[
+          {id:"coinflip",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M8 2l4 3-4 3" strokeLinecap="round"/></svg>,label:"Coin Flip"},
+          {id:"dice",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>,label:"Dice Roll"},
+          {id:"leaderboard",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="2" y="14" width="4" height="8"/><rect x="9" y="9" width="4" height="13"/><rect x="16" y="4" width="4" height="18"/></svg>,label:"Leaderboard"},
+          {id:"more",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>,label:"More Coming..."},
+        ].map(t=>(
+          <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} disabled={t.id==="more"} style={{display:"flex",alignItems:"center",gap:6,...(t.id==="more"?{opacity:.4,cursor:"default"}:{})}}>{t.icon}{t.label}</button>
+        ))}
+      </div>
 
       <main style={{maxWidth:480,margin:"0 auto",padding:"20px 16px"}}>
 
         {!isConnected && tab!=="leaderboard" && (
-  <div className="card fi" style={{textAlign:"center",padding:"48px 24px"}}>
-    <div style={{marginBottom:28}}>
-      <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:11,letterSpacing:"0.25em",textTransform:"uppercase",color:"#fff",opacity:0.85,marginBottom:8}}>
-        WELCOME TO
-      </div>
-      <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:48,letterSpacing:"0.04em",lineHeight:1,textTransform:"uppercase"}}>
-        <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(96,200,255,0.45))"}}>BASE</span>
-        <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(255,216,77,0.45))"}}>CAST</span>
-      </div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:18}}>
-        <div style={{flex:1,height:1,background:"linear-gradient(to right,transparent,#4A90D9)",maxWidth:60}}/>
-        <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:700,fontSize:9,letterSpacing:"0.2em",color:"#7AADCC",textTransform:"uppercase",whiteSpace:"nowrap"}}>
-          Provably fair on-chain game hub<span style={{color:"#60C8FF",fontSize:10}}>■</span> Base chain
-        </span>
-        <div style={{flex:1,height:1,background:"linear-gradient(to left,transparent,#4A90D9)",maxWidth:60}}/>
-      </div>
-    </div>
-    <ConnectButton label="Connect Wallet to Play"/>
-  </div>
-)}
+          <div className="card fi" style={{textAlign:"center",padding:"48px 24px"}}>
+            <div style={{marginBottom:28}}>
+              <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:11,letterSpacing:"0.25em",textTransform:"uppercase",color:"#fff",opacity:0.85,marginBottom:8}}>
+                WELCOME TO
+              </div>
+              <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:48,letterSpacing:"0.04em",lineHeight:1,textTransform:"uppercase"}}>
+                <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(96,200,255,0.45))"}}>BASE</span>
+                <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(255,216,77,0.45))"}}>CAST</span>
+              </div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:18}}>
+                <div style={{flex:1,height:1,background:"linear-gradient(to right,transparent,#4A90D9)",maxWidth:60}}/>
+                <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:700,fontSize:9,letterSpacing:"0.2em",color:"#7AADCC",textTransform:"uppercase",whiteSpace:"nowrap"}}>
+                  Provably fair on-chain game hub <span style={{color:"#60C8FF",fontSize:10}}>■</span> Base chain
+                </span>
+                <div style={{flex:1,height:1,background:"linear-gradient(to left,transparent,#4A90D9)",maxWidth:60}}/>
+              </div>
+            </div>
+            <ConnectButton label="Connect Wallet to Play"/>
+          </div>
+        )}
 
         {isConnected && !authed && tab!=="leaderboard" && (
           <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
@@ -658,16 +649,16 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       </main>
 
       <AppFooter style={{textAlign:"center",padding:"24px 20px",borderTop:"1px solid var(--bd)",marginTop:20}}>
-  <div style={{fontSize:10,color:"var(--dim)",lineHeight:1.8}}>
-    BaseCast · Pyth Entropy v2 · Base Network<br/>
-    Gambling involves risk. 18+ only. Play responsibly.
-  </div>
-  <div style={{marginTop:12}}>
-    <a href="https://t.me/Jeephoenix" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(37,99,235,.1)",border:"1px solid rgba(37,99,235,.25)",borderRadius:8,padding:"7px 14px",fontSize:11,color:"var(--blue)",textDecoration:"none",fontFamily:"'Outfit',sans-serif"}}>
-      💬 Feedback & Bug Reports
-    </a>
-  </div>
-</AppFooter>
+        <div style={{fontSize:10,color:"var(--dim)",lineHeight:1.8}}>
+          BaseCast · Pyth Entropy v2 · Base Network<br/>
+          Gambling involves risk. 18+ only. Play responsibly.
+        </div>
+        <div style={{marginTop:12}}>
+          <a href="https://t.me/Jeephoenix" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(37,99,235,.1)",border:"1px solid rgba(37,99,235,.25)",borderRadius:8,padding:"7px 14px",fontSize:11,color:"var(--blue)",textDecoration:"none",fontFamily:"'Outfit',sans-serif"}}>
+            💬 Feedback & Bug Reports
+          </a>
+        </div>
+      </AppFooter>
     </div>
   );
-}
+         }
