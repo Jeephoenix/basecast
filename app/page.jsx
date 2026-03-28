@@ -2,7 +2,7 @@
 // app/page.jsx — BaseCast v2
 
 import { AppFooter, ConsentModal, hasConsented } from "@/components/PolicyModal";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   useAccount, useChainId, useSwitchChain,
   usePublicClient, useWalletClient,
@@ -174,8 +174,6 @@ body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050
   .hdr{padding:10px 12px!important}
   .hdr-logo{font-size:13px!important}
   .hdr-right{gap:6px!important}
-  .hdr-balance{display:none!important}
-  .hdr-signout span{display:none}
   .tab{padding:9px 11px!important;font-size:12px!important}
   .stats-bar>div{padding:6px 10px!important}
   .main-pad{padding:14px 10px!important}
@@ -300,13 +298,39 @@ export default function App() {
   const [lb,    setLb]    = useState([]);
   const [lbSrt, setLbSrt] = useState("volume");
   const [lbLd,  setLbLd]  = useState(false);
-  const [light, setLight] = useState(false);
+    const [light, setLight] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [myPnl,   setMyPnl]   = useState(null);
+  const [copied,  setCopied]  = useState(false);
+  const menuRef = useRef(null);
 
-  useEffect(() => {
+    useEffect(() => {
     if (address && getSession(address)) setAuthed(true);
     else setAuthed(false);
   }, [address]);
+
+  const fetchMyPnl = useCallback(async () => {
+    if (!pub || !VAULT || !address) return;
+    try {
+      const [,pnls] = await pub.readContract({address:VAULT,abi:VAULT_ABI,functionName:"getMultipleStats",args:[[address]]});
+      setMyPnl(pnls[0]);
+    } catch {}
+  }, [pub, address]);
+
+  useEffect(() => { if (authed) fetchMyPnl(); }, [authed, fetchMyPnl]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handle = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [menuOpen]);
+
+  function copyAddress() {
+    if (!address) return;
+    navigator.clipboard.writeText(address).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  }
 
   const doSign = async () => {
     setSigning(true); setSignErr(null);
@@ -461,22 +485,106 @@ export default function App() {
           </span>
           <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px"}}>Testnet</span>
         </div>
-        <div className="hdr-right" style={{display:"flex",alignItems:"center",gap:12}}>
+                <div className="hdr-right" style={{display:"flex",alignItems:"center",gap:8}}>
+
+          {/* Chain selector only — no account avatar button */}
+          <ConnectButton.Custom>
+            {({account,chain,openChainModal,openConnectModal,mounted}) => {
+              if (!mounted) return null;
+              if (!account) return (
+                <button onClick={openConnectModal} className="btn" style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:12,width:"auto"}}>
+                  Connect
+                </button>
+              );
+              return (
+                <button onClick={openChainModal} className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"6px 10px",borderRadius:8,fontSize:12,width:"auto",gap:5}}>
+                  {chain?.hasIcon && chain.iconUrl && (
+                    <img src={chain.iconUrl} width={14} height={14} alt={chain.name} style={{borderRadius:"50%"}}/>
+                  )}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}><path d="M7 10l5 5 5-5z"/></svg>
+                </button>
+              );
+            }}
+          </ConnectButton.Custom>
+
+          {/* Balance — right of network button */}
           {isConnected && authed && (
-            <div className="hdr-balance" style={{textAlign:"right"}}>
-              <div style={{fontSize:10,color:"var(--sub)"}}>BALANCE</div>
-              <div className="mono" style={{fontSize:13,color:"var(--green)"}}>{usd(bal)}</div>
+            <div style={{textAlign:"right",lineHeight:1.2}}>
+              <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>BALANCE</div>
+              <div className="mono" style={{fontSize:13,color:"var(--green)",fontWeight:600}}>{usd(bal)}</div>
             </div>
           )}
-          <ConnectButton chainStatus="icon" accountStatus="avatar" showBalance={false}/>
+
+          {/* Dark mode toggle */}
           <button className="btn" onClick={()=>setLight(l=>!l)} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 10px",borderRadius:8,width:"auto"}}>
             {light
               ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
               : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
             }
           </button>
-          {authed && <button className="btn hdr-signout" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 12px",fontSize:11,borderRadius:8,width:"auto"}}
-            onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);}}><span>Sign out</span></button>}
+
+          {/* Three-dash menu */}
+          {authed && isConnected && (
+            <div ref={menuRef} style={{position:"relative"}}>
+              <button
+                onClick={()=>setMenuOpen(o=>!o)}
+                className="btn"
+                style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 10px",borderRadius:8,width:"auto",flexDirection:"column",gap:3}}
+              >
+                <span style={{display:"block",width:15,height:2,background:"currentColor",borderRadius:1}}/>
+                <span style={{display:"block",width:15,height:2,background:"currentColor",borderRadius:1}}/>
+                <span style={{display:"block",width:15,height:2,background:"currentColor",borderRadius:1}}/>
+              </button>
+
+              {menuOpen && (
+                <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"#0E1017",border:"1px solid #1E2130",borderRadius:12,minWidth:230,zIndex:200,boxShadow:"0 8px 40px rgba(0,0,0,0.7)",overflow:"hidden"}}>
+
+                  {/* Wallet address */}
+                  <div style={{padding:"14px 16px",borderBottom:"1px solid #1E2130"}}>
+                    <div style={{fontSize:9,color:"#6B7280",letterSpacing:"1.5px",marginBottom:6}}>CONNECTED WALLET</div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span className="mono" style={{fontSize:10,color:"#D1D5DB",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{address}</span>
+                      <button onClick={copyAddress} style={{background:"none",border:"1px solid #1E2130",borderRadius:6,color:copied?"var(--green)":"#6B7280",fontSize:10,padding:"3px 8px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",flexShrink:0,transition:"color 0.2s"}}>
+                        {copied?"✓ Copied":"Copy"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Net profit */}
+                  <div style={{padding:"12px 16px",borderBottom:"1px solid #1E2130"}}>
+                    <div style={{fontSize:9,color:"#6B7280",letterSpacing:"1.5px",marginBottom:6}}>NET PROFIT (ALL GAMES)</div>
+                    {myPnl===null
+                      ? <div style={{fontSize:12,color:"#6B7280",fontFamily:"'Outfit',sans-serif"}}>Loading...</div>
+                      : <div className="mono" style={{fontSize:18,fontWeight:700,color:myPnl>=0n?"var(--green)":"var(--red)"}}>
+                          {myPnl>=0n?"+":""}{pnl(myPnl)}
+                        </div>
+                    }
+                  </div>
+
+                  {/* Transaction history */}
+                  <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer"
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:"1px solid #1E2130",textDecoration:"none",color:"#D1D5DB"}}
+                    onClick={()=>setMenuOpen(false)}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    <span style={{fontSize:13,fontFamily:"'Outfit',sans-serif",flex:1}}>Transaction History</span>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                  </a>
+
+                  {/* Sign out */}
+                  <button
+                    onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);setMenuOpen(false);}}
+                    style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 16px",background:"none",border:"none",color:"#EF4444",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span style={{fontSize:13}}>Sign Out</span>
+                  </button>
+
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </header>
 
