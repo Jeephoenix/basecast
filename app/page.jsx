@@ -455,15 +455,15 @@ export default function App() {
       <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <img src="/logo.png" width={32} height={32} style={{borderRadius:8,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
-          <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.05em",textTransform:"uppercase"}}>
+          <span className="hdr-logo" style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.05em",textTransform:"uppercase"}}>
             <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
             <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
           </span>
           <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px"}}>Testnet</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <div className="hdr-right" style={{display:"flex",alignItems:"center",gap:12}}>
           {isConnected && authed && (
-            <div style={{textAlign:"right"}}>
+            <div className="hdr-balance" style={{textAlign:"right"}}>
               <div style={{fontSize:10,color:"var(--sub)"}}>BALANCE</div>
               <div className="mono" style={{fontSize:13,color:"var(--green)"}}>{usd(bal)}</div>
             </div>
