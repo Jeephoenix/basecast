@@ -444,6 +444,9 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
   <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
   <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
 </span>
+  <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
+  <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
+</span>
           <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px"}}>BETA</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -495,20 +498,26 @@ if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd
       <main style={{maxWidth:480,margin:"0 auto",padding:"20px 16px"}}>
 
         {!isConnected && tab!=="leaderboard" && (
-          <div className="card fi" style={{textAlign:"center",padding:"48px 24px"}}>
-            <img src="/logo.png" width={64} height={64} style={{borderRadius:16,marginBottom:20}} onError={e=>e.target.style.display="none"}/>
-            <div style={{fontWeight:700,fontSize:22,marginBottom:10}}>Welcome to BaseCast</div>
-            <div style={{color:"var(--sub)",fontSize:13,lineHeight:1.8,marginBottom:28}}>
-              Provably fair on-chain casino on Base.<br/>Powered by Pyth Entropy v2.
-            </div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center",marginBottom:24}}>
-              {["🔒 Provably Fair","⚡ Pyth Entropy","🌐 Base Network","💰 USDC"].map(f=>(
-                <span key={f} style={{background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:20,padding:"5px 12px",fontSize:10,color:"var(--sub)"}}>{f}</span>
-              ))}
-            </div>
-            <ConnectButton label="Connect Wallet to Play"/>
-          </div>
-        )}
+  <div className="card fi" style={{textAlign:"center",padding:"48px 24px"}}>
+    <div style={{marginBottom:28}}>
+      <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:11,letterSpacing:"0.25em",textTransform:"uppercase",color:"#fff",opacity:0.85,marginBottom:8}}>
+        WELCOME TO
+      </div>
+      <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:48,letterSpacing:"0.04em",lineHeight:1,textTransform:"uppercase"}}>
+        <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(96,200,255,0.45))"}}>BASE</span>
+        <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(255,216,77,0.45))"}}>CAST</span>
+      </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:18}}>
+        <div style={{flex:1,height:1,background:"linear-gradient(to right,transparent,#4A90D9)",maxWidth:60}}/>
+        <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:700,fontSize:9,letterSpacing:"0.2em",color:"#7AADCC",textTransform:"uppercase",whiteSpace:"nowrap"}}>
+          Provably fair on-chain game hub<span style={{color:"#60C8FF",fontSize:10}}>■</span> Base chain
+        </span>
+        <div style={{flex:1,height:1,background:"linear-gradient(to left,transparent,#4A90D9)",maxWidth:60}}/>
+      </div>
+    </div>
+    <ConnectButton label="Connect Wallet to Play"/>
+  </div>
+)}
 
         {isConnected && !authed && tab!=="leaderboard" && (
           <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
