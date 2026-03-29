@@ -360,8 +360,8 @@ const [verifyErr,     setVerifyErr]     = useState(null);
       const all = [
         ...cfBets.map((bet,i) => ({id:`cf-${cfLast[i]}`,type:"coinflip",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:    localStorage.getItem(`txhash:cf-${cfLast[i]}`) || undefined,
   seqNum:    cfLast[i].toString()})),
-        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:    localStorage.getItem(`txhash:cf-${drLast[i]}`) || undefined,
-  seqNum:    cfLast[i].toString()})),
+        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash: localStorage.getItem(`txhash:dr-${drLast[i]}`) || undefined,
+seqNum: drLast[i].toString()})),
       ].filter(tx=>tx.status!==0).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
       setTxHistory(all);
     } catch {}
@@ -550,7 +550,7 @@ const [verifyErr,     setVerifyErr]     = useState(null);
       const logs = await pub.getLogs({address:contractAddr,event:BET_RESOLVED_EVENT,args:{seqNum:seq},fromBlock,toBlock:"latest"});
       if (logs.length > 0) callbackTx = logs[0].transactionHash;
     } catch {}
-    setVerifyResult({gameType,seq:seq.toString(),player:bet.player,status:Number(bet.status),wager:bet.wager,payout:bet.payout,timestamp:Number(bet.timestamp),randomSeed:bet.randomSeed,reqTx,callbackTx});
+    setVerifyResult({gameType, seq:seq.toString(), player:bet.player, status:Number(bet.status), wager:bet.wager, payout:bet.payout, timestamp:Number(bet.timestamp), randomSeed:bet.randomSeed, reqTx, callbackTx, contractAddr});
   } catch { setVerifyErr("Invalid sequence number or network error. Make sure you are on the right network."); }
   setVerifyLoading(false);
 };
@@ -945,6 +945,20 @@ const [verifyErr,     setVerifyErr]     = useState(null);
             {verifyResult.callbackTx
               ? <a href={`${EXPLORER}/tx/${verifyResult.callbackTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.callbackTx.slice(0,10)}...{verifyResult.callbackTx.slice(-8)} ↗</a>
               : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not found in range"}</span>}
+                  </div>
+        </div>
+        <div style={{padding:"9px 0"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:11,color:"var(--sub)"}}>Pyth Entropy</span>
+            <a
+              href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mono"
+              style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}
+            >
+              View randomness ↗
+            </a>
           </div>
         </div>
       </div>
