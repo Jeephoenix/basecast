@@ -436,7 +436,8 @@ export function AppFooter() {
               fontFamily: "'Outfit',sans-serif",
             }}
           >
-            💬 Feedback & Bug Reports
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9094B0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 9V6a3 3 0 0 1 6 0v3"/><path d="M10 16.5a4 4 0 0 1-4-4v-3a4 4 0 0 1 8 0v3a4 4 0 0 1-4 4z"/><path d="M6 9H3"/><path d="M18 9h-3"/><path d="M6 15H3"/><path d="M18 15h-3"/><path d="M10 20v1"/><path d="M14 20v1"/></svg>
+            Feedback & Bug Reports
           </a>
         </div>
       </footer>
