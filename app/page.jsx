@@ -940,26 +940,18 @@ seqNum: drLast[i].toString()})),
               : <span style={{fontSize:11,color:"var(--dim)"}}>Not stored locally</span>}
           </div>
         </div>
-        <div style={{padding:"9px 0"}}>
+                <div style={{padding:"9px 0"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span style={{fontSize:11,color:"var(--sub)"}}>Callback Tx</span>
             {verifyResult.callbackTx
               ? <a href={`${EXPLORER}/tx/${verifyResult.callbackTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.callbackTx.slice(0,10)}...{verifyResult.callbackTx.slice(-8)} ↗</a>
-              : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not in recent blocks"}</span>
-                  </div>
+              : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not in recent blocks"}</span>}
+          </div>
         </div>
         <div style={{padding:"9px 0"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span style={{fontSize:11,color:"var(--sub)"}}>Pyth Entropy</span>
-            <a
-              href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mono"
-              style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}
-            >
-              View randomness ↗
-            </a>
+            <a href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View randomness ↗</a>
           </div>
         </div>
       </div>
