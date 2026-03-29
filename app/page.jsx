@@ -352,8 +352,8 @@ export default function App() {
         Promise.all(drLast.map(seq => pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getBet", args:[seq]}))),
       ]);
       const all = [
-        ...cfBets.map((bet,i) => ({id:`cf-${cfLast[i]}`,type:"coinflip",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:bet.txHash})),
-        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:bet.txHash})),
+        ...cfBets.map((bet,i) => ({id:`cf-${cfLast[i]}`,type:"coinflip",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:localStorage.getItem(`txhash:cf-${cfLast[i]}`) || undefined})),
+        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:localStorage.getItem(`txhash:dr-${drLast[i]}`) || undefined})),
       ].filter(tx=>tx.status!==0).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
       setTxHistory(all);
     } catch {}
@@ -463,6 +463,7 @@ export default function App() {
       const hash = await wc.writeContract(request);
       const rx   = await pub.waitForTransactionReceipt({hash});
       const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
+      if(seq!==null) localStorage.setItem(`txhash:cf-${seq}`, hash);
       setCfS("pending");
       if(seq!==null) pollBet(seq,COINFLIP,CF_ABI,(bet)=>{
         const won = bet.status===1;
@@ -499,6 +500,7 @@ export default function App() {
       const hash = await wc.writeContract(req);
       const rx   = await pub.waitForTransactionReceipt({hash});
       const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
+      if(seq!==null) localStorage.setItem(`txhash:dr-${seq}`, hash);
       setDS("pending");
       if(seq!==null) pollBet(seq,DICEROLL,DR_ABI,(bet)=>{
         const won = bet.status===1;
@@ -634,7 +636,7 @@ export default function App() {
                                     </div>
                                     <div style={{textAlign:"right"}}>
                                       <div className="mono" style={{fontSize:11,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
-                                      {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:9,color:"#4B5563",textDecoration:"none"}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)}</a>}
+                                      {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:2}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
                                     </div>
                                   </div>
                                 ))}
