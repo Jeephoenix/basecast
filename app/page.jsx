@@ -546,7 +546,7 @@ seqNum: drLast[i].toString()})),
     let callbackTx = null;
     try {
       const latest = await pub.getBlockNumber();
-      const fromBlock = latest > 500000n ? latest - 500000n : 0n;
+      const fromBlock = latest > 2000n ? latest - 2000n : 0n;
       const logs = await pub.getLogs({address:contractAddr,event:BET_RESOLVED_EVENT,args:{seqNum:seq},fromBlock,toBlock:"latest"});
       if (logs.length > 0) callbackTx = logs[0].transactionHash;
     } catch {}
@@ -945,7 +945,7 @@ seqNum: drLast[i].toString()})),
             <span style={{fontSize:11,color:"var(--sub)"}}>Callback Tx</span>
             {verifyResult.callbackTx
               ? <a href={`${EXPLORER}/tx/${verifyResult.callbackTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.callbackTx.slice(0,10)}...{verifyResult.callbackTx.slice(-8)} ↗</a>
-              : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not found in range"}</span>}
+              : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not in recent blocks"}</span>
                   </div>
         </div>
         <div style={{padding:"9px 0"}}>
@@ -969,17 +969,4 @@ seqNum: drLast[i].toString()})),
               
       </main>
 
-      <AppFooter style={{textAlign:"center",padding:"24px 20px",borderTop:"1px solid var(--bd)",marginTop:20}}>
-        <div style={{fontSize:10,color:"var(--dim)",lineHeight:1.8}}>
-          BaseCast · Pyth Entropy v2 · Base Network<br/>
-          Gambling involves risk. 18+ only. Play responsibly.
-        </div>
-        <div style={{marginTop:12}}>
-          <a href="https://t.me/Jeephoenix" target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(37,99,235,.1)",border:"1px solid rgba(37,99,235,.25)",borderRadius:8,padding:"7px 14px",fontSize:11,color:"var(--blue)",textDecoration:"none",fontFamily:"'Outfit',sans-serif"}}>
-            💬 Feedback & Bug Reports
-          </a>
-        </div>
-      </AppFooter>
-    </div>
-  );
-         }
+      <AppFooter />
