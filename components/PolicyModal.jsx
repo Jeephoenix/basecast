@@ -385,13 +385,13 @@ export function AppFooter() {
       )}
       <footer style={{
         textAlign: "center", padding: "24px 20px",
-        borderTop: "1px solid #1E2130", marginTop: 20,
+        borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: 20,
       }}>
         <div style={{
-          fontSize: 10, color: "#374151", lineHeight: 1.9,
+          fontSize: 10, color: "#9094B0", lineHeight: 1.9,
           fontFamily: "'Outfit',sans-serif",
         }}>
-          BaseCast · Pyth Entropy v2 · Base Network
+          BaseCast · Pyth Entropy · Base Network
           <br />
           Gambling involves risk. 18+ only. Play responsibly.
           <br />
@@ -400,7 +400,7 @@ export function AppFooter() {
               onClick={() => setModal("privacy")}
               style={{
                 background: "none", border: "none",
-                color: "#4B5563", fontSize: 11,
+                color: "#6B7280", fontSize: 11,
                 cursor: "pointer", textDecoration: "underline",
                 fontFamily: "'Outfit',sans-serif",
                 padding: 0,
@@ -408,12 +408,12 @@ export function AppFooter() {
             >
               Privacy Policy
             </button>
-            <span style={{ color: "#1F2937" }}>·</span>
+            <span style={{ color: "#6B7280" }}>·</span>
             <button
               onClick={() => setModal("terms")}
               style={{
                 background: "none", border: "none",
-                color: "#4B5563", fontSize: 11,
+                color: "#6B7280", fontSize: 11,
                 cursor: "pointer", textDecoration: "underline",
                 fontFamily: "'Outfit',sans-serif",
                 padding: 0,
@@ -422,6 +422,22 @@ export function AppFooter() {
               Terms of Service
             </button>
           </span>
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <a
+            href="https://t.me/Jeephoenix"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "rgba(37,99,235,.1)", border: "1px solid rgba(37,99,235,.25)",
+              borderRadius: 8, padding: "7px 14px", fontSize: 11,
+              color: "#6C63FF", textDecoration: "none",
+              fontFamily: "'Outfit',sans-serif",
+            }}
+          >
+            💬 Feedback & Bug Reports
+          </a>
         </div>
       </footer>
     </>
