@@ -641,7 +641,10 @@ export default function App() {
                                     <div style={{textAlign:"right"}}>
                                       <div className="mono" style={{fontSize:11,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
                                       {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:2}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
-                                      <a href={`${PYTH_EXPLORER}&sequenceNumber=${tx.seqNum}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#9094B0",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:2,marginTop:1}}>Pyth ↗</a>
+                                      <div style={{display:"flex",alignItems:"center",gap:4,marginTop:2}}>
+  <span style={{fontSize:9,color:"#6B7280"}}>seq:</span>
+  <button onClick={()=>navigator.clipboard.writeText(tx.seqNum)} title="Copy sequence number" className="mono" style={{fontSize:9,color:"#9094B0",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"1px 4px",cursor:"pointer"}}>{tx.seqNum}</button>
+</div>
                                     </div>
                                   </div>
                                 ))}
