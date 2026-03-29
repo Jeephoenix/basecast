@@ -18,6 +18,8 @@ const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
 const USDC     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
 const EXPLORER = CHAIN_ID === 8453 ? "https://basescan.org" : "https://sepolia.basescan.org";
+const PYTH_CHAIN    = CHAIN_ID === 8453 ? "base" : "base-sepolia";
+const PYTH_EXPLORER = `https://entropy-explorer.pyth.network/?chain=${PYTH_CHAIN}`;
 
 // ── ABIs ──────────────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -352,8 +354,10 @@ export default function App() {
         Promise.all(drLast.map(seq => pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getBet", args:[seq]}))),
       ]);
       const all = [
-        ...cfBets.map((bet,i) => ({id:`cf-${cfLast[i]}`,type:"coinflip",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:localStorage.getItem(`txhash:cf-${cfLast[i]}`) || undefined})),
-        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:localStorage.getItem(`txhash:dr-${drLast[i]}`) || undefined})),
+        ...cfBets.map((bet,i) => ({id:`cf-${cfLast[i]}`,type:"coinflip",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:    localStorage.getItem(`txhash:cf-${cfLast[i]}`) || undefined,
+  seqNum:    cfLast[i].toString()})),
+        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:    localStorage.getItem(`txhash:cf-${drLast[i]}`) || undefined,
+  seqNum:    cfLast[i].toString()})),
       ].filter(tx=>tx.status!==0).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
       setTxHistory(all);
     } catch {}
@@ -637,6 +641,7 @@ export default function App() {
                                     <div style={{textAlign:"right"}}>
                                       <div className="mono" style={{fontSize:11,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
                                       {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:2}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
+                                      <a href={`${PYTH_EXPLORER}&sequenceNumber=${tx.seqNum}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#9094B0",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:2,marginTop:1}}>Pyth ↗</a>
                                     </div>
                                   </div>
                                 ))}
