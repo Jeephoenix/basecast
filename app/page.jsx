@@ -894,7 +894,7 @@ seqNum: drLast[i].toString()})),
           </div>
         )}
 
-              {tab==="verify" && (
+                    {tab==="verify" && (
   <div className="fi" style={{display:"flex",flexDirection:"column",gap:16}}>
     <div className="card">
       <div style={{fontSize:13,fontWeight:700,color:"var(--tx)",marginBottom:4}}>Verify a Bet On-Chain</div>
@@ -940,7 +940,7 @@ seqNum: drLast[i].toString()})),
               : <span style={{fontSize:11,color:"var(--dim)"}}>Not stored locally</span>}
           </div>
         </div>
-                <div style={{padding:"9px 0"}}>
+        <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <span style={{fontSize:11,color:"var(--sub)"}}>Callback Tx</span>
             {verifyResult.callbackTx
@@ -958,7 +958,10 @@ seqNum: drLast[i].toString()})),
     )}
   </div>
 )}
-              
+
       </main>
 
       <AppFooter />
+    </div>
+  );
+}
