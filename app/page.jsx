@@ -251,7 +251,7 @@ const PayInfo = ({wager,mult}) => (
 function SignScreen({isSigning,error,onSign}) {
   return (
     <div className="card fi" style={{textAlign:"center",padding:"40px 24px",display:"flex",flexDirection:"column",alignItems:"center",gap:20}}>
-      <img src="/logo.png" width={60} height={60} style={{borderRadius:14}} onError={e=>e.target.style.display="none"}/>
+      <img src="/logo.png" width={100} height={100} style={{borderRadius:18}} onError={e=>e.target.style.display="none"}/>
       <div>
         <div style={{fontWeight:700,fontSize:20,marginBottom:8}}>One more step</div>
         <div style={{color:"var(--sub)",fontSize:13,lineHeight:1.7}}>
@@ -567,7 +567,7 @@ seqNum: drLast[i].toString()})),
 
       <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <img src="/logo.png" width={32} height={32} style={{borderRadius:8,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+          <img src="/logo.png" width={44} height={44} style={{borderRadius:10,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
           <span className="hdr-logo" style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.05em",textTransform:"uppercase"}}>
             <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
             <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
