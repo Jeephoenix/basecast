@@ -289,6 +289,10 @@ export default function App() {
   const [signing, setSigning] = useState(false);
   const [signErr, setSignErr] = useState(null);
   const [tab, setTab] = useState("coinflip");
+  const [verifySeq,     setVerifySeq]     = useState("");
+const [verifyResult,  setVerifyResult]  = useState(null);
+const [verifyLoading, setVerifyLoading] = useState(false);
+const [verifyErr,     setVerifyErr]     = useState(null);
   const [bal,   setBal]   = useState(0n);
   const [vault, setVault] = useState({b:0n,max:0n,min:0n});
   const [cfChoice,setCfChoice] = useState("HEADS");
@@ -521,6 +525,35 @@ export default function App() {
   };
 
   const busy = s => ["approving","placing","pending"].includes(s);
+  const doVerify = async () => {
+  if (!pub || !verifySeq.trim()) return;
+  setVerifyLoading(true); setVerifyResult(null); setVerifyErr(null);
+  try {
+    const seq = BigInt(verifySeq.trim());
+    let bet = null, gameType = null, contractAddr = null;
+    try {
+      const b = await pub.readContract({address:COINFLIP,abi:CF_ABI,functionName:"getBet",args:[seq]});
+      if (b.player !== "0x0000000000000000000000000000000000000000") { bet=b; gameType="coinflip"; contractAddr=COINFLIP; }
+    } catch {}
+    if (!bet) {
+      try {
+        const b = await pub.readContract({address:DICEROLL,abi:DR_ABI,functionName:"getBet",args:[seq]});
+        if (b.player !== "0x0000000000000000000000000000000000000000") { bet=b; gameType="diceroll"; contractAddr=DICEROLL; }
+      } catch {}
+    }
+    if (!bet) { setVerifyErr("No bet found for this sequence number. Check the number and try again."); setVerifyLoading(false); return; }
+    const reqTx = localStorage.getItem(`txhash:${gameType==="coinflip"?"cf":"dr"}-${seq}`);
+    let callbackTx = null;
+    try {
+      const latest = await pub.getBlockNumber();
+      const fromBlock = latest > 500000n ? latest - 500000n : 0n;
+      const logs = await pub.getLogs({address:contractAddr,event:BET_RESOLVED_EVENT,args:{seqNum:seq},fromBlock,toBlock:"latest"});
+      if (logs.length > 0) callbackTx = logs[0].transactionHash;
+    } catch {}
+    setVerifyResult({gameType,seq:seq.toString(),player:bet.player,status:Number(bet.status),wager:bet.wager,payout:bet.payout,timestamp:Number(bet.timestamp),randomSeed:bet.randomSeed,reqTx,callbackTx});
+  } catch { setVerifyErr("Invalid sequence number or network error. Make sure you are on the right network."); }
+  setVerifyLoading(false);
+};
   const sortedLb = [...lb].sort((a,b)=>lbSrt==="volume"?Number(b.volume-a.volume):Number(b.pnl-a.pnl)).slice(0,10);
   const wrongNet = isConnected && chainId !== CHAIN_ID;
 
@@ -543,7 +576,6 @@ export default function App() {
         </div>
                 <div className="hdr-right" style={{display:"flex",alignItems:"center",gap:8}}>
 
-          {/* Chain selector only — no account avatar button */}
           {/* Balance */}
           {isConnected && authed && (
             <div style={{textAlign:"right",lineHeight:1.2}}>
@@ -692,9 +724,9 @@ export default function App() {
           {id:"coinflip",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M8 2l4 3-4 3" strokeLinecap="round"/></svg>,label:"Coin Flip"},
           {id:"dice",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>,label:"Dice Roll"},
           {id:"leaderboard",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="2" y="14" width="4" height="8"/><rect x="9" y="9" width="4" height="13"/><rect x="16" y="4" width="4" height="18"/></svg>,label:"Leaderboard"},
-          {id:"more",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>,label:"More Coming..."},
+          {id:"verify",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,label:"Verify Bet"},
         ].map(t=>(
-          <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} disabled={t.id==="more"} style={{display:"flex",alignItems:"center",gap:6,...(t.id==="more"?{opacity:.4,cursor:"default"}:{})}}>{t.icon}{t.label}</button>
+          <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} style={{display:"flex",alignItems:"center",gap:6}}>{t.icon}{t.label}</button>
         ))}
       </div>
 
@@ -860,6 +892,66 @@ export default function App() {
             </div>
           </div>
         )}
+
+              {tab==="verify" && (
+  <div className="fi" style={{display:"flex",flexDirection:"column",gap:16}}>
+    <div className="card">
+      <div style={{fontSize:13,fontWeight:700,color:"var(--tx)",marginBottom:4}}>Verify a Bet On-Chain</div>
+      <div style={{fontSize:11,color:"var(--sub)",marginBottom:16,lineHeight:1.6}}>Paste a sequence number from your transaction history to verify the outcome directly from the blockchain.</div>
+      <div style={{display:"flex",gap:8}}>
+        <input className="inp" placeholder="Paste sequence number (e.g. 42)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
+        <button className="btn primary" style={{width:"auto",padding:"0 20px",fontSize:13,flexShrink:0}} onClick={doVerify} disabled={verifyLoading||!verifySeq.trim()}>{verifyLoading?<Spin/>:"Verify"}</button>
+      </div>
+      {verifyErr && <div style={{marginTop:12,fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{verifyErr}</div>}
+    </div>
+    {verifyResult && (
+      <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+          <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>{verifyResult.gameType==="coinflip"?"🪙 Coin Flip":"🎲 Dice Roll"} — Seq #{verifyResult.seq}</div>
+          <div style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:verifyResult.status===0?"rgba(245,158,11,.15)":verifyResult.status===1?"rgba(16,185,129,.15)":"rgba(239,68,68,.15)",color:verifyResult.status===0?"var(--gold)":verifyResult.status===1?"var(--green)":"var(--red)"}}>
+            {verifyResult.status===0?"PENDING":verifyResult.status===1?"WON":"LOST"}
+          </div>
+        </div>
+        {[
+          {label:"Chain",      value:CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"},
+          {label:"Sequence #", value:`#${verifyResult.seq}`},
+          {label:"Player",     value:`${verifyResult.player.slice(0,10)}...${verifyResult.player.slice(-8)}`},
+          {label:"Wager",      value:usd(verifyResult.wager)},
+          {label:"Payout",     value:verifyResult.status===1?usd(verifyResult.payout):"—"},
+          {label:"Timestamp",  value:verifyResult.timestamp>0?new Date(verifyResult.timestamp*1000).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}):"—"},
+        ].map(({label,value})=>(
+          <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+            <span style={{fontSize:11,color:"var(--sub)"}}>{label}</span>
+            <span className="mono" style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
+          </div>
+        ))}
+        <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:11,color:"var(--sub)"}}>Randomness (seed)</span>
+            <button onClick={()=>navigator.clipboard.writeText(verifyResult.randomSeed)} title="Copy" className="mono" style={{fontSize:9,color:"#9094B0",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"2px 6px",cursor:"pointer"}}>{verifyResult.randomSeed.slice(0,10)}...{verifyResult.randomSeed.slice(-8)} 📋</button>
+          </div>
+        </div>
+        <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:11,color:"var(--sub)"}}>Request Tx</span>
+            {verifyResult.reqTx
+              ? <a href={`${EXPLORER}/tx/${verifyResult.reqTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.reqTx.slice(0,10)}...{verifyResult.reqTx.slice(-8)} ↗</a>
+              : <span style={{fontSize:11,color:"var(--dim)"}}>Not stored locally</span>}
+          </div>
+        </div>
+        <div style={{padding:"9px 0"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:11,color:"var(--sub)"}}>Callback Tx</span>
+            {verifyResult.callbackTx
+              ? <a href={`${EXPLORER}/tx/${verifyResult.callbackTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.callbackTx.slice(0,10)}...{verifyResult.callbackTx.slice(-8)} ↗</a>
+              : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not found in range"}</span>}
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+              
       </main>
 
       <AppFooter style={{textAlign:"center",padding:"24px 20px",borderTop:"1px solid var(--bd)",marginTop:20}}>
