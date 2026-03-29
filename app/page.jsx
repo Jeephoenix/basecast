@@ -900,7 +900,7 @@ seqNum: drLast[i].toString()})),
       <div style={{fontSize:13,fontWeight:700,color:"var(--tx)",marginBottom:4}}>Verify a Bet On-Chain</div>
       <div style={{fontSize:11,color:"var(--sub)",marginBottom:16,lineHeight:1.6}}>Paste a sequence number from your transaction history to verify the outcome directly from the blockchain.</div>
       <div style={{display:"flex",gap:8}}>
-        <input className="inp" placeholder="Paste sequence number (e.g. 7391)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
+        <input className="inp" placeholder="Paste sequence number (e.g. 73911)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
         <button className="btn primary" style={{width:"auto",padding:"0 20px",fontSize:13,flexShrink:0}} onClick={doVerify} disabled={verifyLoading||!verifySeq.trim()}>{verifyLoading?<Spin/>:"Verify"}</button>
       </div>
       {verifyErr && <div style={{marginTop:12,fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{verifyErr}</div>}
