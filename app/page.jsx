@@ -329,9 +329,7 @@ export default function App() {
     return () => document.removeEventListener("mousedown", handle);
   }, [menuOpen]);
 
-  useEffect(() => { if (menuOpen && authed) fetchTxHistory(); }, [menuOpen, authed, fetchTxHistory]);
-
-  const fetchTxHistory = useCallback(async () => {
+    const fetchTxHistory = useCallback(async () => {
     if (!pub || !COINFLIP || !DICEROLL || !address) return;
     setTxLoading(true);
     try {
@@ -353,6 +351,8 @@ export default function App() {
     } catch {}
     setTxLoading(false);
   }, [pub, address]);
+
+  useEffect(() => { if (menuOpen && authed) fetchTxHistory(); }, [menuOpen, authed, fetchTxHistory]);
 
   function shortAddr(addr) {
     if (!addr) return "";
@@ -530,6 +530,15 @@ export default function App() {
                 <div className="hdr-right" style={{display:"flex",alignItems:"center",gap:8}}>
 
           {/* Chain selector only — no account avatar button */}
+          {/* Balance */}
+          {isConnected && authed && (
+            <div style={{textAlign:"right",lineHeight:1.2}}>
+              <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>BALANCE</div>
+              <div className="mono" style={{fontSize:13,color:"var(--green)",fontWeight:600}}>{usd(bal)}</div>
+            </div>
+          )}
+
+          {/* Chain selector only — no account avatar button */}
           <ConnectButton.Custom>
             {({account,chain,openChainModal,openConnectModal,mounted}) => {
               if (!mounted) return null;
@@ -548,14 +557,6 @@ export default function App() {
               );
             }}
           </ConnectButton.Custom>
-
-          {/* Balance — right of network button */}
-          {isConnected && authed && (
-            <div style={{textAlign:"right",lineHeight:1.2}}>
-              <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>BALANCE</div>
-              <div className="mono" style={{fontSize:13,color:"var(--green)",fontWeight:600}}>{usd(bal)}</div>
-            </div>
-          )}
 
           {/* Dark mode toggle */}
           <button className="btn" onClick={()=>setLight(l=>!l)} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 10px",borderRadius:8,width:"auto"}}>
