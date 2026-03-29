@@ -71,6 +71,14 @@ const DR_ABI = [
     inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}]},
 ];
 
+const BET_RESOLVED_EVENT = {name:"BetResolved",type:"event",inputs:[
+  {name:"seqNum",type:"uint64",indexed:true},
+  {name:"player",type:"address",indexed:true},
+  {name:"wager",type:"uint256",indexed:false},
+  {name:"payout",type:"uint256",indexed:false},
+  {name:"won",type:"bool",indexed:false},
+]};
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const usd  = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
 const pnl  = (v) => `${v<0n?"-":"+"}$${parseFloat(formatUnits(v<0n?-v:v,6)).toFixed(2)}`;
