@@ -302,7 +302,9 @@ export default function App() {
   const [showConsent, setShowConsent] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [myPnl,   setMyPnl]   = useState(null);
-  const [copied,  setCopied]  = useState(false);
+    const [copied,    setCopied]    = useState(false);
+  const [txHistory, setTxHistory] = useState([]);
+  const [txLoading, setTxLoading] = useState(false);
   const menuRef = useRef(null);
 
     useEffect(() => {
@@ -320,12 +322,52 @@ export default function App() {
 
   useEffect(() => { if (authed) fetchMyPnl(); }, [authed, fetchMyPnl]);
 
-  useEffect(() => {
+    useEffect(() => {
     if (!menuOpen) return;
     const handle = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [menuOpen]);
+
+  useEffect(() => { if (menuOpen && authed) fetchTxHistory(); }, [menuOpen, authed, fetchTxHistory]);
+
+  const fetchTxHistory = useCallback(async () => {
+    if (!pub || !COINFLIP || !DICEROLL || !address) return;
+    setTxLoading(true);
+    try {
+      const [cfSeqs, drSeqs] = await Promise.all([
+        pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getPlayerBets", args:[address]}),
+        pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getPlayerBets", args:[address]}),
+      ]);
+      const cfLast = [...cfSeqs].slice(-15);
+      const drLast = [...drSeqs].slice(-15);
+      const [cfBets, drBets] = await Promise.all([
+        Promise.all(cfLast.map(seq => pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getBet", args:[seq]}))),
+        Promise.all(drLast.map(seq => pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getBet", args:[seq]}))),
+      ]);
+      const all = [
+        ...cfBets.map((bet,i) => ({id:`cf-${cfLast[i]}`,type:"coinflip",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1})),
+        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1})),
+      ].filter(tx=>tx.status!==0).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
+      setTxHistory(all);
+    } catch {}
+    setTxLoading(false);
+  }, [pub, address]);
+
+  function shortAddr(addr) {
+    if (!addr) return "";
+    return addr.slice(0,6) + "..." + addr.slice(-4);
+  }
+
+  function groupByDate(txs) {
+    const groups = {};
+    txs.forEach(tx => {
+      const key = new Date(tx.timestamp*1000).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(tx);
+    });
+    return Object.entries(groups);
+  }
 
   function copyAddress() {
     if (!address) return;
@@ -543,7 +585,7 @@ export default function App() {
                   <div style={{padding:"14px 16px",borderBottom:"1px solid #1E2130"}}>
                     <div style={{fontSize:9,color:"#6B7280",letterSpacing:"1.5px",marginBottom:6}}>CONNECTED WALLET</div>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <span className="mono" style={{fontSize:10,color:"#D1D5DB",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{address}</span>
+                                            <span className="mono" style={{fontSize:12,color:"#D1D5DB",flex:1}}>{shortAddr(address)}</span>
                       <button onClick={copyAddress} style={{background:"none",border:"1px solid #1E2130",borderRadius:6,color:copied?"var(--green)":"#6B7280",fontSize:10,padding:"3px 8px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",flexShrink:0,transition:"color 0.2s"}}>
                         {copied?"✓ Copied":"Copy"}
                       </button>
@@ -561,15 +603,37 @@ export default function App() {
                     }
                   </div>
 
-                  {/* Transaction history */}
-                  <a href={`${EXPLORER}/address/${address}`} target="_blank" rel="noopener noreferrer"
-                    style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:"1px solid #1E2130",textDecoration:"none",color:"#D1D5DB"}}
-                    onClick={()=>setMenuOpen(false)}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                    <span style={{fontSize:13,fontFamily:"'Outfit',sans-serif",flex:1}}>Transaction History</span>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                  </a>
+                                    {/* Transaction history — in-app, grouped by date */}
+                  <div style={{borderBottom:"1px solid #1E2130"}}>
+                    <div style={{padding:"10px 16px 6px",fontSize:9,color:"#6B7280",letterSpacing:"1.5px"}}>RECENT TRANSACTIONS</div>
+                    {txLoading
+                      ? <div style={{padding:"10px 16px 14px",fontSize:12,color:"#6B7280",fontFamily:"'Outfit',sans-serif"}}>Loading...</div>
+                      : txHistory.length===0
+                        ? <div style={{padding:"10px 16px 14px",fontSize:12,color:"#6B7280",fontFamily:"'Outfit',sans-serif"}}>No transactions yet</div>
+                        : <div style={{maxHeight:220,overflowY:"auto"}}>
+                            {groupByDate(txHistory).map(([date,txs])=>(
+                              <div key={date}>
+                                <div style={{padding:"5px 16px",fontSize:9,color:"#4B5563",letterSpacing:"0.8px",background:"rgba(255,255,255,0.02)",borderTop:"1px solid #1E2130",fontFamily:"'Outfit',sans-serif"}}>{date}</div>
+                                {txs.map(tx=>(
+                                  <div key={tx.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.03)"}}>
+                                    <div style={{display:"flex",alignItems:"center",gap:7}}>
+                                      <span style={{fontSize:14,flexShrink:0}}>{tx.type==="coinflip"?"🪙":"🎲"}</span>
+                                      <div>
+                                        <div style={{fontSize:11,color:"#D1D5DB",fontFamily:"'Outfit',sans-serif",fontWeight:500}}>{tx.type==="coinflip"?"Coin Flip":"Dice Roll"}</div>
+                                        <div style={{fontSize:10,color:"#6B7280",fontFamily:"'Outfit',sans-serif"}}>{new Date(tx.timestamp*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</div>
+                                      </div>
+                                    </div>
+                                    <div style={{textAlign:"right"}}>
+                                      <div className="mono" style={{fontSize:11,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
+                                      <div style={{fontSize:9,color:tx.won?"#059669":"#DC2626",fontFamily:"'Outfit',sans-serif"}}>{tx.won?"WIN":"LOSS"}</div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                    }
+                  </div>
 
                   {/* Sign out */}
                   <button
