@@ -797,7 +797,7 @@ seqNum: drLast[i].toString()})),
               <PayInfo wager={cfWager} mult={1.94}/>
             </div>
             <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(cfS)||!parseFloat(cfWager)||parseFloat(cfWager)>parseFloat(formatUnits(bal,6))} onClick={doFlip}>
-              {busy(cfS)?<><Spin/>{cfS==="approving"?"Approving...":cfS==="placing"?"Placing...":"Waiting for result..."}</>:<span className="shimmer">{`FLIP $${cfWager} → $${(parseFloat(cfWager||0)*1.94).toFixed(2)}`}</span>}
+              {busy(cfS)?<><Spin/>{cfS==="approving"?"Approving...":cfS==="placing"?"Placing...":"Waiting for result..."}</>:<span className="shimmer">FLIP COIN</span>}
             </button>
             <div style={{fontSize:10,color:"var(--dim)",textAlign:"center"}}>Pyth Entropy v2 · Provably fair · 3% house edge</div>
           </div>
@@ -850,7 +850,7 @@ seqNum: drLast[i].toString()})),
               <PayInfo wager={dWager} mult={dMode==="range"?1.94:5.82}/>
             </div>
             <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(dS)||!parseFloat(dWager)||parseFloat(dWager)>parseFloat(formatUnits(bal,6))} onClick={doDice}>
-              {busy(dS)?<><Spin/>{dS==="approving"?"Approving...":dS==="placing"?"Placing...":"Rolling..."}</>:<span className="shimmer">{`ROLL $${dWager} → $${(parseFloat(dWager||0)*(dMode==="range"?1.94:5.82)).toFixed(2)}`}</span>}
+              {busy(dS)?<><Spin/>{dS==="approving"?"Approving...":dS==="placing"?"Placing...":"Rolling..."}</>:<span className="shimmer">ROLL DICE</span>}
             </button>
             <div style={{fontSize:10,color:"var(--dim)",textAlign:"center"}}>Pyth Entropy v2 · Provably fair · 3% house edge</div>
           </div>
