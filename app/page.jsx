@@ -720,15 +720,16 @@ seqNum: drLast[i].toString()})),
       </div>
 
       <div style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)"}}>
-        {[
-          {id:"coinflip",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M8 2l4 3-4 3" strokeLinecap="round"/></svg>,label:"Coin Flip"},
-          {id:"dice",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>,label:"Dice Roll"},
-          {id:"leaderboard",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="2" y="14" width="4" height="8"/><rect x="9" y="9" width="4" height="13"/><rect x="16" y="4" width="4" height="18"/></svg>,label:"Leaderboard"},
-          {id:"verify",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,label:"Verify Bet"},
-        ].map(t=>(
-          <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} style={{display:"flex",alignItems:"center",gap:6}}>{t.icon}{t.label}</button>
-        ))}
-      </div>
+  {[
+    {id:"coinflip",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M8 2l4 3-4 3" strokeLinecap="round"/></svg>,label:"Coin Flip"},
+    {id:"dice",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>,label:"Dice Roll"},
+    {id:"verify",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,label:"Verify Bet"},
+    {id:"leaderboard",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="2" y="14" width="4" height="8"/><rect x="9" y="9" width="4" height="13"/><rect x="16" y="4" width="4" height="18"/></svg>,label:"Leaderboard"},
+  ].map(t=>(
+    <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} style={{display:"flex",alignItems:"center",gap:6}}>{t.icon}{t.label}</button>
+  ))}
+  <button className="tab" disabled style={{display:"flex",alignItems:"center",gap:6,color:"#D97706",opacity:0.75,cursor:"default",borderBottom:"2px solid transparent"}}>✦ More Coming...</button>
+</div>
 
       <main className="main-pad" style={{maxWidth:480,margin:"0 auto",padding:"20px 16px"}}>
 
