@@ -706,7 +706,7 @@ seqNum: drLast[i].toString()})),
       {wrongNet && (
         <div style={{background:"rgba(239,68,68,.1)",borderBottom:"1px solid rgba(239,68,68,.3)",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
           <span style={{fontSize:12,color:"var(--red)"}}>⚠ Wrong network</span>
-          <button className="btn primary" style={{padding:"6px 14px",width:"auto",fontSize:12}} onClick={()=>switchChain({chainId:CHAIN_ID})}>Switch to Base</button>
+          <button className="btn primary" style={{padding:"6px 14px",width:"auto",fontSize:12}} onClick={()=>switchChain({chainId:CHAIN_ID})}>Switch to Base Sepolia</button>
         </div>
       )}
 
