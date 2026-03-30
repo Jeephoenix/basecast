@@ -339,6 +339,8 @@ const [showConsent, setShowConsent] = useState(false);
     }
   }, [address, wc, pub, wager, mode, pattern]);
 
+    const PATTERN_MULTS = [2.4, 4.5, 3.5, 3.8, 20];
+  const winMult = mode === 0 ? 2.9 : mode === 1 ? 2.4 : PATTERN_MULTS[pattern];
   const busy  = ["approving","placing","pending"].includes(state);
   const balF  = parseFloat(formatUnits(balance||0n, 6));
   const wagerF= parseFloat(wager||0);
@@ -559,7 +561,7 @@ const [showConsent, setShowConsent] = useState(false);
             disabled={busy}
           />
         </div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           {["1","5","10","25","50"].map(v=>(
             <button key={v} onClick={()=>setWager(v)} disabled={busy}
               style={{
@@ -568,6 +570,29 @@ const [showConsent, setShowConsent] = useState(false);
                 fontFamily:"'Outfit',sans-serif",cursor:"pointer",
               }}>${v}</button>
           ))}
+        </div>
+
+        {/* Win Payout */}
+        <div style={{
+          display:"flex",justifyContent:"space-between",alignItems:"center",
+          background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.15)",
+          borderRadius:8,padding:"10px 14px",
+        }}>
+          <div>
+            <div style={{fontSize:10,color:"#6B7280"}}>WIN PAYOUT</div>
+            <div style={{
+              fontFamily:"'JetBrains Mono',monospace",fontSize:16,
+              color:"#00F5A0",marginTop:2,
+            }}>
+              ${(parseFloat(wager||0) * winMult).toFixed(2)}
+            </div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:10,color:"#6B7280"}}>MULTIPLIER</div>
+            <div style={{
+              fontSize:16,color:"#FFD166",fontWeight:600,marginTop:2,
+            }}>{winMult}×</div>
+          </div>
         </div>
       </div>
 
