@@ -5,6 +5,7 @@
 import { useState, useCallback } from "react";
 import { usePublicClient, useWalletClient, useAccount } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
+import { ConsentModal, hasConsented } from "@/components/PolicyModal";
 
 // ── ABI ───────────────────────────────────────────────────────────────────────
 const BINGO_ABI = [
@@ -157,9 +158,10 @@ export default function BingoGame({ balance, refetchBalance }) {
   const [mode,      setMode]      = useState(0);       // 0=TURBO 1=SPEED 2=PATTERN
   const [pattern,   setPattern]   = useState(0);       // pattern index
   const [wager,     setWager]     = useState("1");
-  const [state,     setState]     = useState("idle");  // idle|approving|placing|pending|settled
-  const [result,    setResult]    = useState(null);
-  const [error,     setError]     = useState(null);
+  const [state,       setState]       = useState("idle");  // idle|approving|placing|pending|settled
+const [result,      setResult]      = useState(null);
+const [error,       setError]       = useState(null);
+const [showConsent, setShowConsent] = useState(false);
 
   // ── Allowance ───────────────────────────────────────────────────────────────
   const ensureAllow = async (amt) => {
@@ -190,11 +192,14 @@ export default function BingoGame({ balance, refetchBalance }) {
         if (bet.status !== 0) {
           clearInterval(iv);
           // Re-read result from BingoResult event logs
+                    const latestBlock = await pub.getBlockNumber();
+          const fromBlock = latestBlock > 500n ? latestBlock - 500n : 0n;
           const logs = await pub.getLogs({
             address:BINGO_ADDR,
             event: BINGO_ABI.find(x=>x.name==="BingoResult"),
             args:  { seqNum },
-            fromBlock: "latest",
+            fromBlock,
+            toBlock: "latest",
           });
           let card=[], drawn=[];
           if (logs[0]?.args) { card=logs[0].args.card||[]; drawn=logs[0].args.drawnNumbers||[]; }
@@ -216,6 +221,7 @@ export default function BingoGame({ balance, refetchBalance }) {
 
   // ── Place Bet ────────────────────────────────────────────────────────────────
   const placeBet = useCallback(async () => {
+    if (!hasConsented()) { setShowConsent(true); return; }
     if (!address || !wc || !BINGO_ADDR) return;
     setError(null); setResult(null);
     try {
@@ -276,8 +282,9 @@ export default function BingoGame({ balance, refetchBalance }) {
     return `${mLabel} · $${wager}`;
   };
 
-  return (
+    return (
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      {showConsent && <ConsentModal onAccept={() => setShowConsent(false)} />}
 
       {/* Mode Selector */}
       <div style={{display:"flex",gap:8}}>
