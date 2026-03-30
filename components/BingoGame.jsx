@@ -6,6 +6,16 @@ import { useState, useCallback } from "react";
 import { usePublicClient, useWalletClient, useAccount } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import { ConsentModal, hasConsented } from "@/components/PolicyModal";
+// Icon components for mode tabs
+const ZapIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+);
+const GaugeIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 12 4.93 4.93"/><circle cx="12" cy="12" r="1.5"/></svg>
+);
+const TargetIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+);
 
 // ── ABI ───────────────────────────────────────────────────────────────────────
 const BINGO_ABI = [
@@ -127,9 +137,9 @@ function playBingoLose() {
 }
 
 const MODES = [
-  { id:0, key:"TURBO",   label:"⚡ Turbo",   grid:3, desc:"3×3 · Fastest · Any line wins" },
-  { id:1, key:"SPEED",   label:"🚀 Speed",   grid:5, desc:"5×5 · First line or full card"  },
-  { id:2, key:"PATTERN", label:"🎯 Pattern", grid:5, desc:"5×5 · Choose your pattern"      },
+  { id:0, key:"TURBO",   label:"Turbo",   icon: <ZapIcon />,    grid:3, ... },
+{ id:1, key:"SPEED",   label:"Speed",   icon: <GaugeIcon />,  grid:5, ... },
+{ id:2, key:"PATTERN", label:"Pattern", icon: <TargetIcon />, grid:5, ... },
 ];
 
 const PATTERNS = [
@@ -327,11 +337,11 @@ const [showConsent, setShowConsent] = useState(false);
       }
 
       const hash    = await wc.writeContract(req);
-      const receipt = await pub.waitForTransactionReceipt({hash});
-      const seq     = receipt.logs.at(-1)?.topics?.[1]
-        ? BigInt(receipt.logs.at(-1).topics[1]) : null;
-
-      setState("pending");
+const receipt = await pub.waitForTransactionReceipt({hash});
+const seq     = receipt.logs.at(-1)?.topics?.[1]
+  ? BigInt(receipt.logs.at(-1).topics[1]) : null;
+if (seq !== null) localStorage.setItem(`txhash:bingo-${seq}`, hash); // ← ADD THIS LINE
+setState("pending");
       if (seq !== null) pollResult(seq);
     } catch(e) {
       setError(e.shortMessage || e.message || "Transaction failed");
@@ -371,7 +381,9 @@ const [showConsent, setShowConsent] = useState(false);
               color:       mode===m.id ? "#fff"     : "#6B7280",
               outline: mode===m.id ? "2px solid rgba(37,99,235,0.4)" : "none",
             }}>
-            <div>{m.label}</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+  {m.icon}{m.label}
+</div>
             <div style={{fontSize:9,fontWeight:400,marginTop:3,
               color:mode===m.id?"rgba(255,255,255,0.7)":"#374151"}}>{m.desc}</div>
           </button>
