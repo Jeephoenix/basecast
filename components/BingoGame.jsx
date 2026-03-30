@@ -716,12 +716,16 @@ export default function BingoGame({ balance, refetchBalance }) {
 
         {phase==="won" && result && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
-            <div style={{
-              fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:26,
-              color:"#10B981",textAlign:"center",
+                        <div style={{
+              fontFamily:"'JetBrains Mono',monospace",fontWeight:800,fontSize:28,
+              color:"#10B981",textAlign:"center",letterSpacing:"3px",
               animation:"pulse-win 0.6s ease-in-out",
+              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
             }}>
-              🎉 BINGO!
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin:"round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              BINGO!
             </div>
             <div style={{
               fontFamily:"'JetBrains Mono',monospace",fontSize:18,
@@ -758,11 +762,17 @@ export default function BingoGame({ balance, refetchBalance }) {
 
         {phase==="lost" && result && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
-            <div style={{
-              fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:22,
-              color:"#EF4444",
+                        <div style={{
+              fontFamily:"'JetBrains Mono',monospace",fontWeight:800,fontSize:22,
+              color:"#EF4444",letterSpacing:"2px",
+              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
             }}>
-              😔 No Match
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+              NO MATCH
             </div>
 
             <div style={{width:"100%",maxWidth:result.gridSize===3?180:240}}>
