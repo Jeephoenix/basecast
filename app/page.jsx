@@ -2,6 +2,7 @@
 // app/page.jsx — BaseCast v2
 
 import { AppFooter, ConsentModal, hasConsented } from "@/components/PolicyModal";
+import BingoGame from "@/components/BingoGame";
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   useAccount, useChainId, useSwitchChain,
@@ -723,6 +724,7 @@ seqNum: drLast[i].toString()})),
   {[
     {id:"coinflip",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M8 2l4 3-4 3" strokeLinecap="round"/></svg>,label:"Coin Flip"},
     {id:"dice",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>,label:"Dice Roll"},
+      {id:"bingo",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>,label:"Bingo"},
     {id:"verify",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,label:"Verify Bet"},
     {id:"leaderboard",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="2" y="14" width="4" height="8"/><rect x="9" y="9" width="4" height="13"/><rect x="16" y="4" width="4" height="18"/></svg>,label:"Leaderboard"},
   ].map(t=>(
@@ -854,6 +856,16 @@ seqNum: drLast[i].toString()})),
             </button>
             <div style={{fontSize:10,color:"var(--dim)",textAlign:"center"}}>Pyth Entropy v2 · Provably fair · 3% house edge</div>
           </div>
+        )}
+
+                {tab==="bingo" && isConnected && authed && (
+          <div className="fi">
+            <BingoGame balance={bal} refetchBalance={fetchStats}/>
+          </div>
+        )}
+
+        {tab==="bingo" && isConnected && !authed && (
+          <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
         )}
 
         {tab==="leaderboard" && (
