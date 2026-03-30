@@ -137,9 +137,9 @@ function playBingoLose() {
 }
 
 const MODES = [
-  { id:0, key:"TURBO",   label:"Turbo",   icon: <ZapIcon />,    grid:3, ... },
-{ id:1, key:"SPEED",   label:"Speed",   icon: <GaugeIcon />,  grid:5, ... },
-{ id:2, key:"PATTERN", label:"Pattern", icon: <TargetIcon />, grid:5, ... },
+  { id:0, key:"TURBO",   label:"Turbo",   icon: <ZapIcon />,    grid:3, desc:"3×3 · Fastest · Any line wins" },
+  { id:1, key:"SPEED",   label:"Speed",   icon: <GaugeIcon />,  grid:5, desc:"5×5 · First line or full card"  },
+  { id:2, key:"PATTERN", label:"Pattern", icon: <TargetIcon />, grid:5, desc:"5×5 · Choose your pattern"      },
 ];
 
 const PATTERNS = [
