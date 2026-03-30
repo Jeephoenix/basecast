@@ -65,7 +65,8 @@ function ordinal(n) {
 const MODES = [
   { id:0, key:"TURBO",   label:"Turbo",   grid:3, desc:"3×3 · Fastest · Any line wins" },
   { id:1, key:"SPEED",   label:"Speed",   grid:5, desc:"5×5 · First line or full card"  },
-  { id:2, key:"PATTERN", label:"Pattern", grid:5, desc:"5×5 · Choose your pattern"      },
+    { id:2, key:"PATTERN", label:"Pattern", grid:5, desc:"5×5 · Choose your pattern"      },
+  { id:3, key:"MULTILAYER", label:"Multilayer", grid:5, desc:"Coming soon...", disabled:true },
 ];
 
 const PATTERNS = [
@@ -509,15 +510,17 @@ export default function BingoGame({ balance, refetchBalance }) {
       {phase==="idle" && (
         <div style={{display:"flex",gap:8}}>
           {MODES.map(m=>(
-            <button key={m.id}
-              onClick={()=>{setMode(m.id);reset();}}
+                        <button key={m.id}
+              onClick={()=>{ if(!m.disabled){setMode(m.id);reset();} }}
+              disabled={m.disabled}
               style={{
                 flex:1,padding:"12px 8px",border:"none",borderRadius:10,
-                cursor:"pointer",transition:"all 0.15s",
+                cursor:m.disabled?"not-allowed":"pointer",transition:"all 0.15s",
                 fontFamily:"'Outfit',sans-serif",fontWeight:600,fontSize:12,
-                background: mode===m.id ? "#2563EB" : "#13151C",
-                color:       mode===m.id ? "#fff"     : "#6B7280",
+                background: m.disabled ? "#0E1017" : mode===m.id ? "#2563EB" : "#13151C",
+                color:       m.disabled ? "#374151" : mode===m.id ? "#fff"     : "#6B7280",
                 outline: mode===m.id ? "2px solid rgba(37,99,235,0.4)" : "none",
+                opacity: m.disabled ? 0.6 : 1,
               }}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
                 <ModeIcon id={m.id} active={mode===m.id}/>
