@@ -74,7 +74,19 @@ const DR_ABI = [
   {name:"getPlayerBets", type:"function", stateMutability:"view",
     inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}]},
 ];
-
+const BINGO_ABI = [
+  { name:"getBet", type:"function", stateMutability:"view",
+    inputs:[{name:"seqNum",type:"uint64"}],
+    outputs:[{name:"",type:"tuple",components:[
+      {name:"player",type:"address"},{name:"wager",type:"uint96"},
+      {name:"mode",type:"uint8"},{name:"pattern",type:"uint8"},
+      {name:"status",type:"uint8"},{name:"payout",type:"uint96"},
+      {name:"timestamp",type:"uint32"},{name:"randomSeed",type:"bytes32"},
+      {name:"gridSize",type:"uint8"},
+    ]}] },
+  { name:"getPlayerBets", type:"function", stateMutability:"view",
+    inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}] },
+];
 const BET_RESOLVED_EVENT = {name:"BetResolved",type:"event",inputs:[
   {name:"seqNum",type:"uint64",indexed:true},
   {name:"player",type:"address",indexed:true},
