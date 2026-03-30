@@ -66,7 +66,7 @@ const MODES = [
   { id:0, key:"TURBO",   label:"Turbo",   grid:3, desc:"3×3 · Fastest · Any line wins" },
   { id:1, key:"SPEED",   label:"Speed",   grid:5, desc:"5×5 · First line or full card"  },
     { id:2, key:"PATTERN", label:"Pattern", grid:5, desc:"5×5 · Choose your pattern"      },
-  { id:3, key:"MULTILAYER", label:"Multilayer", grid:5, desc:"Coming soon...", disabled:true },
+  { id:3, key:"MULTIPLAYER", label:"Multiplayer", grid:5, desc:"Coming soon...", disabled:true },
 ];
 
 const PATTERNS = [
