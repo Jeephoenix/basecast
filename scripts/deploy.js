@@ -65,11 +65,20 @@ async function main() {
   console.log(`   → ${dicerollAddr}`);
   if (net !== "hardhat") await diceroll.deploymentTransaction().wait(3);
 
-  // 4. Authorize
+    // 4. Bingo
+  console.log("🎯 Deploying Bingo...");
+  const bingo = await (await ethers.getContractFactory("Bingo")).deploy(vaultAddr, cfg.entropy);
+  await bingo.waitForDeployment();
+  const bingoAddr = await bingo.getAddress();
+  console.log(`   → ${bingoAddr}`);
+  if (net !== "hardhat") await bingo.deploymentTransaction().wait(3);
+
+  // 5. Authorize
   console.log("\n🔐 Authorizing games...");
   await (await vault.setGameAuthorized(coinflipAddr, true)).wait();
   await (await vault.setGameAuthorized(dicerollAddr, true)).wait();
-  console.log("   CoinFlip ✓  DiceRoll ✓");
+  await (await vault.setGameAuthorized(bingoAddr, true)).wait();
+  console.log("   CoinFlip ✓  DiceRoll ✓  Bingo ✓");
 
   // Summary
   console.log("\n╔══════════════════════════════════════╗");
@@ -79,13 +88,14 @@ async function main() {
   console.log(`  NEXT_PUBLIC_VAULT_ADDRESS=${vaultAddr}`);
   console.log(`  NEXT_PUBLIC_COINFLIP_ADDRESS=${coinflipAddr}`);
   console.log(`  NEXT_PUBLIC_DICEROLL_ADDRESS=${dicerollAddr}`);
+    console.log(`  NEXT_PUBLIC_BINGO_ADDRESS=${bingoAddr}`);
   console.log(`  NEXT_PUBLIC_USDC_ADDRESS=${usdcAddr}`);
   console.log(`  NEXT_PUBLIC_CHAIN_ID=${cfg.chainId}`);
   console.log(`  NEXT_PUBLIC_ENTROPY_ADDRESS=${cfg.entropy}`);
   console.log(`  NEXT_PUBLIC_ENTROPY_PROVIDER=${cfg.provider}`);
   console.log("\n  ⚠️  Post-deploy:");
   console.log("  1. Approve USDC + call vault.depositHouseFunds(amount)");
-  console.log("  2. Send 0.05 ETH to CoinFlip + DiceRoll (for Pyth fees)");
+  console.log("  2. Send 0.05 ETH to CoinFlip, DiceRoll, and Bingo (for Pyth fees)");
 }
 
 main().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });
