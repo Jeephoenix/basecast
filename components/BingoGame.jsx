@@ -94,13 +94,8 @@ function getWinLines(gridSize) {
 
 function checkWin(card, revealedDrawnSet, mode, pattern, gridSize) {
   const matched = new Set(card.map((n,i)=>(revealedDrawnSet.has(n)?i:-1)).filter(i=>i>=0));
-
-  if (mode === 0) {
-    return getWinLines(3).some(line => line.every(i => matched.has(i)));
-  }
-  if (mode === 1) {
-    return getWinLines(5).some(line => line.every(i => matched.has(i))) || matched.size === 25;
-  }
+  if (mode === 0) return getWinLines(3).some(line => line.every(i => matched.has(i)));
+  if (mode === 1) return getWinLines(5).some(line => line.every(i => matched.has(i))) || matched.size === 25;
   if (mode === 2) {
     if (pattern === 0) return getWinLines(5).some(line => line.every(i => matched.has(i)));
     if (pattern === 1) {
@@ -227,7 +222,6 @@ function PatternPreview({ patternId, size=5 }) {
 // ── Bingo Card ────────────────────────────────────────────────────────────────
 function BingoCard({ card, revealedSet, winCells, gridSize, phase, justRevealedNum }) {
   if (!card || card.length === 0) return null;
-
   return (
     <div style={{
       display:"grid",
@@ -326,7 +320,6 @@ export default function BingoGame({ balance, refetchBalance }) {
   const [pattern,     setPattern]     = useState(0);
   const [wager,       setWager]       = useState("1");
   const [phase,       setPhase]       = useState("idle");
-  // idle | approving | placing | pending | revealing | won | lost
   const [result,      setResult]      = useState(null);
   const [revealIndex, setRevealIndex] = useState(0);
   const [winCells,    setWinCells]    = useState(null);
@@ -339,7 +332,6 @@ export default function BingoGame({ balance, refetchBalance }) {
     ? new Set(result.drawn.slice(0, revealIndex).map(Number))
     : new Set();
 
-  // ── Allowance ───────────────────────────────────────────────────────────────
   const ensureAllow = async (amt) => {
     const al = await pub.readContract({
       address:USDC_ADDR, abi:USDC_ABI,
@@ -355,7 +347,6 @@ export default function BingoGame({ balance, refetchBalance }) {
     await pub.waitForTransactionReceipt({hash:h});
   };
 
-  // ── Poll for on-chain result ─────────────────────────────────────────────────
   const pollResult = (seqNum, fromBlock) => {
     let i = 0;
     const iv = setInterval(async () => {
@@ -403,7 +394,6 @@ export default function BingoGame({ balance, refetchBalance }) {
     }, 2500);
   };
 
-  // ── Place bet ────────────────────────────────────────────────────────────────
   const placeBet = useCallback(async () => {
     if (!address || !wc || !BINGO_ADDR) return;
     setError(null); setResult(null); setRevealIndex(0); setWinCells(null);
@@ -451,7 +441,6 @@ export default function BingoGame({ balance, refetchBalance }) {
     }
   }, [address, wc, pub, wager, mode, pattern]);
 
-  // ── Reveal one number ────────────────────────────────────────────────────────
   const revealNext = useCallback(() => {
     if (!result || phase !== "revealing") return;
     const nextIndex = revealIndex + 1;
@@ -467,7 +456,6 @@ export default function BingoGame({ balance, refetchBalance }) {
 
     setRevealIndex(nextIndex);
 
-    // Only decide win/loss after ALL drawn numbers have been revealed
     if (nextIndex >= result.drawn.length) {
       const won = checkWin(result.card, newRevealed, result.mode, result.pattern, result.gridSize);
       if (won) {
@@ -511,11 +499,9 @@ export default function BingoGame({ balance, refetchBalance }) {
     return `${mLabel} · $${wager}`;
   };
 
-  const totalDrawn   = result?.drawn?.length ?? 0;
-  const revealLeft   = totalDrawn - revealIndex;
-  const revealLabel  = revealLeft > 0
-    ? `Reveal ${ordinal(revealIndex+1)} number`
-    : null;
+  const totalDrawn  = result?.drawn?.length ?? 0;
+  const revealLeft  = totalDrawn - revealIndex;
+  const revealLabel = revealLeft > 0 ? `Reveal ${ordinal(revealIndex+1)} number` : null;
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -659,16 +645,11 @@ export default function BingoGame({ balance, refetchBalance }) {
             <div style={{width:"100%",display:"flex",flexDirection:"column",gap:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{fontSize:10,color:"#6B7280",letterSpacing:"2px"}}>YOUR CARD</div>
-                <div style={{
-                  fontSize:11,color:"#4B5563",
-                  fontFamily:"'JetBrains Mono',monospace",
-                }}>
+                <div style={{fontSize:11,color:"#4B5563",fontFamily:"'JetBrains Mono',monospace"}}>
                   {revealIndex} / {totalDrawn} drawn
                 </div>
               </div>
-              <div style={{
-                width:"100%",height:3,background:"#13151C",borderRadius:2,overflow:"hidden",
-              }}>
+              <div style={{width:"100%",height:3,background:"#13151C",borderRadius:2,overflow:"hidden"}}>
                 <div style={{
                   height:"100%",borderRadius:2,
                   background:"linear-gradient(90deg,#2563EB,#60A5FA)",
@@ -699,30 +680,31 @@ export default function BingoGame({ balance, refetchBalance }) {
                 cursor:"pointer",letterSpacing:"0.5px",
                 boxShadow:"0 4px 16px rgba(37,99,235,0.4)",
                 transition:"all 0.15s",
+                display:"flex",alignItems:"center",justifyContent:"center",gap:8,
               }}
               onMouseEnter={e=>e.currentTarget.style.transform="translateY(-1px)"}
               onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:6}}>
-  <circle cx="12" cy="12" r="10"/>
-  <path d="M12 8v4l3 3"/>
-  <path d="M3.6 9h16.8"/>
-  <path d="M3.6 15h16.8"/>
-</svg>
-{revealLabel}
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4l3 3"/>
+                <path d="M3.6 9h16.8"/>
+                <path d="M3.6 15h16.8"/>
+              </svg>
+              {revealLabel}
             </button>
           </div>
         )}
 
         {phase==="won" && result && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
-                        <div style={{
+            <div style={{
               fontFamily:"'JetBrains Mono',monospace",fontWeight:800,fontSize:28,
               color:"#10B981",textAlign:"center",letterSpacing:"3px",
               animation:"pulse-win 0.6s ease-in-out",
               display:"flex",alignItems:"center",justifyContent:"center",gap:10,
             }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin:"round">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
               </svg>
               BINGO!
@@ -762,7 +744,7 @@ export default function BingoGame({ balance, refetchBalance }) {
 
         {phase==="lost" && result && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
-                        <div style={{
+            <div style={{
               fontFamily:"'JetBrains Mono',monospace",fontWeight:800,fontSize:22,
               color:"#EF4444",letterSpacing:"2px",
               display:"flex",alignItems:"center",justifyContent:"center",gap:10,
@@ -910,4 +892,4 @@ export default function BingoGame({ balance, refetchBalance }) {
       </div>
     </div>
   );
-                             }
+   }
