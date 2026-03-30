@@ -63,9 +63,9 @@ function ordinal(n) {
 }
 
 const MODES = [
-  { id:0, key:"TURBO",   label:"⚡ Turbo",   grid:3, desc:"3×3 · Fastest · Any line wins" },
-  { id:1, key:"SPEED",   label:"🚀 Speed",   grid:5, desc:"5×5 · First line or full card"  },
-  { id:2, key:"PATTERN", label:"🎯 Pattern", grid:5, desc:"5×5 · Choose your pattern"      },
+  { id:0, key:"TURBO",   label:"Turbo",   grid:3, desc:"3×3 · Fastest · Any line wins" },
+  { id:1, key:"SPEED",   label:"Speed",   grid:5, desc:"5×5 · First line or full card"  },
+  { id:2, key:"PATTERN", label:"Pattern", grid:5, desc:"5×5 · Choose your pattern"      },
 ];
 
 const PATTERNS = [
@@ -286,6 +286,36 @@ function BingoCard({ card, revealedSet, winCells, gridSize, phase, justRevealedN
   );
 }
 
+// ── Mode Icons ────────────────────────────────────────────────────────────────
+function ModeIcon({ id, active }) {
+  const color = active ? "#fff" : "#6B7280";
+  const svg = { width:18, height:18, viewBox:"0 0 24 24", fill:"none",
+    stroke:color, strokeWidth:2, strokeLinecap:"round", strokeLinejoin:"round" };
+  if (id === 0) return (
+    <svg {...svg}>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </svg>
+  );
+  if (id === 1) return (
+    <svg {...svg}>
+      <path d="M3 12a9 9 0 1 0 18 0A9 9 0 0 0 3 12"/>
+      <path d="M12 8v4l2 2"/>
+      <path d="M8 5.5 10 7"/>
+      <path d="M16 5.5 14 7"/>
+    </svg>
+  );
+  return (
+    <svg {...svg}>
+      <circle cx="12" cy="12" r="10"/>
+      <circle cx="12" cy="12" r="4"/>
+      <line x1="12" y1="2" x2="12" y2="6"/>
+      <line x1="12" y1="18" x2="12" y2="22"/>
+      <line x1="2"  y1="12" x2="6"  y2="12"/>
+      <line x1="18" y1="12" x2="22" y2="12"/>
+    </svg>
+  );
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function BingoGame({ balance, refetchBalance }) {
   const { address }  = useAccount();
@@ -466,6 +496,13 @@ export default function BingoGame({ balance, refetchBalance }) {
   const balF  = parseFloat(formatUnits(balance||0n, 6));
   const wagerF= parseFloat(wager||0);
 
+  const payoutMult = (() => {
+    if (mode === 0) return 2.9;
+    if (mode === 1) return 2.4;
+    const multStr = PATTERNS[pattern]?.mult ?? "2.4×";
+    return parseFloat(multStr.replace("×", ""));
+  })();
+
   const btnLabel = () => {
     if (phase==="approving") return "Approving USDC...";
     if (phase==="placing")   return "Placing bet...";
@@ -496,7 +533,10 @@ export default function BingoGame({ balance, refetchBalance }) {
                 color:       mode===m.id ? "#fff"     : "#6B7280",
                 outline: mode===m.id ? "2px solid rgba(37,99,235,0.4)" : "none",
               }}>
-              <div>{m.label}</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                <ModeIcon id={m.id} active={mode===m.id}/>
+                <span>{m.label}</span>
+              </div>
               <div style={{fontSize:9,fontWeight:400,marginTop:3,
                 color:mode===m.id?"rgba(255,255,255,0.7)":"#374151"}}>{m.desc}</div>
             </button>
@@ -783,6 +823,31 @@ export default function BingoGame({ balance, refetchBalance }) {
             </div>
           </div>
 
+          <div style={{
+            display:"flex",justifyContent:"space-between",alignItems:"center",
+            background:"rgba(37,99,235,0.06)",border:"1px solid rgba(37,99,235,0.15)",
+            borderRadius:8,padding:"10px 14px",
+          }}>
+            <div>
+              <div style={{fontSize:10,color:"#9094B0",letterSpacing:"1px"}}>WIN PAYOUT</div>
+              <div style={{
+                fontFamily:"'JetBrains Mono',monospace",fontSize:16,
+                color:"#00F5A0",fontWeight:600,marginTop:2,
+              }}>
+                ${(wagerF * payoutMult).toFixed(2)}
+              </div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:10,color:"#9094B0",letterSpacing:"1px"}}>MULTIPLIER</div>
+              <div style={{
+                fontFamily:"'JetBrains Mono',monospace",fontSize:16,
+                color:"#FFD166",fontWeight:600,marginTop:2,
+              }}>
+                {payoutMult}×
+              </div>
+            </div>
+          </div>
+
           <button
             disabled={busy || !wagerF || wagerF > balF || !BINGO_ADDR}
             onClick={placeBet}
@@ -829,4 +894,4 @@ export default function BingoGame({ balance, refetchBalance }) {
       </div>
     </div>
   );
-}
+                             }
