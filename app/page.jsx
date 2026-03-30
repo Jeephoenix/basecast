@@ -16,6 +16,7 @@ import { parseUnits, formatUnits } from "viem";
 const VAULT    = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
 const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
 const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
+const BINGO    = process.env.NEXT_PUBLIC_BINGO_ADDRESS;
 const USDC     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
 const EXPLORER = CHAIN_ID === 8453 ? "https://basescan.org" : "https://sepolia.basescan.org";
@@ -348,22 +349,24 @@ const [verifyErr,     setVerifyErr]     = useState(null);
     if (!pub || !COINFLIP || !DICEROLL || !address) return;
     setTxLoading(true);
     try {
-      const [cfSeqs, drSeqs] = await Promise.all([
-        pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getPlayerBets", args:[address]}),
-        pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getPlayerBets", args:[address]}),
-      ]);
-      const cfLast = [...cfSeqs].slice(-15);
-      const drLast = [...drSeqs].slice(-15);
-      const [cfBets, drBets] = await Promise.all([
-        Promise.all(cfLast.map(seq => pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getBet", args:[seq]}))),
-        Promise.all(drLast.map(seq => pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getBet", args:[seq]}))),
-      ]);
-      const all = [
-        ...cfBets.map((bet,i) => ({id:`cf-${cfLast[i]}`,type:"coinflip",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:    localStorage.getItem(`txhash:cf-${cfLast[i]}`) || undefined,
-  seqNum:    cfLast[i].toString()})),
-        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash: localStorage.getItem(`txhash:dr-${drLast[i]}`) || undefined,
-seqNum: drLast[i].toString()})),
-      ].filter(tx=>tx.status!==0).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
+      const [cfSeqs, drSeqs, bingoSeqs] = await Promise.all([
+  pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getPlayerBets", args:[address]}),
+  pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getPlayerBets", args:[address]}),
+  BINGO ? pub.readContract({address:BINGO, abi:BINGO_ABI, functionName:"getPlayerBets", args:[address]}) : Promise.resolve([]),
+]);
+const cfLast    = [...cfSeqs].slice(-15);
+const drLast    = [...drSeqs].slice(-15);
+const bingoLast = [...bingoSeqs].slice(-15);
+const [cfBets, drBets, bingoBets] = await Promise.all([
+  Promise.all(cfLast.map(seq => pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getBet", args:[seq]}))),
+  Promise.all(drLast.map(seq => pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getBet", args:[seq]}))),
+  Promise.all(bingoLast.map(seq => pub.readContract({address:BINGO, abi:BINGO_ABI, functionName:"getBet", args:[seq]}))),
+]);
+const all = [
+  ...cfBets.map((bet,i)    => ({id:`cf-${cfLast[i]}`,    type:"coinflip", wager:bet.wager, payout:bet.payout, status:Number(bet.status), timestamp:Number(bet.timestamp), won:Number(bet.status)===1, txHash:localStorage.getItem(`txhash:cf-${cfLast[i]}`)    || undefined, seqNum:cfLast[i].toString()})),
+  ...drBets.map((bet,i)    => ({id:`dr-${drLast[i]}`,    type:"diceroll", wager:bet.wager, payout:bet.payout, status:Number(bet.status), timestamp:Number(bet.timestamp), won:Number(bet.status)===1, txHash:localStorage.getItem(`txhash:dr-${drLast[i]}`)    || undefined, seqNum:drLast[i].toString()})),
+  ...bingoBets.map((bet,i) => ({id:`bingo-${bingoLast[i]}`, type:"bingo",wager:bet.wager, payout:bet.payout, status:Number(bet.status), timestamp:Number(bet.timestamp), won:Number(bet.status)===1, txHash:localStorage.getItem(`txhash:bingo-${bingoLast[i]}`) || undefined, seqNum:bingoLast[i].toString()})),
+].filter(tx=>tx.status!==0).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
       setTxHistory(all);
     } catch {}
     setTxLoading(false);
