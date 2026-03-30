@@ -703,7 +703,13 @@ export default function BingoGame({ balance, refetchBalance }) {
               onMouseEnter={e=>e.currentTarget.style.transform="translateY(-1px)"}
               onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}
             >
-              🎱 {revealLabel}
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{display:"inline",verticalAlign:"middle",marginRight:6}}>
+  <circle cx="12" cy="12" r="10"/>
+  <path d="M12 8v4l3 3"/>
+  <path d="M3.6 9h16.8"/>
+  <path d="M3.6 15h16.8"/>
+</svg>
+{revealLabel}
             </button>
           </div>
         )}
