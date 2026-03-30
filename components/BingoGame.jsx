@@ -59,6 +59,88 @@ const USDC_ADDR  = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const usd = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
 
+function playBingoWin() {
+  try {
+    const utterance = new SpeechSynthesisUtterance("BINGO!");
+    utterance.rate   = 0.8;
+    utterance.pitch  = 1.4;
+    utterance.volume = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  } catch {}
+
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    [523, 659, 784, 1047, 1319].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "square";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.28);
+      osc.start(ctx.currentTime + i * 0.12);
+      osc.stop(ctx.currentTime + i * 0.12 + 0.3);
+    });
+
+    for (let b = 0; b < 10; b++) {
+      const bufferSize = Math.floor(ctx.sampleRate * 0.12);
+      const buffer     = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data       = buffer.getChannelData(0);
+      for (let j = 0; j < bufferSize; j++) data[j] = Math.random() * 2 - 1;
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type            = "bandpass";
+      filter.frequency.value = 1800 + Math.random() * 2400;
+      filter.Q.value         = 0.4;
+
+      const gain      = ctx.createGain();
+      const startTime = ctx.currentTime + 0.6 + b * 0.16;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.12, startTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.11);
+
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(startTime);
+    }
+  } catch {}
+}
+
+function playBingoLose() {
+  try {
+    const utterance = new SpeechSynthesisUtterance("Better luck next time!");
+    utterance.rate   = 0.9;
+    utterance.pitch  = 0.8;
+    utterance.volume = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  } catch {}
+
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [349, 311, 277, 233].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.2);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime + i * 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.2 + 0.38);
+      osc.start(ctx.currentTime + i * 0.2);
+      osc.stop(ctx.currentTime + i * 0.2 + 0.4);
+    });
+  } catch {}
+}
+
 const MODES = [
   { id:0, key:"TURBO",   label:"⚡ Turbo",   grid:3, desc:"3×3 · Fastest · Any line wins" },
   { id:1, key:"SPEED",   label:"🚀 Speed",   grid:5, desc:"5×5 · First line or full card"  },
@@ -201,10 +283,12 @@ const [showConsent, setShowConsent] = useState(false);
             fromBlock,
             toBlock: "latest",
           });
-          let card=[], drawn=[];
+                    let card=[], drawn=[];
           if (logs[0]?.args) { card=logs[0].args.card||[]; drawn=logs[0].args.drawnNumbers||[]; }
+          const won = bet.status === 1;
+          won ? playBingoWin() : playBingoLose();
           setResult({
-            won:    bet.status===1,
+            won,
             payout: bet.payout,
             wager:  bet.wager,
             mode:   bet.mode,
