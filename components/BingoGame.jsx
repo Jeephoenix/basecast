@@ -60,13 +60,44 @@ const USDC_ADDR  = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 const usd = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
 
 function playBingoWin() {
+  // Voice: "BINGO!" — deep male, natural-sounding
   try {
-    const utterance = new SpeechSynthesisUtterance("BINGO!");
-    utterance.rate   = 0.8;
-    utterance.pitch  = 1.4;
-    utterance.volume = 1;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    const speak = () => {
+      const utterance  = new SpeechSynthesisUtterance("BINGO!");
+      utterance.rate   = 0.82;
+      utterance.pitch  = 0.7;
+      utterance.volume = 1;
+
+      // Pick the most natural-sounding male English voice available
+      const voices = window.speechSynthesis.getVoices();
+      const preferred = [
+        "Google UK English Male",
+        "Microsoft Guy Online (Natural) - English (United States)",
+        "Microsoft David Desktop - English (United States)",
+        "Daniel",
+        "Alex",
+        "Mark",
+      ];
+      let picked = null;
+      for (const name of preferred) {
+        picked = voices.find(v => v.name === name);
+        if (picked) break;
+      }
+      // Fallback: any male or en-US voice
+      if (!picked) picked = voices.find(v => /male/i.test(v.name) && /en/i.test(v.lang));
+      if (!picked) picked = voices.find(v => /en/i.test(v.lang));
+      if (picked) utterance.voice = picked;
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    };
+
+    // Voices may not be loaded yet on first call
+    if (window.speechSynthesis.getVoices().length > 0) {
+      speak();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => { speak(); window.speechSynthesis.onvoiceschanged = null; };
+    }
   } catch {}
 
   try {
@@ -115,14 +146,7 @@ function playBingoWin() {
 }
 
 function playBingoLose() {
-  try {
-    const utterance = new SpeechSynthesisUtterance("Better luck next time!");
-    utterance.rate   = 0.9;
-    utterance.pitch  = 0.8;
-    utterance.volume = 1;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  } catch {}
+  // Sad descending trombone-style sound only
 
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
