@@ -63,34 +63,32 @@ function playBingoWin() {
   // Voice: "BINGO!" — deep male, natural-sounding
   try {
     const speak = () => {
-      const utterance  = new SpeechSynthesisUtterance("BINGO!");
-      utterance.rate   = 0.82;
-      utterance.pitch  = 0.7;
-      utterance.volume = 1;
+  const utterance  = new SpeechSynthesisUtterance("BINGO!");
+  utterance.rate   = 0.75;
+  utterance.pitch  = 0;      // 0 = absolute lowest pitch — forces deep masculine sound on any voice
+  utterance.volume = 1;
 
-      // Pick the most natural-sounding male English voice available
-      const voices = window.speechSynthesis.getVoices();
-      const preferred = [
-        "Google UK English Male",
-        "Microsoft Guy Online (Natural) - English (United States)",
-        "Microsoft David Desktop - English (United States)",
-        "Daniel",
-        "Alex",
-        "Mark",
-      ];
-      let picked = null;
-      for (const name of preferred) {
-        picked = voices.find(v => v.name === name);
-        if (picked) break;
-      }
-      // Fallback: any male or en-US voice
-      if (!picked) picked = voices.find(v => /male/i.test(v.name) && /en/i.test(v.lang));
-      if (!picked) picked = voices.find(v => /en/i.test(v.lang));
-      if (picked) utterance.voice = picked;
+  // Try to find an actual male English voice
+  const voices = window.speechSynthesis.getVoices();
+  const maleKeywords = /david|guy|mark|james|male|man|daniel|alex|aaron|fred|bruce|tom|eric|paul|reed/i;
+  let picked =
+    // 1. Exact well-known natural male voices
+    voices.find(v => v.name === "Google UK English Male") ||
+    voices.find(v => v.name === "Microsoft Guy Online (Natural) - English (United States)") ||
+    voices.find(v => v.name === "Microsoft David Desktop - English (United States)") ||
+    // 2. Any voice whose name contains a male keyword AND is English
+    voices.find(v => maleKeywords.test(v.name) && /en/i.test(v.lang)) ||
+    // 3. Any voice with a male keyword regardless of language tag
+    voices.find(v => maleKeywords.test(v.name)) ||
+    // 4. Any English voice — pitch=0 will make it sound deep regardless
+    voices.find(v => /en[-_]US/i.test(v.lang)) ||
+    voices.find(v => /en/i.test(v.lang));
 
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
-    };
+  if (picked) utterance.voice = picked;
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+};
 
     // Voices may not be loaded yet on first call
     if (window.speechSynthesis.getVoices().length > 0) {
