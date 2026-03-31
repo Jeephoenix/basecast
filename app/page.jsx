@@ -748,13 +748,49 @@ export default function App() {
             {/* Trust strip */}
             <div style={{display:"flex",gap:20,marginTop:22,flexWrap:"wrap",justifyContent:"center"}}>
               {[
-                {icon:"🔒",label:"No KYC"},
-                {icon:"⛓",label:"100% On-Chain"},
-                {icon:"🎲",label:"3 Games"},
-                {icon:"⚡",label:"Instant Payouts"},
+                {
+                  icon:(
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      <circle cx="12" cy="10" r="2.5"/>
+                      <path d="M9.5 16c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5"/>
+                    </svg>
+                  ),
+                  label:"No KYC"
+                },
+                {
+                  icon:(
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="7" width="6" height="6" rx="1.5"/>
+                      <rect x="9" y="7" width="6" height="6" rx="1.5"/>
+                      <rect x="16" y="7" width="6" height="6" rx="1.5"/>
+                      <path d="M5 13v2M12 13v2M19 13v2"/>
+                      <path d="M5 15h7M12 15h7"/>
+                    </svg>
+                  ),
+                  label:"100% On-Chain"
+                },
+                {
+                  icon:(
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="6" width="20" height="14" rx="3"/>
+                      <path d="M6 10h.01M6 14h.01M10 12h.01M8 12h.01"/>
+                      <circle cx="17" cy="12" r="2"/>
+                    </svg>
+                  ),
+                  label:"3 Games"
+                },
+                {
+                  icon:(
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                  ),
+                  label:"Instant Payouts"
+                },
               ].map(({icon,label})=>(
                 <div key={label} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--sub)"}}>
-                  <span style={{fontSize:14}}>{icon}</span>
+                  <span style={{display:"flex",alignItems:"center",opacity:0.85}}>{icon}</span>
                   <span>{label}</span>
                 </div>
               ))}
@@ -767,12 +803,44 @@ export default function App() {
             <div style={{width:"100%",display:"flex",flexDirection:"column",gap:10}}>
               <div style={{fontSize:11,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>AVAILABLE GAMES</div>
               {[
-                {label:"Coin Flip",    desc:"50/50 — Heads or Tails",         mult:"1.94×",  color:"#F59E0B", bg:"rgba(245,158,11,0.1)",   icon:"🪙"},
-                {label:"Dice Roll",    desc:"Range or exact number",            mult:"up to 5.82×", color:"#2563EB", bg:"rgba(37,99,235,0.1)",    icon:"🎲"},
-                {label:"Bingo",        desc:"Pattern matching · 4 modes",       mult:"up to 20×",   color:"#60C8FF", bg:"rgba(96,200,255,0.1)",   icon:"🎯"},
+                {
+                  label:"Coin Flip", desc:"50/50 — Heads or Tails", mult:"1.94×", color:"#F59E0B", bg:"rgba(245,158,11,0.1)",
+                  icon:(
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="9"/>
+                      <path d="M12 7v10M9.5 9.5C9.5 8.67 10.67 8 12 8s2.5.67 2.5 1.5S13.33 11 12 11s-2.5.67-2.5 1.5S10.67 16 12 16s2.5-.67 2.5-1.5"/>
+                    </svg>
+                  ),
+                },
+                {
+                  label:"Dice Roll", desc:"Range or exact number", mult:"up to 5.82×", color:"#2563EB", bg:"rgba(37,99,235,0.1)",
+                  icon:(
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="3"/>
+                      <circle cx="8.5" cy="8.5" r="1.2" fill="#2563EB"/>
+                      <circle cx="15.5" cy="8.5" r="1.2" fill="#2563EB"/>
+                      <circle cx="8.5" cy="15.5" r="1.2" fill="#2563EB"/>
+                      <circle cx="15.5" cy="15.5" r="1.2" fill="#2563EB"/>
+                      <circle cx="12" cy="12" r="1.2" fill="#2563EB"/>
+                    </svg>
+                  ),
+                },
+                {
+                  label:"Bingo", desc:"Pattern matching · 4 modes", mult:"up to 20×", color:"#60C8FF", bg:"rgba(96,200,255,0.1)",
+                  icon:(
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60C8FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <line x1="3" y1="9" x2="21" y2="9"/>
+                      <line x1="3" y1="15" x2="21" y2="15"/>
+                      <line x1="9" y1="3" x2="9" y2="21"/>
+                      <line x1="15" y1="3" x2="15" y2="21"/>
+                      <circle cx="12" cy="12" r="2" fill="#60C8FF" stroke="none"/>
+                    </svg>
+                  ),
+                },
               ].map(({label,desc,mult,color,bg,icon})=>(
                 <div key={label} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12}}>
-                  <div style={{width:44,height:44,borderRadius:12,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{icon}</div>
+                  <div style={{width:44,height:44,borderRadius:12,background:bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontWeight:600,fontSize:14,color:"var(--tx)"}}>{label}</div>
                     <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>{desc}</div>
