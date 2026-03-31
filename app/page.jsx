@@ -737,7 +737,7 @@ export default function App() {
               <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(108,99,255,0.35),rgba(0,245,160,0.2),transparent)"}}/>
               <div style={{position:"relative",zIndex:1}}>
                 <div style={{fontFamily:"'Outfit',sans-serif",fontWeight:300,fontSize:11,color:"var(--sub)",letterSpacing:"5px",textTransform:"uppercase",marginBottom:10}}>Welcome to</div>
-                <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:"clamp(48px,14vw,80px)",letterSpacing:"0.03em",textTransform:"uppercase",lineHeight:1,userSelect:"none",marginBottom:14}}>
+                <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:"clamp(30px,8vw,52px)",letterSpacing:"0.01em",textTransform:"uppercase",lineHeight:1,userSelect:"none",marginBottom:14}}>
                   <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 24px rgba(96,200,255,0.5))"}}>BASE</span>
                   <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#C87000 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 24px rgba(255,216,77,0.5))"}}>CAST</span>
                 </div>
@@ -935,7 +935,7 @@ export default function App() {
             <div className="card" style={{textAlign:"center",padding:"40px 24px",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 50% 0%,rgba(108,99,255,.1),transparent 65%)",pointerEvents:"none"}}/>
               <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:11,letterSpacing:"0.25em",textTransform:"uppercase",color:"#fff",opacity:0.7,marginBottom:8}}>WELCOME TO</div>
-              <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:48,letterSpacing:"0.04em",lineHeight:1,textTransform:"uppercase"}}>
+              <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:"clamp(28px,7vw,44px)",letterSpacing:"0.02em",lineHeight:1,textTransform:"uppercase"}}>
                 <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(96,200,255,0.45))"}}>BASE</span>
                 <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(255,216,77,0.45))"}}>CAST</span>
               </div>
@@ -1369,5 +1369,4 @@ export default function App() {
     </div>
   );
 }
-
 
