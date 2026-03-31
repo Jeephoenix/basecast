@@ -16,6 +16,7 @@ import { parseUnits, formatUnits } from "viem";
 const VAULT    = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
 const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
 const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
+const BINGO    = process.env.NEXT_PUBLIC_BINGO_ADDRESS;
 const USDC     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
 const EXPLORER = CHAIN_ID === 8453 ? "https://basescan.org" : "https://sepolia.basescan.org";
@@ -70,6 +71,19 @@ const DR_ABI = [
       {name:"randomSeed",type:"bytes32"},
     ]}]},
   {name:"getEntropyFee", type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint128"}]},
+  {name:"getPlayerBets", type:"function", stateMutability:"view",
+    inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}]},
+];
+const BG_ABI = [
+  {name:"getBet",        type:"function", stateMutability:"view",
+    inputs:[{name:"seqNum",type:"uint64"}],
+    outputs:[{name:"",type:"tuple",components:[
+      {name:"player",type:"address"},{name:"wager",type:"uint96"},
+      {name:"mode",type:"uint8"},{name:"pattern",type:"uint8"},
+      {name:"status",type:"uint8"},{name:"payout",type:"uint96"},
+      {name:"timestamp",type:"uint32"},{name:"randomSeed",type:"bytes32"},
+      {name:"gridSize",type:"uint8"},
+    ]}]},
   {name:"getPlayerBets", type:"function", stateMutability:"view",
     inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}]},
 ];
@@ -344,25 +358,28 @@ const [verifyErr,     setVerifyErr]     = useState(null);
     return () => document.removeEventListener("mousedown", handle);
   }, [menuOpen]);
 
-    const fetchTxHistory = useCallback(async () => {
+      const fetchTxHistory = useCallback(async () => {
     if (!pub || !COINFLIP || !DICEROLL || !address) return;
     setTxLoading(true);
     try {
-      const [cfSeqs, drSeqs] = await Promise.all([
+      const [cfSeqs, drSeqs, bgSeqs] = await Promise.all([
         pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getPlayerBets", args:[address]}),
         pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getPlayerBets", args:[address]}),
+        BINGO ? pub.readContract({address:BINGO, abi:BG_ABI, functionName:"getPlayerBets", args:[address]}) : Promise.resolve([]),
       ]);
       const cfLast = [...cfSeqs].slice(-15);
       const drLast = [...drSeqs].slice(-15);
-      const [cfBets, drBets] = await Promise.all([
+      const bgLast = [...bgSeqs].slice(-15);
+      const [cfBets, drBets, bgBets] = await Promise.all([
         Promise.all(cfLast.map(seq => pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getBet", args:[seq]}))),
         Promise.all(drLast.map(seq => pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getBet", args:[seq]}))),
+        bgLast.length ? Promise.all(bgLast.map(seq => pub.readContract({address:BINGO, abi:BG_ABI, functionName:"getBet", args:[seq]}))) : Promise.resolve([]),
       ]);
+      const BINGO_MODES = ["Turbo","Speed","Pattern","Multiplayer"];
       const all = [
-        ...cfBets.map((bet,i) => ({id:`cf-${cfLast[i]}`,type:"coinflip",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:    localStorage.getItem(`txhash:cf-${cfLast[i]}`) || undefined,
-  seqNum:    cfLast[i].toString()})),
-        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash: localStorage.getItem(`txhash:dr-${drLast[i]}`) || undefined,
-seqNum: drLast[i].toString()})),
+        ...cfBets.map((bet,i) => ({id:`cf-${cfLast[i]}`,type:"coinflip",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:localStorage.getItem(`txhash:cf-${cfLast[i]}`) || undefined,seqNum:cfLast[i].toString()})),
+        ...drBets.map((bet,i) => ({id:`dr-${drLast[i]}`,type:"diceroll",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:localStorage.getItem(`txhash:dr-${drLast[i]}`) || undefined,seqNum:drLast[i].toString()})),
+        ...bgBets.map((bet,i) => ({id:`bg-${bgLast[i]}`,type:"bingo",subLabel:BINGO_MODES[Number(bet.mode)]||"Bingo",wager:bet.wager,payout:bet.payout,status:Number(bet.status),timestamp:Number(bet.timestamp),won:Number(bet.status)===1,txHash:localStorage.getItem(`txhash:bg-${bgLast[i]}`) || undefined,seqNum:bgLast[i].toString()})),
       ].filter(tx=>tx.status!==0).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
       setTxHistory(all);
     } catch {}
@@ -665,9 +682,9 @@ seqNum: drLast[i].toString()})),
                                 {txs.map(tx=>(
                                   <div key={tx.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.03)"}}>
                                     <div style={{display:"flex",alignItems:"center",gap:7}}>
-                                      <span style={{fontSize:14,flexShrink:0}}>{tx.type==="coinflip"?"🪙":"🎲"}</span>
+                                      <span style={{fontSize:14,flexShrink:0}}>{tx.type==="coinflip"?"🪙":tx.type==="bingo"?"🎱":"🎲"}</span>
                                       <div>
-                                        <div style={{fontSize:11,color:"#D1D5DB",fontFamily:"'Outfit',sans-serif",fontWeight:500}}>{tx.type==="coinflip"?"Coin Flip":"Dice Roll"}</div>
+                                        <div style={{fontSize:11,color:"#D1D5DB",fontFamily:"'Outfit',sans-serif",fontWeight:500}}>{tx.type==="coinflip"?"Coin Flip":tx.type==="bingo"?`Bingo · ${tx.subLabel}`:"Dice Roll"}</div>
                                         <div style={{fontSize:10,color:"#6B7280",fontFamily:"'Outfit',sans-serif"}}>{new Date(tx.timestamp*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</div>
                                       </div>
                                     </div>
