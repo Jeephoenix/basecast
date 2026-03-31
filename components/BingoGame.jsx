@@ -320,7 +320,7 @@ function ModeIcon({ id, active }) {
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function BingoGame({ balance, refetchBalance }) {
+export default function BingoGame({ balance, refetchBalance, vaultMax, vaultMin }) {
   const { address }  = useAccount();
   const pub          = usePublicClient();
   const { data: wc } = useWalletClient();
@@ -408,6 +408,8 @@ export default function BingoGame({ balance, refetchBalance }) {
     setError(null); setResult(null); setRevealIndex(0); setWinCells(null);
     try {
       const w = parseUnits(wager, 6);
+      if (vaultMax > 0n && w > vaultMax) { setError(`Bet too high — max bet is ${usd(vaultMax)}`); return; }
+if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(vaultMin)}`); return; }
       setPhase("approving");
       await ensureAllow(w);
 
@@ -447,7 +449,7 @@ export default function BingoGame({ balance, refetchBalance }) {
       setError(e.shortMessage || e.message || "Transaction failed");
       setPhase("idle");
     }
-  }, [address, wc, pub, wager, mode, pattern]);
+  }, [address, wc, pub, wager, mode, pattern, vaultMax, vaultMin]);
 
   const revealNext = useCallback(() => {
     if (!result || phase !== "revealing") return;
