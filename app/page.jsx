@@ -697,9 +697,6 @@ export default function App() {
           {/* Hero */}
           <div style={{width:"100%",maxWidth:520,padding:"40px 24px 0",display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
 
-            {/* Big stat */}
-            <div style={{fontSize:13,color:"var(--sub)",letterSpacing:"2px",textTransform:"uppercase",marginBottom:10}}>Provably Fair · On-Chain · Base Network</div>
-
             {/* Headline */}
             <div style={{textAlign:"center",marginBottom:8}}>
               <div style={{fontFamily:"'Outfit',sans-serif",fontWeight:300,fontSize:16,color:"var(--sub)",letterSpacing:"3px",textTransform:"uppercase",marginBottom:6}}>Welcome to</div>
@@ -1302,3 +1299,4 @@ export default function App() {
     </div>
   );
 }
+
