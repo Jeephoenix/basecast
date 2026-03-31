@@ -221,6 +221,11 @@ body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050
 @media(min-width:521px){
   .main-content-wrap{max-width:680px!important}
 }
+@keyframes glowPulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
+.stat-pill{display:inline-flex;align-items:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 13px;font-size:11px;font-weight:600;color:var(--sub);white-space:nowrap}
+.glow-card{transition:border-color .2s,transform .2s,box-shadow .2s}.glow-card:hover{border-color:rgba(108,99,255,0.5)!important;transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,0.3)}
+.social-link{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--s2);border:1px solid var(--bd);color:var(--sub);transition:all .15s;cursor:pointer;text-decoration:none}.social-link:hover{border-color:var(--blue);color:var(--tx);transform:translateY(-2px)}
+.divider-line{width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(108,99,255,0.3),rgba(0,245,160,0.2),transparent);margin:4px 0}
 `;
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -722,165 +727,134 @@ export default function App() {
 
       {/* ── Landing page for newcomers ────────────────────────────────── */}
       {!isConnected && (
-        <div style={{minHeight:"calc(100vh - 73px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-start",padding:"0 0 48px"}}>
+        <div style={{minHeight:"calc(100vh - 73px)",display:"flex",flexDirection:"column",alignItems:"center",padding:"0 0 60px"}}>
+          <div style={{width:"100%",maxWidth:520,padding:"0 20px"}}>
 
-          {/* Hero */}
-          <div style={{width:"100%",maxWidth:520,padding:"40px 24px 0",display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
-
-            {/* Headline */}
-            <div style={{textAlign:"center",marginBottom:8}}>
-              <div style={{fontFamily:"'Outfit',sans-serif",fontWeight:300,fontSize:16,color:"var(--sub)",letterSpacing:"3px",textTransform:"uppercase",marginBottom:6}}>Welcome to</div>
-              <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:"clamp(42px,12vw,72px)",letterSpacing:"0.03em",textTransform:"uppercase",lineHeight:1,userSelect:"none"}}>
-                <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
-                <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#C87000 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
+            {/* Hero */}
+            <div style={{position:"relative",textAlign:"center",padding:"52px 20px 40px",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-30,left:"5%",width:220,height:220,borderRadius:"50%",background:"radial-gradient(circle,rgba(108,99,255,0.2),transparent 70%)",pointerEvents:"none",animation:"glowPulse 4s ease infinite"}}/>
+              <div style={{position:"absolute",top:20,right:"5%",width:180,height:180,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,245,160,0.12),transparent 70%)",pointerEvents:"none",animation:"glowPulse 4s ease infinite 2s"}}/>
+              <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(108,99,255,0.35),rgba(0,245,160,0.2),transparent)"}}/>
+              <div style={{position:"relative",zIndex:1}}>
+                <div style={{fontFamily:"'Outfit',sans-serif",fontWeight:300,fontSize:11,color:"var(--sub)",letterSpacing:"5px",textTransform:"uppercase",marginBottom:10}}>Welcome to</div>
+                <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:"clamp(48px,14vw,80px)",letterSpacing:"0.03em",textTransform:"uppercase",lineHeight:1,userSelect:"none",marginBottom:14}}>
+                  <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 24px rgba(96,200,255,0.5))"}}>BASE</span>
+                  <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#C87000 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 24px rgba(255,216,77,0.5))"}}>CAST</span>
+                </div>
+                <div style={{fontSize:13,color:"var(--sub)",marginBottom:28,lineHeight:1.7}}>
+                  Provably fair on-chain game hub &middot; <span style={{color:"#60C8FF",fontWeight:500}}>Base chain</span>
+                </div>
+                <ConnectButton.Custom>
+                  {({openConnectModal,mounted}) => mounted && (
+                    <button
+                      onClick={openConnectModal}
+                      style={{
+                        display:"inline-flex",alignItems:"center",justifyContent:"center",gap:10,
+                        padding:"15px 36px",
+                        background:"linear-gradient(135deg,#6C63FF 0%,#2563EB 100%)",
+                        border:"none",borderRadius:12,cursor:"pointer",
+                        fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:16,
+                        color:"#fff",
+                        boxShadow:"0 4px 28px rgba(108,99,255,0.45)",
+                        transition:"all .15s",
+                      }}
+                      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 36px rgba(108,99,255,0.6)";}}
+                      onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 28px rgba(108,99,255,0.45)";}}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+                      Connect Wallet to Play
+                    </button>
+                  )}
+                </ConnectButton.Custom>
+                <div style={{display:"flex",gap:8,marginTop:18,flexWrap:"wrap",justifyContent:"center"}}>
+                  {["No KYC","100% On-Chain","Instant Payouts","Non-Custodial"].map(t=>(
+                    <span key={t} className="stat-pill">{t}</span>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Divider line with diamond */}
-            <div style={{display:"flex",alignItems:"center",gap:10,margin:"14px 0",width:"100%",maxWidth:320}}>
-              <div style={{flex:1,height:1,background:"linear-gradient(90deg,transparent,rgba(100,160,255,0.4))"}}/>
-              <div style={{width:7,height:7,background:"#F59E0B",transform:"rotate(45deg)",flexShrink:0}}/>
-              <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(100,160,255,0.4),transparent)"}}/>
-            </div>
-
-            {/* Subtitle */}
-            <div style={{fontSize:14,color:"var(--sub)",textAlign:"center",lineHeight:1.7,marginBottom:28,maxWidth:310}}>
-              The provably fair on-chain game hub on&nbsp;
-              <span style={{color:"#60C8FF",fontWeight:600}}>Base chain</span>
-              &nbsp;— powered by&nbsp;
-              <span style={{color:"#FFD84D",fontWeight:600}}>Pyth Entropy v2</span>
-            </div>
-
-            {/* Connect CTA */}
-            <ConnectButton.Custom>
-              {({openConnectModal,mounted}) => mounted && (
-                <button
-                  onClick={openConnectModal}
-                  style={{
-                    width:"100%",maxWidth:340,padding:"17px 24px",
-                    background:"linear-gradient(135deg,#2563EB 0%,#1A4FD4 100%)",
-                    border:"none",borderRadius:12,cursor:"pointer",
-                    fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:17,
-                    color:"#fff",letterSpacing:"0.3px",
-                    boxShadow:"0 4px 24px rgba(37,99,235,0.5)",
-                    transition:"all .15s",
-                    display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-                  }}
-                  onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 32px rgba(37,99,235,0.65)";}}
-                  onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 24px rgba(37,99,235,0.5)";}}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><path d="M12 12v3"/></svg>
-                  Connect Wallet to Play
-                </button>
-              )}
-            </ConnectButton.Custom>
-
-            {/* Trust strip */}
-            <div style={{display:"flex",gap:20,marginTop:22,flexWrap:"wrap",justifyContent:"center"}}>
-              {[
-                {
-                  icon:(
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                      <circle cx="12" cy="10" r="2.5"/>
-                      <path d="M9.5 16c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5"/>
-                    </svg>
-                  ),
-                  label:"No KYC"
-                },
-                {
-                  icon:(
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="7" width="6" height="6" rx="1.5"/>
-                      <rect x="9" y="7" width="6" height="6" rx="1.5"/>
-                      <rect x="16" y="7" width="6" height="6" rx="1.5"/>
-                      <path d="M5 13v2M12 13v2M19 13v2"/>
-                      <path d="M5 15h7M12 15h7"/>
-                    </svg>
-                  ),
-                  label:"100% On-Chain"
-                },
-                {
-                  icon:(
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="6" width="20" height="14" rx="3"/>
-                      <path d="M6 10h.01M6 14h.01M10 12h.01M8 12h.01"/>
-                      <circle cx="17" cy="12" r="2"/>
-                    </svg>
-                  ),
-                  label:"3 Games"
-                },
-                {
-                  icon:(
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                    </svg>
-                  ),
-                  label:"Instant Payouts"
-                },
-              ].map(({icon,label})=>(
-                <div key={label} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--sub)"}}>
-                  <span style={{display:"flex",alignItems:"center",opacity:0.85}}>{icon}</span>
-                  <span>{label}</span>
+            {/* Platform stats bar */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:14,overflow:"hidden",margin:"20px 0"}}>
+              {[{l:"LIVE GAMES",v:"3"},{l:"BLOCKCHAIN",v:"Base"},{l:"CURRENCY",v:"USDC"}].map(({l,v},i)=>(
+                <div key={i} style={{padding:"14px 10px",borderRight:i<2?"1px solid var(--bd)":"none",textAlign:"center"}}>
+                  <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>{l}</div>
+                  <div style={{fontSize:15,fontWeight:700,color:"var(--tx)"}}>{v}</div>
                 </div>
               ))}
             </div>
 
-            {/* Divider */}
-            <div style={{width:"100%",height:1,background:"var(--bd)",margin:"32px 0 24px"}}/>
+            {/* Available games */}
+            <div style={{marginBottom:20}}>
+              <div style={{fontWeight:700,fontSize:11,color:"var(--sub)",letterSpacing:"2px",marginBottom:12,padding:"0 2px"}}>AVAILABLE GAMES</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {[
+                  {label:"Coin Flip",  mult:"1.94×", desc:"Pick heads or tails",       color:"#6C63FF",bg:"rgba(108,99,255,0.12)",icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>},
+                  {label:"Dice Roll",  mult:"5.82×", desc:"Range or exact number",     color:"#00F5A0",bg:"rgba(0,245,160,0.1)",  icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>},
+                  {label:"Bingo",      mult:"20×",   desc:"Match a winning pattern",   color:"#FFD166",bg:"rgba(255,209,102,0.1)",icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>},
+                  {label:"More Coming",mult:null,    desc:"New games &amp; features",  color:"#D4AF37",bg:"rgba(212,175,55,0.1)", isAlpha:true,icon:<span style={{fontSize:18,fontWeight:700,lineHeight:1}}>α</span>},
+                ].map(({label,mult,desc,color,bg,icon,isAlpha})=>(
+                  <div key={label} className="card glow-card" style={{display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",background:"rgba(255,255,255,0.03)",padding:"16px",opacity:isAlpha?0.75:1}}>
+                    <div style={{width:42,height:42,borderRadius:12,background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,flexShrink:0}}>{icon}</div>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13,color:isAlpha?"#D4AF37":"var(--tx)",marginBottom:2}}>{label}</div>
+                      <div style={{fontSize:11,color:"var(--sub)"}} dangerouslySetInnerHTML={{__html:desc}}/>
+                    </div>
+                    <div style={{fontSize:12,fontWeight:700,color:isAlpha?"#D4AF37":"var(--gold)"}}>
+                      {isAlpha?"Alpha":`Up to ${mult}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-            {/* Game cards */}
-            <div style={{width:"100%",display:"flex",flexDirection:"column",gap:10}}>
-              <div style={{fontSize:11,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>AVAILABLE GAMES</div>
-              {[
-                {
-                  label:"Coin Flip", desc:"50/50 — Heads or Tails", mult:"1.94×", color:"#F59E0B", bg:"rgba(245,158,11,0.1)",
-                  icon:(
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="9"/>
-                      <path d="M12 7v10M9.5 9.5C9.5 8.67 10.67 8 12 8s2.5.67 2.5 1.5S13.33 11 12 11s-2.5.67-2.5 1.5S10.67 16 12 16s2.5-.67 2.5-1.5"/>
-                    </svg>
-                  ),
-                },
-                {
-                  label:"Dice Roll", desc:"Range or exact number", mult:"up to 5.82×", color:"#2563EB", bg:"rgba(37,99,235,0.1)",
-                  icon:(
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="3"/>
-                      <circle cx="8.5" cy="8.5" r="1.2" fill="#2563EB"/>
-                      <circle cx="15.5" cy="8.5" r="1.2" fill="#2563EB"/>
-                      <circle cx="8.5" cy="15.5" r="1.2" fill="#2563EB"/>
-                      <circle cx="15.5" cy="15.5" r="1.2" fill="#2563EB"/>
-                      <circle cx="12" cy="12" r="1.2" fill="#2563EB"/>
-                    </svg>
-                  ),
-                },
-                {
-                  label:"Bingo", desc:"Pattern matching · 4 modes", mult:"up to 20×", color:"#60C8FF", bg:"rgba(96,200,255,0.1)",
-                  icon:(
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60C8FF" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2"/>
-                      <line x1="3" y1="9" x2="21" y2="9"/>
-                      <line x1="3" y1="15" x2="21" y2="15"/>
-                      <line x1="9" y1="3" x2="9" y2="21"/>
-                      <line x1="15" y1="3" x2="15" y2="21"/>
-                      <circle cx="12" cy="12" r="2" fill="#60C8FF" stroke="none"/>
-                    </svg>
-                  ),
-                },
-              ].map(({label,desc,mult,color,bg,icon})=>(
-                <div key={label} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12}}>
-                  <div style={{width:44,height:44,borderRadius:12,background:bg,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{icon}</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:600,fontSize:14,color:"var(--tx)"}}>{label}</div>
-                    <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>{desc}</div>
+            {/* Why BaseCast */}
+            <div style={{marginBottom:20}}>
+              <div style={{fontWeight:700,fontSize:11,color:"var(--sub)",letterSpacing:"2px",marginBottom:12,padding:"0 2px"}}>WHY BASECAST</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {[
+                  {color:"#6C63FF",bg:"rgba(108,99,255,0.12)",title:"Provably Fair",body:"Every outcome generated on-chain via Pyth Entropy v2. Nobody — not even us — can predict or manipulate results.",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>},
+                  {color:"#00F5A0",bg:"rgba(0,245,160,0.1)",title:"Non-Custodial",body:"Your funds stay in your wallet until you bet. Smart contracts handle everything — no deposits, no trust required.",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><circle cx="12" cy="14" r="1.5"/></svg>},
+                  {color:"#FFD166",bg:"rgba(255,209,102,0.1)",title:"Instant Settlement",body:"Bet results settle on Base in seconds. Winnings are sent directly to your wallet, every single time.",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>},
+                ].map(({color,bg,title,body,icon},i)=>(
+                  <div key={i} style={{display:"flex",gap:14,padding:"14px 16px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12,alignItems:"flex-start"}}>
+                    <div style={{width:38,height:38,borderRadius:10,background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,flexShrink:0}}>{icon}</div>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:13,color:"var(--tx)",marginBottom:3}}>{title}</div>
+                      <div style={{fontSize:12,color:"var(--sub)",lineHeight:1.6}}>{body}</div>
+                    </div>
                   </div>
-                  <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{fontSize:11,color:"var(--sub)"}}>Payout</div>
-                    <div style={{fontSize:14,fontWeight:700,color}}>{mult}</div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            {/* Powered by */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,padding:"14px 20px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12,marginBottom:16,flexWrap:"wrap"}}>
+              <span style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px",fontWeight:600}}>POWERED BY</span>
+              <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>Pyth Entropy v2</span>
+              <span style={{width:3,height:3,borderRadius:"50%",background:"var(--bd)",display:"inline-block"}}/>
+              <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>Base Chain</span>
+              <span style={{width:3,height:3,borderRadius:"50%",background:"var(--bd)",display:"inline-block"}}/>
+              <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>USDC</span>
+            </div>
+
+            {/* Community */}
+            <div style={{padding:"18px 20px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:"var(--tx)",marginBottom:4}}>Join the Community</div>
+                <div style={{fontSize:11,color:"var(--sub)"}}>Stay updated on new games and features</div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <a href="#" className="social-link" title="Twitter / X">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.736l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href="#" className="social-link" title="Discord">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.032.057a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                </a>
+                <a href="#" className="social-link" title="GitHub">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+                </a>
+              </div>
             </div>
 
           </div>
@@ -980,12 +954,12 @@ export default function App() {
             <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>AVAILABLE GAMES</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               {[
-                {id:"coinflip",label:"Coin Flip",  mult:"1.94×",  desc:"Pick heads or tails",        Icon:IcoCoin,  color:"#6C63FF"},
-                {id:"dice",    label:"Dice Roll",  mult:"5.82×",  desc:"Range or exact number",       Icon:IcoDice,  color:"#00F5A0"},
-                {id:"bingo",   label:"Bingo",      mult:"Up to 20×", desc:"Match a winning pattern",  Icon:IcoBingo, color:"#FFD166"},
-              ].map(({id,label,mult,desc,Icon,color})=>(
-                <button key={id} className="card" onClick={()=>{setTab(id);setNavSection("games");}} style={{cursor:"pointer",display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",transition:"border-color .15s,transform .15s",background:"rgba(255,255,255,0.04)"}}>
-                  <div style={{width:40,height:40,borderRadius:10,background:`rgba(108,99,255,.12)`,display:"flex",alignItems:"center",justifyContent:"center",color:color}}>
+                {id:"coinflip",label:"Coin Flip",  mult:"1.94×",  desc:"Pick heads or tails",        Icon:IcoCoin,  color:"#6C63FF", bg:"rgba(108,99,255,0.14)"},
+                {id:"dice",    label:"Dice Roll",  mult:"5.82×",  desc:"Range or exact number",       Icon:IcoDice,  color:"#00F5A0", bg:"rgba(0,245,160,0.12)"},
+                {id:"bingo",   label:"Bingo",      mult:"Up to 20×", desc:"Match a winning pattern",  Icon:IcoBingo, color:"#FFD166", bg:"rgba(255,209,102,0.12)"},
+              ].map(({id,label,mult,desc,Icon,color,bg})=>(
+                <button key={id} className="card glow-card" onClick={()=>{setTab(id);setNavSection("games");}} style={{cursor:"pointer",display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",background:"rgba(255,255,255,0.04)"}}>
+                  <div style={{width:40,height:40,borderRadius:10,background:bg,display:"flex",alignItems:"center",justifyContent:"center",color}}>
                     <Icon/>
                   </div>
                   <div>
