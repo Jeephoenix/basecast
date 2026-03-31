@@ -589,8 +589,14 @@ export default function App() {
           if (b.player !== "0x0000000000000000000000000000000000000000") { bet=b; gameType="diceroll"; contractAddr=DICEROLL; }
         } catch {}
       }
-      if (!bet) { setVerifyErr("No bet found for this sequence number. Check the number and try again."); setVerifyLoading(false); return; }
-      const reqTx = localStorage.getItem(`txhash:${gameType==="coinflip"?"cf":"dr"}-${seq}`);
+          if (!bet && BINGO) {
+      try {
+        const b = await pub.readContract({address:BINGO, abi:BG_ABI, functionName:"getBet", args:[seq]});
+        if (b.player !== "0x0000000000000000000000000000000000000000") { bet=b; gameType="bingo"; contractAddr=BINGO; }
+      } catch {}
+    }
+    if (!bet) { setVerifyErr("No bet found for this sequence number. Check the number and try again."); setVerifyLoading(false); return; }
+    const reqTx = localStorage.getItem(`txhash:${gameType==="coinflip"?"cf":gameType==="bingo"?"bg":"dr"}-${seq}`);
       let callbackTx = null;
       try {
         const latest = await pub.getBlockNumber();
