@@ -974,7 +974,7 @@ export default function App() {
             {verifyResult && (
               <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-                  <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>{verifyResult.gameType==="coinflip"?"🪙 Coin Flip":"🎲 Dice Roll"} — Seq #{verifyResult.seq}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>{verifyResult.gameType==="coinflip"?"🪙 Coin Flip":verifyResult.gameType==="bingo"?"🎰 Bingo":"🎲 Dice Roll"} — Seq #{verifyResult.seq}</div>
                   <div style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:verifyResult.status===0?"rgba(245,158,11,.15)":verifyResult.status===1?"rgba(16,185,129,.15)":"rgba(239,68,68,.15)",color:verifyResult.status===0?"var(--gold)":verifyResult.status===1?"var(--green)":"var(--red)"}}>
                     {verifyResult.status===0?"PENDING":verifyResult.status===1?"WON":"LOST"}
                   </div>
