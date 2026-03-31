@@ -344,6 +344,7 @@ export default function App() {
   const [lbSrt, setLbSrt] = useState("volume");
   const [lbLd,  setLbLd]  = useState(false);
   const [light, setLight] = useState(false);
+  const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [myPnl,   setMyPnl]   = useState(null);
   const [copied,    setCopied]    = useState(false);
@@ -668,7 +669,7 @@ export default function App() {
                 <button onClick={openConnectModal} className="btn" style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:12,width:"auto"}}>Connect</button>
               );
               return (
-                <button onClick={openChainModal} className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"6px 10px",borderRadius:8,fontSize:12,width:"auto",gap:5}}>
+                <button onClick={() => setShowNetworkMenu(v=>!v)} className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"6px 10px",borderRadius:8,fontSize:12,width:"auto",gap:5}}>
                   {chain?.hasIcon && chain.iconUrl && <img src={chain.iconUrl} width={14} height={14} alt={chain.name} style={{borderRadius:"50%"}}/>}
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}><path d="M7 10l5 5 5-5z"/></svg>
                 </button>
@@ -683,6 +684,31 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {/* ── Network switcher dropdown ────────────────────────────────── */}
+      {showNetworkMenu && (
+        <>
+          <div style={{position:"fixed",inset:0,zIndex:99}} onClick={()=>setShowNetworkMenu(false)}/>
+          <div style={{position:"fixed",top:62,right:12,zIndex:100,background:"var(--nav-bg)",border:"1px solid var(--bd)",borderRadius:10,padding:"6px 4px",minWidth:160,boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
+            <div style={{fontSize:9,color:"var(--sub)",padding:"2px 8px 6px",letterSpacing:"1.5px",fontWeight:600}}>SWITCH NETWORKS</div>
+            {[
+              {id:8453,  name:"Base"},
+              {id:84532, name:"Base Sepolia"},
+            ].map(net => (
+              <button key={net.id} onClick={()=>{switchChain({chainId:net.id});setShowNetworkMenu(false);}}
+                style={{display:"flex",alignItems:"center",gap:7,width:"100%",padding:"7px 8px",borderRadius:7,border:"none",cursor:"pointer",
+                  background:chainId===net.id?"rgba(108,99,255,0.2)":"transparent",
+                  color:"var(--tx)",fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:chainId===net.id?600:400,transition:"background .15s"}}>
+                <div style={{width:20,height:20,borderRadius:"50%",background:"#0052FF",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",fontSize:10,fontWeight:700}}>B</div>
+                <span style={{flex:1,textAlign:"left"}}>{net.name}</span>
+                {chainId===net.id && (
+                  <span style={{width:6,height:6,borderRadius:"50%",background:"var(--green)",display:"inline-block",flexShrink:0}}/>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {wrongNet && (
         <div style={{background:"rgba(239,68,68,.1)",borderBottom:"1px solid rgba(239,68,68,.3)",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
