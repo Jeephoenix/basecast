@@ -699,7 +699,10 @@ export default function App() {
                 style={{display:"flex",alignItems:"center",gap:7,width:"100%",padding:"7px 8px",borderRadius:7,border:"none",cursor:"pointer",
                   background:chainId===net.id?"rgba(108,99,255,0.2)":"transparent",
                   color:"var(--tx)",fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:chainId===net.id?600:400,transition:"background .15s"}}>
-                <div style={{width:20,height:20,borderRadius:"50%",background:"#0052FF",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,color:"#fff",fontSize:10,fontWeight:700}}>B</div>
+                <svg width="20" height="20" viewBox="0 0 2500 2500" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0,borderRadius:"50%"}}>
+                  <circle cx="1250" cy="1250" r="1250" fill="#0052FF"/>
+                  <path d="M1251.4 2083.3c460.2 0 833.2-373 833.2-833.3 0-460.2-373-833.3-833.2-833.3-438.5 0-798.3 339-831.6 768.8h1097.4v129h-1097.1c33.7 429.5 393.4 768.8 831.3 768.8z" fill="#fff"/>
+                </svg>
                 <span style={{flex:1,textAlign:"left"}}>{net.name}</span>
                 {chainId===net.id && (
                   <span style={{width:6,height:6,borderRadius:"50%",background:"var(--green)",display:"inline-block",flexShrink:0}}/>
@@ -1388,4 +1391,5 @@ export default function App() {
     </div>
   );
 }
+
 
