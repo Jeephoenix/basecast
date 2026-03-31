@@ -995,6 +995,14 @@ export default function App() {
                   {mult && <div style={{fontSize:12,fontWeight:700,color:"var(--gold)"}}>Up to {mult}</div>}
                 </button>
               ))}
+              <div className="card" style={{display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",background:"rgba(255,255,255,0.04)",opacity:0.7}}>
+                <div style={{width:40,height:40,borderRadius:10,background:"rgba(212,175,55,0.12)",display:"flex",alignItems:"center",justifyContent:"center",color:"#D4AF37",fontSize:22,fontWeight:700}}>α</div>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#D4AF37"}}>More Coming...</div>
+                  <div style={{fontSize:11,color:"var(--sub)",marginTop:3}}>New games &amp; features ahead</div>
+                </div>
+                <div style={{fontSize:12,fontWeight:700,color:"#D4AF37"}}>Alpha</div>
+              </div>
             </div>
 
             {/* How it works */}
@@ -1387,4 +1395,5 @@ export default function App() {
     </div>
   );
 }
+
 
