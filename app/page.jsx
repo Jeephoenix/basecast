@@ -163,7 +163,7 @@ const CSS = `
   --blue:#6C63FF;--blue2:#4F46E5;--green:#00F5A0;--red:#FF4D6D;
   --gold:#FFD166;--tx:#F0F2FF;--sub:#9094B0;--dim:#3D4060;
 }
-.light{--bg:#F0F4FF;--s1:rgba(255,255,255,0.85);--s2:rgba(240,244,255,0.9);--bd:rgba(0,0,0,0.1);--tx:#0A0B1A;--sub:#5560A0;--dim:#9AA5CC;--blue:#4338CA;--blue2:#3730A3;--green:#059669;--gold:#D97706;--red:#DC2626}
+.light{--bg:#ffffff;--s1:rgba(255,255,255,0.95);--s2:rgba(255,255,255,0.98);--bd:rgba(0,0,0,0.1);--tx:#0A0B1A;--sub:#5560A0;--dim:#9AA5CC;--blue:#4338CA;--blue2:#3730A3;--green:#059669;--gold:#D97706;--red:#DC2626}
 body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050f 100%);background-attachment:fixed;color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#6C63FF,#00F5A0);border-radius:4px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -638,7 +638,7 @@ export default function App() {
   const IcoTxBingo = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>;
 
   return (
-    <div className={light?"light":""} style={{minHeight:"100vh",background:light?"linear-gradient(125deg,#e8eeff 0%,#f5f0ff 40%,#e0f0ff 100%)":"transparent",transition:"background 0.4s ease"}}>
+    <div className={light?"light":""} style={{minHeight:"100vh",background:light?"#ffffff":"transparent",transition:"background 0.4s ease"}}>
       <style>{CSS}</style>
 
       {showConsent && <ConsentModal onAccept={() => setShowConsent(false)} />}
