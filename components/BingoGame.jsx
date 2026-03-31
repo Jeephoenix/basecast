@@ -416,32 +416,30 @@ export default function BingoGame({ balance, refetchBalance }) {
       });
       setPhase("placing");
 
-      let req;
+            let req, seq;
       if (mode===0) {
-        const {request} = await pub.simulateContract({
+        const {request, result} = await pub.simulateContract({
           address:BINGO_ADDR, abi:BINGO_ABI, functionName:"placeTurbo",
           args:[w], value:fee, account:address,
         });
-        req = request;
+        req = request; seq = result;
       } else if (mode===1) {
-        const {request} = await pub.simulateContract({
+        const {request, result} = await pub.simulateContract({
           address:BINGO_ADDR, abi:BINGO_ABI, functionName:"placeSpeed",
           args:[w], value:fee, account:address,
         });
-        req = request;
+        req = request; seq = result;
       } else {
-        const {request} = await pub.simulateContract({
+        const {request, result} = await pub.simulateContract({
           address:BINGO_ADDR, abi:BINGO_ABI, functionName:"placePattern",
           args:[w, pattern], value:fee, account:address,
         });
-        req = request;
+        req = request; seq = result;
       }
 
       const hash    = await wc.writeContract(req);
-      const receipt = await pub.waitForTransactionReceipt({hash});
-      const seq     = receipt.logs.at(-1)?.topics?.[1]
-        ? BigInt(receipt.logs.at(-1).topics[1]) : null;
-      if (seq !== null) localStorage.setItem(`txhash:bg-${seq}`, hash);
+      await pub.waitForTransactionReceipt({hash});
+      if (seq != null) localStorage.setItem(`txhash:bg-${seq}`, hash);
 
       setPhase("pending");
       if (seq !== null) pollResult(seq, receipt.blockNumber);
