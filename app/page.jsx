@@ -689,6 +689,116 @@ export default function App() {
         </div>
       )}
 
+      {/* ── Landing page for newcomers ────────────────────────────────── */}
+      {!isConnected && (
+        <div style={{minHeight:"calc(100vh - 73px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-start",padding:"0 0 48px"}}>
+
+          {/* Hero */}
+          <div style={{width:"100%",maxWidth:520,padding:"40px 24px 0",display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
+
+            {/* Big stat */}
+            <div style={{fontSize:13,color:"var(--sub)",letterSpacing:"2px",textTransform:"uppercase",marginBottom:10}}>Provably Fair · On-Chain · Base Network</div>
+
+            {/* Headline */}
+            <div style={{textAlign:"center",marginBottom:8}}>
+              <div style={{fontFamily:"'Outfit',sans-serif",fontWeight:300,fontSize:16,color:"var(--sub)",letterSpacing:"3px",textTransform:"uppercase",marginBottom:6}}>Welcome to</div>
+              <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:"clamp(42px,12vw,72px)",letterSpacing:"0.03em",textTransform:"uppercase",lineHeight:1,userSelect:"none"}}>
+                <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
+                <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#C87000 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
+              </div>
+            </div>
+
+            {/* Divider line with diamond */}
+            <div style={{display:"flex",alignItems:"center",gap:10,margin:"14px 0",width:"100%",maxWidth:320}}>
+              <div style={{flex:1,height:1,background:"linear-gradient(90deg,transparent,rgba(100,160,255,0.4))"}}/>
+              <div style={{width:7,height:7,background:"#F59E0B",transform:"rotate(45deg)",flexShrink:0}}/>
+              <div style={{flex:1,height:1,background:"linear-gradient(90deg,rgba(100,160,255,0.4),transparent)"}}/>
+            </div>
+
+            {/* Subtitle */}
+            <div style={{fontSize:14,color:"var(--sub)",textAlign:"center",lineHeight:1.7,marginBottom:28,maxWidth:310}}>
+              The provably fair on-chain game hub on&nbsp;
+              <span style={{color:"#60C8FF",fontWeight:600}}>Base chain</span>
+              &nbsp;— powered by&nbsp;
+              <span style={{color:"#FFD84D",fontWeight:600}}>Pyth Entropy v2</span>
+            </div>
+
+            {/* Connect CTA */}
+            <ConnectButton.Custom>
+              {({openConnectModal,mounted}) => mounted && (
+                <button
+                  onClick={openConnectModal}
+                  style={{
+                    width:"100%",maxWidth:340,padding:"17px 24px",
+                    background:"linear-gradient(135deg,#2563EB 0%,#1A4FD4 100%)",
+                    border:"none",borderRadius:12,cursor:"pointer",
+                    fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:17,
+                    color:"#fff",letterSpacing:"0.3px",
+                    boxShadow:"0 4px 24px rgba(37,99,235,0.5)",
+                    transition:"all .15s",
+                    display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+                  }}
+                  onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 32px rgba(37,99,235,0.65)";}}
+                  onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 24px rgba(37,99,235,0.5)";}}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><path d="M12 12v3"/></svg>
+                  Connect Wallet to Play
+                </button>
+              )}
+            </ConnectButton.Custom>
+
+            {/* Trust strip */}
+            <div style={{display:"flex",gap:20,marginTop:22,flexWrap:"wrap",justifyContent:"center"}}>
+              {[
+                {icon:"🔒",label:"No KYC"},
+                {icon:"⛓",label:"100% On-Chain"},
+                {icon:"🎲",label:"3 Games"},
+                {icon:"⚡",label:"Instant Payouts"},
+              ].map(({icon,label})=>(
+                <div key={label} style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"var(--sub)"}}>
+                  <span style={{fontSize:14}}>{icon}</span>
+                  <span>{label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div style={{width:"100%",height:1,background:"var(--bd)",margin:"32px 0 24px"}}/>
+
+            {/* Game cards */}
+            <div style={{width:"100%",display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{fontSize:11,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>AVAILABLE GAMES</div>
+              {[
+                {label:"Coin Flip",    desc:"50/50 — Heads or Tails",         mult:"1.94×",  color:"#F59E0B", bg:"rgba(245,158,11,0.1)",   icon:"🪙"},
+                {label:"Dice Roll",    desc:"Range or exact number",            mult:"up to 5.82×", color:"#2563EB", bg:"rgba(37,99,235,0.1)",    icon:"🎲"},
+                {label:"Bingo",        desc:"Pattern matching · 4 modes",       mult:"up to 5×",    color:"#60C8FF", bg:"rgba(96,200,255,0.1)",   icon:"🎯"},
+              ].map(({label,desc,mult,color,bg,icon})=>(
+                <div key={label} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12}}>
+                  <div style={{width:44,height:44,borderRadius:12,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{icon}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:600,fontSize:14,color:"var(--tx)"}}>{label}</div>
+                    <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>{desc}</div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontSize:11,color:"var(--sub)"}}>Payout</div>
+                    <div style={{fontSize:14,fontWeight:700,color}}>{mult}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Disclaimer */}
+            <div style={{marginTop:28,fontSize:10,color:"var(--dim)",textAlign:"center",lineHeight:1.8}}>
+              BaseCast · Pyth Entropy · Base Network<br/>
+              Gambling involves risk. 18+ only. Play responsibly.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── App UI (connected) ────────────────────────────────────────────── */}
+      {isConnected && (<>
+
       {/* ── 3-item Navigation ─────────────────────────────────────────── */}
       <nav className="nav-bar">
         {[
@@ -1161,6 +1271,8 @@ export default function App() {
         )}
 
       </main>
+
+      </>)}
 
       <AppFooter />
     </div>
