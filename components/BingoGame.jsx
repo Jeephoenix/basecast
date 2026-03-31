@@ -438,7 +438,7 @@ export default function BingoGame({ balance, refetchBalance }) {
       }
 
       const hash    = await wc.writeContract(req);
-      await pub.waitForTransactionReceipt({hash});
+      const receipt = await pub.waitForTransactionReceipt({hash});
       if (seq != null) localStorage.setItem(`txhash:bg-${seq}`, hash);
 
       setPhase("pending");
