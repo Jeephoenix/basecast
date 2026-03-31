@@ -211,7 +211,7 @@ body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const Spin = ({size=16}) => (
-  <div className="sp" style={{width:size,height:size,borderRadius:"50%",border:`2px solid rgba(255,255,255,.2)`,borderTopColor:"#fff",flexShrink:0}}/>
+  <div className="sp" style={{width:size,height:size,borderRadius:"50%",border:`2px solid var(--bd)`,borderTopColor:"#2563EB",borderRightColor:"#F59E0B",flexShrink:0}}/>
 );
 
 const Coin = ({side="HEADS",anim=false}) => (
