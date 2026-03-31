@@ -785,11 +785,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* Disclaimer */}
-            <div style={{marginTop:28,fontSize:10,color:"var(--dim)",textAlign:"center",lineHeight:1.8}}>
-              BaseCast · Pyth Entropy · Base Network<br/>
-              Gambling involves risk. 18+ only. Play responsibly.
-            </div>
           </div>
         </div>
       )}
@@ -1299,4 +1294,3 @@ export default function App() {
     </div>
   );
 }
-
