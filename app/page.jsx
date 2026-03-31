@@ -651,7 +651,7 @@ export default function App() {
             <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
             <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
           </span>
-          <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px"}}>Testnet</span>
+          <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px",position:"relative",top:"-6px",marginLeft:"-4px"}}>Testnet</span>
         </div>
         <div className="hdr-right" style={{display:"flex",alignItems:"center",gap:8}}>
           {isConnected && authed && (
