@@ -348,6 +348,7 @@ export default function App() {
   const [copied,    setCopied]    = useState(false);
   const [txHistory, setTxHistory] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
+  const [txExpanded, setTxExpanded] = useState(false);
 
   useEffect(() => {
     if (address && getSession(address)) setAuthed(true);
@@ -1193,7 +1194,7 @@ export default function App() {
                   <div className="card" style={{textAlign:"center",padding:32,color:"var(--sub)",fontSize:13}}>No transactions yet</div>
                 ) : (
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    {groupByDate(txHistory).map(([date,txs])=>(
+                    {groupByDate(txExpanded ? txHistory : txHistory.slice(0,5)).map(([date,txs])=>(
                       <div key={date}>
                         <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"0.8px",padding:"6px 4px",marginBottom:4}}>{date}</div>
                         {txs.map(tx=>(
@@ -1219,6 +1220,33 @@ export default function App() {
                         ))}
                       </div>
                     ))}
+                    {txHistory.length > 5 && (
+                      <button
+                        onClick={() => setTxExpanded(e => !e)}
+                        style={{
+                          width:"100%",padding:"11px",marginTop:2,
+                          background:"var(--s2)",border:"1px solid var(--bd)",
+                          borderRadius:10,cursor:"pointer",
+                          fontFamily:"'Outfit',sans-serif",fontSize:13,fontWeight:600,
+                          color:"var(--blue)",display:"flex",alignItems:"center",
+                          justifyContent:"center",gap:6,transition:"background .15s",
+                        }}
+                        onMouseEnter={e=>e.currentTarget.style.background="rgba(108,99,255,.12)"}
+                        onMouseLeave={e=>e.currentTarget.style.background="var(--s2)"}
+                      >
+                        {txExpanded ? (
+                          <>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                            See less
+                          </>
+                        ) : (
+                          <>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                            See more ({txHistory.length - 5} more)
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 )}
 
