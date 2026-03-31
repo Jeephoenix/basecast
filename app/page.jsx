@@ -924,7 +924,6 @@ export default function App() {
               {id:"coinflip", label:"Coin Flip",   desc:"50/50 · 1.94× payout",         Icon:IcoCoin},
               {id:"dice",     label:"Dice Roll",   desc:"Range 1.94× · Exact 5.82×",     Icon:IcoDice},
               {id:"bingo",    label:"Bingo",       desc:"Pattern matching · up to 20×",  Icon:IcoBingo},
-              {id:"verify",   label:"Verify Bet",  desc:"Check any bet on-chain",         Icon:IcoShield},
             ].map(({id,label,desc,Icon})=>(
               <button key={id} className="game-card-btn" onClick={()=>{setTab(id);setNavSection("games");setGamesOpen(false);}}>
                 <div style={{width:44,height:44,borderRadius:12,background:"rgba(108,99,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--blue)",flexShrink:0}}>
@@ -983,8 +982,7 @@ export default function App() {
               {[
                 {id:"coinflip",label:"Coin Flip",  mult:"1.94×",  desc:"Pick heads or tails",        Icon:IcoCoin,  color:"#6C63FF"},
                 {id:"dice",    label:"Dice Roll",  mult:"5.82×",  desc:"Range or exact number",       Icon:IcoDice,  color:"#00F5A0"},
-                {id:"bingo",   label:"Bingo",      mult:"Up to 20×", desc:"Match a winning pattern",     Icon:IcoBingo, color:"#FFD166"},
-                {id:"verify",  label:"Verify Bet", mult:"",       desc:"Audit any bet on-chain",      Icon:IcoShield,color:"#9094B0"},
+                {id:"bingo",   label:"Bingo",      mult:"Up to 20×", desc:"Match a winning pattern",  Icon:IcoBingo, color:"#FFD166"},
               ].map(({id,label,mult,desc,Icon,color})=>(
                 <button key={id} className="card" onClick={()=>{setTab(id);setNavSection("games");}} style={{cursor:"pointer",display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",transition:"border-color .15s,transform .15s",background:"rgba(255,255,255,0.04)"}}>
                   <div style={{width:40,height:40,borderRadius:10,background:`rgba(108,99,255,.12)`,display:"flex",alignItems:"center",justifyContent:"center",color:color}}>
@@ -1029,7 +1027,6 @@ export default function App() {
                 {id:"coinflip",Icon:IcoCoin,  label:"Coin Flip"},
                 {id:"dice",    Icon:IcoDice,  label:"Dice Roll"},
                 {id:"bingo",   Icon:IcoBingo, label:"Bingo"},
-                {id:"verify",  Icon:IcoShield,label:"Verify"},
               ].map(({id,Icon,label})=>(
                 <button key={id} className={`gametab${tab===id?" on":""}`} onClick={()=>setTab(id)} style={{display:"flex",alignItems:"center",gap:6}}>
                   <Icon/>{label}
@@ -1038,7 +1035,7 @@ export default function App() {
             </div>
 
             {/* Not connected */}
-            {!isConnected && tab!=="verify" && (
+            {!isConnected && (
               <div className="card fi" style={{textAlign:"center",padding:"48px 24px"}}>
                 <div style={{marginBottom:20,color:"var(--sub)",fontSize:14}}>Connect your wallet to play</div>
                 <div style={{display:"flex",justifyContent:"center"}}><ConnectButton label="Connect Wallet"/></div>
@@ -1046,7 +1043,7 @@ export default function App() {
             )}
 
             {/* Connected but not authed */}
-            {isConnected && !authed && tab!=="verify" && (
+            {isConnected && !authed && (
               <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
             )}
 
@@ -1159,73 +1156,6 @@ export default function App() {
             {tab==="bingo" && isConnected && authed && (
               <div className="fi"><BingoGame balance={bal} refetchBalance={fetchStats} vaultMax={vault.max} vaultMin={vault.min}/></div>
             )}
-            {/* ── Verify ── */}
-            {tab==="verify" && (
-              <div className="fi" style={{display:"flex",flexDirection:"column",gap:16}}>
-                <div className="card">
-                  <div style={{fontSize:13,fontWeight:700,color:"var(--tx)",marginBottom:4}}>Verify a Bet On-Chain</div>
-                  <div style={{fontSize:11,color:"var(--sub)",marginBottom:16,lineHeight:1.6}}>Paste a sequence number from your transaction history to verify the outcome directly from the blockchain.</div>
-                  <div style={{display:"flex",gap:8}}>
-                    <input className="inp" placeholder="Sequence number (e.g. 73911)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
-                    <button className="btn primary" style={{width:"auto",padding:"0 20px",fontSize:13,flexShrink:0}} onClick={doVerify} disabled={verifyLoading||!verifySeq.trim()}>{verifyLoading?<Spin/>:"Verify"}</button>
-                  </div>
-                  {verifyErr && <div style={{marginTop:12,fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{verifyErr}</div>}
-                </div>
-                {verifyResult && (
-                  <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>
-                        {verifyResult.gameType==="coinflip"?"Coin Flip":verifyResult.gameType==="bingo"?"Bingo":"Dice Roll"} &mdash; Seq #{verifyResult.seq}
-                      </div>
-                      <div style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:verifyResult.status===0?"rgba(245,158,11,.15)":verifyResult.status===1?"rgba(16,185,129,.15)":"rgba(239,68,68,.15)",color:verifyResult.status===0?"var(--gold)":verifyResult.status===1?"var(--green)":"var(--red)"}}>
-                        {verifyResult.status===0?"PENDING":verifyResult.status===1?"WON":"LOST"}
-                      </div>
-                    </div>
-                    {[
-                      {label:"Chain",      value:CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"},
-                      {label:"Sequence #", value:`#${verifyResult.seq}`},
-                      {label:"Player",     value:`${verifyResult.player.slice(0,10)}...${verifyResult.player.slice(-8)}`},
-                      {label:"Wager",      value:usd(verifyResult.wager)},
-                      {label:"Payout",     value:verifyResult.status===1?usd(verifyResult.payout):"—"},
-                      {label:"Timestamp",  value:verifyResult.timestamp>0?new Date(verifyResult.timestamp*1000).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}):"—"},
-                    ].map(({label,value})=>(
-                      <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>{label}</span>
-                        <span className="mono" style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
-                      </div>
-                    ))}
-                    <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>Randomness (seed)</span>
-                        <button onClick={()=>navigator.clipboard.writeText(verifyResult.randomSeed)} title="Copy" className="mono" style={{fontSize:9,color:"var(--sub)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"2px 6px",cursor:"pointer"}}>{verifyResult.randomSeed.slice(0,10)}...{verifyResult.randomSeed.slice(-8)}</button>
-                      </div>
-                    </div>
-                    <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>Request Tx</span>
-                        {verifyResult.reqTx
-                          ? <a href={`${EXPLORER}/tx/${verifyResult.reqTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.reqTx.slice(0,10)}...{verifyResult.reqTx.slice(-8)} ↗</a>
-                          : <span style={{fontSize:11,color:"var(--dim)"}}>Not stored locally</span>}
-                      </div>
-                    </div>
-                    <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>Callback Tx</span>
-                        {verifyResult.callbackTx
-                          ? <a href={`${EXPLORER}/tx/${verifyResult.callbackTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.callbackTx.slice(0,10)}...{verifyResult.callbackTx.slice(-8)} ↗</a>
-                          : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not in recent blocks"}</span>}
-                      </div>
-                    </div>
-                    <div style={{padding:"9px 0"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>Pyth Entropy</span>
-                        <a href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View randomness ↗</a>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 
@@ -1297,8 +1227,8 @@ export default function App() {
                               <div className="mono" style={{fontSize:12,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
                               {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none"}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
                               <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:4,marginTop:2}}>
-                                <span style={{fontSize:9,color:"var(--sub)"}}>seq:</span>
-                                <button onClick={()=>navigator.clipboard.writeText(tx.seqNum)} title="Copy seq" className="mono" style={{fontSize:9,color:"var(--sub)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"1px 4px",cursor:"pointer"}}>{tx.seqNum}</button>
+                                <span style={{fontSize:9,color:"var(--sub)"}}>seq: {tx.seqNum}</span>
+                                <button onClick={()=>{setVerifySeq(tx.seqNum);setVerifyResult(null);setVerifyErr(null);document.getElementById("verify-section")?.scrollIntoView({behavior:"smooth",block:"start"});}} style={{fontSize:9,color:"var(--blue)",background:"rgba(108,99,255,0.1)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:3,padding:"1px 6px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontWeight:600}}>Verify ↗</button>
                               </div>
                             </div>
                           </div>
@@ -1332,6 +1262,72 @@ export default function App() {
                         )}
                       </button>
                     )}
+                  </div>
+                )}
+
+                {/* ── Verify a Bet ── */}
+                <div id="verify-section" style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"4px 4px 0",display:"flex",alignItems:"center",gap:8}}>
+                  <IcoShield/> VERIFY A BET
+                </div>
+                <div className="card" style={{display:"flex",flexDirection:"column",gap:12}}>
+                  <div style={{fontSize:11,color:"var(--sub)",lineHeight:1.6}}>Paste or tap "Verify ↗" on any transaction above to audit its outcome directly from the blockchain.</div>
+                  <div style={{display:"flex",gap:8}}>
+                    <input className="inp" placeholder="Sequence number (e.g. 73911)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
+                    <button className="btn primary" style={{width:"auto",padding:"0 20px",fontSize:13,flexShrink:0}} onClick={doVerify} disabled={verifyLoading||!verifySeq.trim()}>{verifyLoading?<Spin/>:"Verify"}</button>
+                  </div>
+                  {verifyErr && <div style={{fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{verifyErr}</div>}
+                </div>
+                {verifyResult && (
+                  <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>
+                        {verifyResult.gameType==="coinflip"?"Coin Flip":verifyResult.gameType==="bingo"?"Bingo":"Dice Roll"} &mdash; Seq #{verifyResult.seq}
+                      </div>
+                      <div style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:verifyResult.status===0?"rgba(245,158,11,.15)":verifyResult.status===1?"rgba(16,185,129,.15)":"rgba(239,68,68,.15)",color:verifyResult.status===0?"var(--gold)":verifyResult.status===1?"var(--green)":"var(--red)"}}>
+                        {verifyResult.status===0?"PENDING":verifyResult.status===1?"WON":"LOST"}
+                      </div>
+                    </div>
+                    {[
+                      {label:"Chain",      value:CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"},
+                      {label:"Sequence #", value:`#${verifyResult.seq}`},
+                      {label:"Player",     value:`${verifyResult.player.slice(0,10)}...${verifyResult.player.slice(-8)}`},
+                      {label:"Wager",      value:usd(verifyResult.wager)},
+                      {label:"Payout",     value:verifyResult.status===1?usd(verifyResult.payout):"—"},
+                      {label:"Timestamp",  value:verifyResult.timestamp>0?new Date(verifyResult.timestamp*1000).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}):"—"},
+                    ].map(({label,value})=>(
+                      <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                        <span style={{fontSize:11,color:"var(--sub)"}}>{label}</span>
+                        <span className="mono" style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
+                      </div>
+                    ))}
+                    <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:11,color:"var(--sub)"}}>Randomness (seed)</span>
+                        <button onClick={()=>navigator.clipboard.writeText(verifyResult.randomSeed)} title="Copy" className="mono" style={{fontSize:9,color:"var(--sub)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"2px 6px",cursor:"pointer"}}>{verifyResult.randomSeed.slice(0,10)}...{verifyResult.randomSeed.slice(-8)}</button>
+                      </div>
+                    </div>
+                    <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:11,color:"var(--sub)"}}>Request Tx</span>
+                        {verifyResult.reqTx
+                          ? <a href={`${EXPLORER}/tx/${verifyResult.reqTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.reqTx.slice(0,10)}...{verifyResult.reqTx.slice(-8)} ↗</a>
+                          : <span style={{fontSize:11,color:"var(--dim)"}}>Not stored locally</span>}
+                      </div>
+                    </div>
+                    <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:11,color:"var(--sub)"}}>Callback Tx</span>
+                        {verifyResult.callbackTx
+                          ? <a href={`${EXPLORER}/tx/${verifyResult.callbackTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.callbackTx.slice(0,10)}...{verifyResult.callbackTx.slice(-8)} ↗</a>
+                          : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not in recent blocks"}</span>}
+                      </div>
+                    </div>
+                    <div style={{padding:"9px 0"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                        <span style={{fontSize:11,color:"var(--sub)"}}>Pyth Entropy</span>
+                        <a href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View randomness ↗</a>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1391,5 +1387,4 @@ export default function App() {
     </div>
   );
 }
-
 
