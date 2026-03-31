@@ -914,7 +914,7 @@ export default function App() {
 
         {tab==="bingo" && isConnected && authed && (
           <div className="fi">
-            <BingoGame balance={bal} refetchBalance={fetchStats}/>
+            <BingoGame balance={bal} refetchBalance={fetchStats} vaultMax={vault.max} vaultMin={vault.min}/>
           </div>
         )}
 
