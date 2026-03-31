@@ -1,20 +1,81 @@
 "use client";
-// components/BingoGame.jsx
+// app/page.jsx — BaseCast v2
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { usePublicClient, useWalletClient, useAccount } from "wagmi";
+import { AppFooter, ConsentModal, hasConsented } from "@/components/PolicyModal";
+import BingoGame from "@/components/BingoGame";
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useAccount, useChainId, useSwitchChain,
+  usePublicClient, useWalletClient,
+  useSignMessage,
+} from "wagmi";
+import { ConnectButton }                      from "@rainbow-me/rainbowkit";
 import { parseUnits, formatUnits } from "viem";
 
-// ── ABI ───────────────────────────────────────────────────────────────────────
-const BINGO_ABI = [
-  { name:"placeTurbo",   type:"function", stateMutability:"payable",
-    inputs:[{name:"wager",type:"uint256"}], outputs:[{name:"seqNum",type:"uint64"}] },
-  { name:"placeSpeed",   type:"function", stateMutability:"payable",
-    inputs:[{name:"wager",type:"uint256"}], outputs:[{name:"seqNum",type:"uint64"}] },
-  { name:"placePattern", type:"function", stateMutability:"payable",
-    inputs:[{name:"wager",type:"uint256"},{name:"pattern",type:"uint8"}],
-    outputs:[{name:"seqNum",type:"uint64"}] },
-  { name:"getBet",       type:"function", stateMutability:"view",
+// ── Addresses ─────────────────────────────────────────────────────────────────
+const VAULT    = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
+const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
+const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
+const BINGO    = process.env.NEXT_PUBLIC_BINGO_ADDRESS;
+const USDC     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
+const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
+const EXPLORER = CHAIN_ID === 8453 ? "https://basescan.org" : "https://sepolia.basescan.org";
+const PYTH_CHAIN    = CHAIN_ID === 8453 ? "base" : "base-sepolia";
+const PYTH_EXPLORER = `https://entropy-explorer.pyth.network/?chain=${PYTH_CHAIN}`;
+
+// ── ABIs ──────────────────────────────────────────────────────────────────────
+const USDC_ABI = [
+  {name:"balanceOf", type:"function", stateMutability:"view",       inputs:[{name:"a",type:"address"}],                                outputs:[{type:"uint256"}]},
+  {name:"allowance", type:"function", stateMutability:"view",       inputs:[{name:"o",type:"address"},{name:"s",type:"address"}],      outputs:[{type:"uint256"}]},
+  {name:"approve",   type:"function", stateMutability:"nonpayable", inputs:[{name:"s",type:"address"},{name:"a",type:"uint256"}],      outputs:[{type:"bool"}]},
+];
+const VAULT_ABI = [
+  {name:"vaultBalance",            type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint256"}]},
+  {name:"maxBet",                  type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint256"}]},
+  {name:"minBet",                  type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint256"}]},
+  {name:"getLeaderboardAddresses", type:"function", stateMutability:"view", inputs:[], outputs:[{type:"address[]"}]},
+  {name:"getMultipleStats",        type:"function", stateMutability:"view",
+    inputs:[{name:"players",type:"address[]"}],
+    outputs:[{name:"volumes",type:"uint128[]"},{name:"pnls",type:"int128[]"}]},
+];
+const CF_ABI = [
+  {name:"placeBet",      type:"function", stateMutability:"payable",
+    inputs:[{name:"wager",type:"uint256"},{name:"choice",type:"uint8"}],
+    outputs:[{name:"seqNum",type:"uint64"}]},
+  {name:"getBet",        type:"function", stateMutability:"view",
+    inputs:[{name:"seqNum",type:"uint64"}],
+    outputs:[{name:"",type:"tuple",components:[
+      {name:"player",type:"address"},{name:"wager",type:"uint96"},
+      {name:"choice",type:"uint8"},{name:"status",type:"uint8"},
+      {name:"payout",type:"uint96"},{name:"timestamp",type:"uint32"},
+      {name:"randomSeed",type:"bytes32"},
+    ]}]},
+  {name:"getEntropyFee", type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint128"}]},
+  {name:"getPlayerBets", type:"function", stateMutability:"view",
+    inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}]},
+];
+const DR_ABI = [
+  {name:"placeBetRange", type:"function", stateMutability:"payable",
+    inputs:[{name:"wager",type:"uint256"},{name:"high",type:"bool"}],
+    outputs:[{name:"seqNum",type:"uint64"}]},
+  {name:"placeBetExact", type:"function", stateMutability:"payable",
+    inputs:[{name:"wager",type:"uint256"},{name:"number",type:"uint8"}],
+    outputs:[{name:"seqNum",type:"uint64"}]},
+  {name:"getBet",        type:"function", stateMutability:"view",
+    inputs:[{name:"seqNum",type:"uint64"}],
+    outputs:[{name:"",type:"tuple",components:[
+      {name:"player",type:"address"},{name:"wager",type:"uint96"},
+      {name:"betType",type:"uint8"},{name:"exactNumber",type:"uint8"},
+      {name:"status",type:"uint8"},{name:"rolledNumber",type:"uint8"},
+      {name:"payout",type:"uint96"},{name:"timestamp",type:"uint32"},
+      {name:"randomSeed",type:"bytes32"},
+    ]}]},
+  {name:"getEntropyFee", type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint128"}]},
+  {name:"getPlayerBets", type:"function", stateMutability:"view",
+    inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}]},
+];
+const BG_ABI = [
+  {name:"getBet", type:"function", stateMutability:"view",
     inputs:[{name:"seqNum",type:"uint64"}],
     outputs:[{name:"",type:"tuple",components:[
       {name:"player",type:"address"},{name:"wager",type:"uint96"},
@@ -22,886 +83,945 @@ const BINGO_ABI = [
       {name:"status",type:"uint8"},{name:"payout",type:"uint96"},
       {name:"timestamp",type:"uint32"},{name:"randomSeed",type:"bytes32"},
       {name:"gridSize",type:"uint8"},
-    ]}] },
-  { name:"getEntropyFee",type:"function", stateMutability:"view",
-    inputs:[], outputs:[{type:"uint128"}] },
-  { name:"getPlayerBets",type:"function", stateMutability:"view",
-    inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}] },
-  { name:"BingoResult",  type:"event",
-    inputs:[
-      {name:"seqNum",      type:"uint64",   indexed:true},
-      {name:"player",      type:"address",  indexed:true},
-      {name:"wager",       type:"uint256",  indexed:false},
-      {name:"payout",      type:"uint256",  indexed:false},
-      {name:"won",         type:"bool",     indexed:false},
-      {name:"mode",        type:"uint8",    indexed:false},
-      {name:"drawnNumbers",type:"uint8[]",  indexed:false},
-      {name:"card",        type:"uint8[]",  indexed:false},
-    ]},
+    ]}]},
+  {name:"getPlayerBets", type:"function", stateMutability:"view",
+    inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}]},
 ];
 
-const USDC_ABI = [
-  { name:"allowance", type:"function", stateMutability:"view",
-    inputs:[{name:"owner",type:"address"},{name:"spender",type:"address"}],
-    outputs:[{type:"uint256"}] },
-  { name:"approve",   type:"function", stateMutability:"nonpayable",
-    inputs:[{name:"spender",type:"address"},{name:"amount",type:"uint256"}],
-    outputs:[{type:"bool"}] },
-];
+const BET_RESOLVED_EVENT = {name:"BetResolved",type:"event",inputs:[
+  {name:"seqNum",type:"uint64",indexed:true},
+  {name:"player",type:"address",indexed:true},
+  {name:"wager",type:"uint256",indexed:false},
+  {name:"payout",type:"uint256",indexed:false},
+  {name:"won",type:"bool",indexed:false},
+]};
 
-const BINGO_ADDR = process.env.NEXT_PUBLIC_BINGO_ADDRESS;
-const VAULT_ADDR = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
-const USDC_ADDR  = process.env.NEXT_PUBLIC_USDC_ADDRESS;
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-const usd = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
-
-function ordinal(n) {
-  const s = ["th","st","nd","rd"];
-  const v = n % 100;
-  return n + (s[(v-20)%10] || s[v] || s[0]);
-}
-
-const MODES = [
-  { id:0, key:"TURBO",       label:"Turbo",       grid:3, desc:"3×3 · Fastest · Any line wins" },
-  { id:1, key:"SPEED",       label:"Speed",       grid:5, desc:"5×5 · First line or full card"  },
-  { id:2, key:"PATTERN",     label:"Pattern",     grid:5, desc:"5×5 · Choose your pattern"      },
-  { id:3, key:"MULTIPLAYER", label:"Multiplayer", grid:5, desc:"Coming soon...", disabled:true },
-];
-
-const PATTERNS = [
-  { id:0, label:"Any Line",  mult:"2.4×",  desc:"Any row, column or diagonal",  icon:"━" },
-  { id:1, label:"X Shape",   mult:"4.5×",  desc:"Both diagonals crossed",        icon:"✕" },
-  { id:2, label:"Corners",   mult:"3.5×",  desc:"Four corner squares",           icon:"⬛"},
-  { id:3, label:"T Shape",   mult:"3.8×",  desc:"Top row + middle column",       icon:"T" },
-  { id:4, label:"Full Card", mult:"20×",   desc:"All 25 numbers matched",        icon:"⬛"},
-];
-
-const MODE_PAYOUTS = {
-  0: [{ label:"Any Line", mult:"2.9×" }, { label:"Full Card", mult:"8×"  }],
-  1: [{ label:"Any Line", mult:"2.4×" }, { label:"Full Card", mult:"18×" }],
-  2: PATTERNS.map(p=>({ label:p.label, mult:p.mult })),
-};
-
-// ── Win detection (mirrors contract logic) ─────────────────────────────────────
-function getWinLines(gridSize) {
-  const g = gridSize;
-  const lines = [];
-  for (let r=0;r<g;r++) { const row=[]; for(let c=0;c<g;c++) row.push(r*g+c); lines.push(row); }
-  for (let c=0;c<g;c++) { const col=[]; for(let r=0;r<g;r++) col.push(r*g+c); lines.push(col); }
-  const d1=[],d2=[]; for(let i=0;i<g;i++){d1.push(i*g+i);d2.push(i*g+(g-1-i));} lines.push(d1,d2);
-  return lines;
-}
-
-function checkWin(card, revealedDrawnSet, mode, pattern, gridSize) {
-  const matched = new Set(card.map((n,i)=>(revealedDrawnSet.has(n)?i:-1)).filter(i=>i>=0));
-  if (mode === 0) return getWinLines(3).some(line => line.every(i => matched.has(i)));
-  if (mode === 1) return getWinLines(5).some(line => line.every(i => matched.has(i))) || matched.size === 25;
-  if (mode === 2) {
-    if (pattern === 0) return getWinLines(5).some(line => line.every(i => matched.has(i)));
-    if (pattern === 1) {
-      const d1=[0,6,12,18,24], d2=[4,8,12,16,20];
-      return d1.every(i=>matched.has(i)) && d2.every(i=>matched.has(i));
-    }
-    if (pattern === 2) return [0,4,20,24].every(i=>matched.has(i));
-    if (pattern === 3) {
-      const top=[0,1,2,3,4], midCol=[2,7,12,17,22];
-      return top.every(i=>matched.has(i)) && midCol.every(i=>matched.has(i));
-    }
-    if (pattern === 4) return matched.size === 25;
-  }
-  return false;
-}
-
-function getWinningCells(card, revealedDrawnSet, mode, pattern) {
-  const matched = new Set(card.map((n,i)=>(revealedDrawnSet.has(n)?i:-1)).filter(i=>i>=0));
-  const winCells = new Set();
-  if (mode === 0) {
-    getWinLines(3).forEach(line => { if(line.every(i=>matched.has(i))) line.forEach(i=>winCells.add(i)); });
-  } else if (mode === 1) {
-    getWinLines(5).forEach(line => { if(line.every(i=>matched.has(i))) line.forEach(i=>winCells.add(i)); });
-    if (matched.size===25) matched.forEach(i=>winCells.add(i));
-  } else if (mode === 2) {
-    if (pattern===0) getWinLines(5).forEach(line => { if(line.every(i=>matched.has(i))) line.forEach(i=>winCells.add(i)); });
-    if (pattern===1) { [0,6,12,18,24,4,8,12,16,20].forEach(i=>winCells.add(i)); }
-    if (pattern===2) [0,4,20,24].forEach(i=>winCells.add(i));
-    if (pattern===3) [0,1,2,3,4,2,7,12,17,22].forEach(i=>winCells.add(i));
-    if (pattern===4) matched.forEach(i=>winCells.add(i));
-  }
-  return winCells;
-}
-
-// ── Sound effects ─────────────────────────────────────────────────────────────
-function playRevealTick(matched) {
-  try {
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = matched ? "sine" : "triangle";
-    osc.frequency.setValueAtTime(matched ? 520 : 220, ctx.currentTime);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (matched ? 0.25 : 0.12));
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.25);
-  } catch {}
-}
-
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const usd  = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
+const pnl  = (v) => `${v<0n?"-":"+"}$${parseFloat(formatUnits(v<0n?-v:v,6)).toFixed(2)}`;
 function playWin() {
   try {
-    const ctx = new (window.AudioContext||window.webkitAudioContext)();
-    [523,659,784,1047,1319].forEach((freq,i) => {
-      const osc=ctx.createOscillator(), gain=ctx.createGain();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
-      osc.type="sine";
-      osc.frequency.setValueAtTime(freq, ctx.currentTime+i*0.1);
-      gain.gain.setValueAtTime(0.28, ctx.currentTime+i*0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+i*0.1+0.4);
-      osc.start(ctx.currentTime+i*0.1);
-      osc.stop(ctx.currentTime+i*0.1+0.4);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.35);
+      osc.start(ctx.currentTime + i * 0.1);
+      osc.stop(ctx.currentTime + i * 0.1 + 0.35);
     });
   } catch {}
 }
 
-// ── Confetti burst ────────────────────────────────────────────────────────────
-function ConfettiBurst() {
-  const particles = Array.from({length:28},(_,i)=>i);
+function playLose() {
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.4);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch {}
+}
+
+// ── Session auth helpers ──────────────────────────────────────────────────────
+const SESSION_KEY = "bc_session";
+function getSession(addr) {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY)||"{}");
+    if (s.address !== addr || Date.now()-s.ts > 86400000) return null;
+    return s;
+  } catch { return null; }
+}
+function saveSession(addr, sig) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({address:addr,sig,ts:Date.now()}));
+}
+
+// ── Dice dots ─────────────────────────────────────────────────────────────────
+const DOTS = {
+  1:[[50,50]], 2:[[28,28],[72,72]], 3:[[28,28],[50,50],[72,72]],
+  4:[[28,28],[72,28],[28,72],[72,72]],
+  5:[[28,28],[72,28],[50,50],[28,72],[72,72]],
+  6:[[28,28],[72,28],[28,50],[72,50],[28,72],[72,72]],
+};
+
+// ── CSS ───────────────────────────────────────────────────────────────────────
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@900&family=Courgette&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07050f;--s1:rgba(255,255,255,0.04);--s2:rgba(255,255,255,0.07);--bd:rgba(255,255,255,0.1);
+  --blue:#6C63FF;--blue2:#4F46E5;--green:#00F5A0;--red:#FF4D6D;
+  --gold:#FFD166;--tx:#F0F2FF;--sub:#9094B0;--dim:#3D4060;
+}
+.light{--bg:#F0F4FF;--s1:rgba(255,255,255,0.85);--s2:rgba(240,244,255,0.9);--bd:rgba(0,0,0,0.1);--tx:#0A0B1A;--sub:#5560A0;--dim:#9AA5CC;--blue:#4338CA;--blue2:#3730A3;--green:#059669;--gold:#D97706;--red:#DC2626}
+body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050f 100%);background-attachment:fixed;color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#6C63FF,#00F5A0);border-radius:4px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin2{to{transform:rotate(360deg)}}
+@keyframes flip{0%{transform:rotateY(0)}50%{transform:rotateY(900deg) scale(1.2)}100%{transform:rotateY(1800deg)}}
+@keyframes roll{0%{transform:rotate(0)}40%{transform:rotate(360deg) scale(1.1)}100%{transform:rotate(720deg)}}
+@keyframes winPop{0%,100%{box-shadow:none}50%{box-shadow:0 0 28px rgba(16,185,129,0.5)}}
+@keyframes loseShk{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes signPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0.4)}50%{box-shadow:0 0 0 10px rgba(37,99,235,0)}}
+.fi{animation:fadeIn .3s ease}
+.flip{animation:flip 1.4s cubic-bezier(.4,0,.2,1) forwards}
+.roll{animation:roll 1.2s cubic-bezier(.4,0,.2,1) forwards}
+.win{animation:winPop .8s ease}
+.lose{animation:loseShk .4s ease}
+.sp{animation:spin2 .8s linear infinite}
+.spulse{animation:signPulse 2s ease infinite}
+.btn{border:none;border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.primary{background:linear-gradient(135deg,#6C63FF,#4F46E5);color:#fff;padding:14px;width:100%;font-size:15px;box-shadow:0 4px 20px rgba(108,99,255,0.35)}
+.primary:hover:not(:disabled){background:linear-gradient(135deg,#7C74FF,#6C63FF);transform:translateY(-2px);box-shadow:0 6px 28px rgba(108,99,255,0.5)}
+.primary:disabled{opacity:.4;cursor:not-allowed}
+.choice{background:var(--s2);border:1.5px solid var(--bd);color:var(--sub);padding:14px;flex:1;font-size:14px}
+.choice.sel{border-color:var(--blue);background:rgba(37,99,235,.1);color:var(--tx)}
+.choice:hover:not(:disabled){border-color:var(--blue);color:var(--tx)}
+.inp{background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;color:var(--tx);font-family:'Outfit',sans-serif;font-size:18px;font-weight:600;padding:12px 16px;width:100%;outline:none}
+.inp:focus{border-color:var(--blue)}
+.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:20px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.tab{background:none;border:none;border-bottom:2px solid transparent;font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;padding:12px 20px;cursor:pointer;color:var(--sub);transition:all .15s}
+.tab.on{color:var(--tx);border-bottom-color:var(--blue)}
+.mono{font-family:'JetBrains Mono',monospace}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+.shimmer{background:linear-gradient(90deg,#00F5A0,#a8ff78,#FFD166,#00D4AA,#00F5A0);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 2.5s linear infinite;font-weight:700}
+@media(max-width:520px){
+  .hdr{padding:10px 12px!important}
+  .hdr-logo{font-size:13px!important}
+  .hdr-right{gap:6px!important}
+  .tab{padding:9px 11px!important;font-size:12px!important}
+  .stats-bar>div{padding:6px 10px!important}
+  .main-pad{padding:14px 10px!important}
+  .card{padding:14px!important;border-radius:14px!important}
+  .primary{padding:12px!important;font-size:14px!important}
+  .choice{padding:11px!important;font-size:13px!important}
+  .inp{font-size:16px!important;padding:10px 13px!important}
+}
+`;
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+const Spin = ({size=16}) => (
+  <div className="sp" style={{width:size,height:size,borderRadius:"50%",border:`2px solid rgba(255,255,255,.2)`,borderTopColor:"#fff",flexShrink:0}}/>
+);
+
+const Coin = ({side="HEADS",anim=false}) => (
+  <div className={anim?"flip":""} style={{
+    width:72,height:72,borderRadius:"50%",flexShrink:0,userSelect:"none",
+    background:side==="HEADS"?"linear-gradient(135deg,#D97706,#92400E)":"linear-gradient(135deg,#6B7280,#374151)",
+    display:"flex",alignItems:"center",justifyContent:"center",
+    fontSize:24,fontFamily:"'JetBrains Mono',monospace",color:"rgba(0,0,0,.5)",
+    boxShadow:side==="HEADS"?"0 4px 16px rgba(217,119,6,.3)":"0 4px 16px rgba(107,114,128,.2)",
+  }}>{side==="HEADS"?"H":"T"}</div>
+);
+
+const Die = ({n=1,size=64,anim=false}) => (
+  <div className={anim?"roll":""} style={{
+    width:size,height:size,background:"var(--s2)",
+    border:"1.5px solid var(--bd)",borderRadius:size*.16,
+    position:"relative",flexShrink:0,
+  }}>
+    {(DOTS[n]||[]).map(([x,y],i)=>(
+      <div key={i} style={{
+        position:"absolute",width:size*.15,height:size*.15,
+        borderRadius:"50%",background:"var(--blue)",
+        left:`${x}%`,top:`${y}%`,transform:"translate(-50%,-50%)",
+      }}/>
+    ))}
+  </div>
+);
+
+const QuickBtns = ({set}) => (
+  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+    {["1","5","10","25","50"].map(v=>(
+      <button key={v} className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"5px 12px",fontSize:12,borderRadius:7,width:"auto"}}
+        onClick={()=>set(v)}>${v}</button>
+    ))}
+  </div>
+);
+
+const PayInfo = ({wager,mult}) => (
+  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.15)",borderRadius:8,padding:"10px 14px"}}>
+    <div>
+      <div style={{fontSize:10,color:"var(--sub)"}}>WIN PAYOUT</div>
+      <div className="mono" style={{fontSize:16,color:"var(--green)",marginTop:2}}>${(parseFloat(wager||0)*mult).toFixed(2)}</div>
+    </div>
+    <div style={{textAlign:"right"}}>
+      <div style={{fontSize:10,color:"var(--sub)"}}>MULTIPLIER</div>
+      <div style={{fontSize:16,color:"var(--gold)",fontWeight:600,marginTop:2}}>{mult}×</div>
+    </div>
+  </div>
+);
+
+// ── Sign-in screen ────────────────────────────────────────────────────────────
+function SignScreen({isSigning,error,onSign}) {
   return (
-    <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden",zIndex:10}}>
-      {particles.map(i=>{
-        const angle = (i/particles.length)*360;
-        const dist  = 60 + Math.random()*80;
-        const size  = 6 + Math.random()*6;
-        const colors= ["#2563EB","#F59E0B","#10B981","#EF4444","#8B5CF6","#EC4899","#06B6D4"];
-        const color = colors[i % colors.length];
-        const delay = (Math.random()*0.3).toFixed(2);
-        const dur   = (0.6+Math.random()*0.5).toFixed(2);
-        const tx    = Math.cos(angle*Math.PI/180)*dist;
-        const ty    = Math.sin(angle*Math.PI/180)*dist;
-        return (
-          <div key={i} style={{
-            position:"absolute",
-            left:"50%", top:"40%",
-            width:size, height:size,
-            borderRadius: i%3===0 ? "50%" : 2,
-            background: color,
-            animation: `confetti-fly ${dur}s ${delay}s ease-out forwards`,
-            "--tx": `${tx}px`,
-            "--ty": `${ty}px`,
-          }}/>
-        );
-      })}
-      <style>{`
-        @keyframes confetti-fly {
-          0%   { transform: translate(-50%,-50%) scale(1); opacity:1; }
-          100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.3) rotate(360deg); opacity:0; }
-        }
-      `}</style>
+    <div className="card fi" style={{textAlign:"center",padding:"40px 24px",display:"flex",flexDirection:"column",alignItems:"center",gap:20}}>
+      <img src="/logo.png" width={100} height={100} style={{borderRadius:18}} onError={e=>e.target.style.display="none"}/>
+      <div>
+        <div style={{fontWeight:700,fontSize:20,marginBottom:8}}>One more step</div>
+        <div style={{color:"var(--sub)",fontSize:13,lineHeight:1.7}}>
+          Sign a message to verify wallet ownership.<br/>
+          <b style={{color:"var(--tx)"}}>Free — no gas required.</b>
+        </div>
+      </div>
+      <div style={{background:"rgba(37,99,235,.07)",border:"1px solid rgba(37,99,235,.2)",borderRadius:10,padding:"14px 16px",width:"100%",textAlign:"left"}}>
+        <div style={{fontSize:10,color:"var(--blue)",letterSpacing:"2px",marginBottom:8}}>YOU&#39;RE SIGNING</div>
+        <div className="mono" style={{fontSize:11,color:"var(--sub)",lineHeight:1.8}}>
+          Welcome to BaseCast!<br/>
+          Verify wallet ownership<br/>
+          <span style={{color:"var(--dim)"}}>No gas · No transaction · Free</span>
+        </div>
+      </div>
+      {error && <div style={{fontSize:12,color:"var(--red)",textAlign:"center"}}>⚠ {error}</div>}
+      <button className="btn primary spulse" style={{fontSize:15}} onClick={onSign} disabled={isSigning}>
+        {isSigning ? <><Spin/>Waiting...</> : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{display:"inline",verticalAlign:"middle",marginRight:7,flexShrink:0}}><path d="M12 22c0-4 0-7-4-9" strokeLinecap="round"/><path d="M12 22c0-4 0-7 4-9" strokeLinecap="round"/><path d="M8 9a4 4 0 0 1 8 0c0 5-1 8-2 11" strokeLinecap="round"/><path d="M6 10.5A6 6 0 0 1 18 9" strokeLinecap="round"/><path d="M4.5 12A7.5 7.5 0 0 1 12 4.5a7.5 7.5 0 0 1 7.5 7.5" strokeLinecap="round"/></svg>Sign to Enter</>}
+      </button>
+      <div style={{fontSize:10,color:"var(--dim)"}}>Session valid 24 hours</div>
     </div>
   );
 }
 
-// ── Pattern preview ───────────────────────────────────────────────────────────
-function PatternPreview({ patternId, size=5 }) {
-  const highlights = {
-    0: [0,1,2,3,4],
-    1: [0,6,12,18,24,4,8,16,20],
-    2: [0,4,20,24],
-    3: [0,1,2,3,4,2,7,12,17,22],
-    4: Array.from({length:25},(_,i)=>i),
+// ── Main ──────────────────────────────────────────────────────────────────────
+export default function App() {
+  const {address,isConnected}     = useAccount();
+  const chainId                   = useChainId();
+  const {switchChain}             = useSwitchChain();
+  const pub                       = usePublicClient();
+  const {data:wc}                 = useWalletClient();
+  const {signMessageAsync}        = useSignMessage();
+
+  const [authed,  setAuthed]  = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [signErr, setSignErr] = useState(null);
+  const [tab, setTab] = useState("coinflip");
+  const [verifySeq,     setVerifySeq]     = useState("");
+  const [verifyResult,  setVerifyResult]  = useState(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyErr,     setVerifyErr]     = useState(null);
+  const [bal,   setBal]   = useState(0n);
+  const [vault, setVault] = useState({b:0n,max:0n,min:0n});
+  const [cfChoice,setCfChoice] = useState("HEADS");
+  const [cfWager, setCfWager]  = useState("10");
+  const [cfS,     setCfS]      = useState("idle");
+  const [cfRes,   setCfRes]    = useState(null);
+  const [cfCoin,  setCfCoin]   = useState("HEADS");
+  const [cfErr,   setCfErr]    = useState(null);
+  const [dMode,  setDMode]  = useState("range");
+  const [dHigh,  setDHigh]  = useState(true);
+  const [dExact, setDExact] = useState(1);
+  const [dWager, setDWager] = useState("10");
+  const [dS,     setDS]     = useState("idle");
+  const [dRes,   setDRes]   = useState(null);
+  const [dNum,   setDNum]   = useState(1);
+  const [dErr,   setDErr]   = useState(null);
+  const [lb,    setLb]    = useState([]);
+  const [lbSrt, setLbSrt] = useState("volume");
+  const [lbLd,  setLbLd]  = useState(false);
+  const [light, setLight] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [myPnl,   setMyPnl]   = useState(null);
+  const [copied,    setCopied]    = useState(false);
+  const [txHistory, setTxHistory] = useState([]);
+  const [txLoading, setTxLoading] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (address && getSession(address)) setAuthed(true);
+    else setAuthed(false);
+  }, [address]);
+
+  const fetchMyPnl = useCallback(async () => {
+    if (!pub || !VAULT || !address) return;
+    try {
+      const [,pnls] = await pub.readContract({address:VAULT,abi:VAULT_ABI,functionName:"getMultipleStats",args:[[address]]});
+      setMyPnl(pnls[0]);
+    } catch {}
+  }, [pub, address]);
+
+  useEffect(() => { if (authed) fetchMyPnl(); }, [authed, fetchMyPnl]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handle = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [menuOpen]);
+
+  const BINGO_MODE_LABELS = ["Turbo","Speed","Pattern","Multiplayer"];
+
+  const fetchTxHistory = useCallback(async () => {
+    if (!pub || !COINFLIP || !DICEROLL || !address) return;
+    setTxLoading(true);
+    try {
+      const fetches = [
+        pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getPlayerBets", args:[address]}),
+        pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getPlayerBets", args:[address]}),
+      ];
+      if (BINGO) fetches.push(pub.readContract({address:BINGO, abi:BG_ABI, functionName:"getPlayerBets", args:[address]}));
+
+      const [cfSeqs, drSeqs, bgSeqs = []] = await Promise.all(fetches);
+
+      const cfLast = [...cfSeqs].slice(-15);
+      const drLast = [...drSeqs].slice(-15);
+      const bgLast = [...bgSeqs].slice(-15);
+
+      const [cfBets, drBets, bgBets] = await Promise.all([
+        Promise.all(cfLast.map(seq => pub.readContract({address:COINFLIP, abi:CF_ABI, functionName:"getBet", args:[seq]}))),
+        Promise.all(drLast.map(seq => pub.readContract({address:DICEROLL, abi:DR_ABI, functionName:"getBet", args:[seq]}))),
+        BINGO ? Promise.all(bgLast.map(seq => pub.readContract({address:BINGO, abi:BG_ABI, functionName:"getBet", args:[seq]}))) : Promise.resolve([]),
+      ]);
+
+      const all = [
+        ...cfBets.map((bet,i) => ({
+          id:`cf-${cfLast[i]}`, type:"coinflip",
+          wager:bet.wager, payout:bet.payout,
+          status:Number(bet.status), timestamp:Number(bet.timestamp),
+          won:Number(bet.status)===1,
+          txHash: localStorage.getItem(`txhash:cf-${cfLast[i]}`) || undefined,
+          seqNum: cfLast[i].toString(),
+        })),
+        ...drBets.map((bet,i) => ({
+          id:`dr-${drLast[i]}`, type:"diceroll",
+          wager:bet.wager, payout:bet.payout,
+          status:Number(bet.status), timestamp:Number(bet.timestamp),
+          won:Number(bet.status)===1,
+          txHash: localStorage.getItem(`txhash:dr-${drLast[i]}`) || undefined,
+          seqNum: drLast[i].toString(),
+        })),
+        ...bgBets.map((bet,i) => ({
+          id:`bg-${bgLast[i]}`, type:"bingo",
+          wager:bet.wager, payout:bet.payout,
+          status:Number(bet.status), timestamp:Number(bet.timestamp),
+          won:Number(bet.status)===1,
+          subLabel: BINGO_MODE_LABELS[Number(bet.mode)] || "Bingo",
+          txHash: localStorage.getItem(`txhash:bg-${bgLast[i]}`) || undefined,
+          seqNum: bgLast[i].toString(),
+        })),
+      ].filter(tx=>tx.status!==0).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
+
+      setTxHistory(all);
+    } catch {}
+    setTxLoading(false);
+  }, [pub, address]);
+
+  useEffect(() => { if (menuOpen && authed) fetchTxHistory(); }, [menuOpen, authed, fetchTxHistory]);
+
+  function shortAddr(addr) {
+    if (!addr) return "";
+    return addr.slice(0,6) + "..." + addr.slice(-4);
+  }
+
+  function groupByDate(txs) {
+    const groups = {};
+    txs.forEach(tx => {
+      const key = new Date(tx.timestamp*1000).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(tx);
+    });
+    return Object.entries(groups);
+  }
+
+  function copyAddress() {
+    if (!address) return;
+    navigator.clipboard.writeText(address).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  }
+
+  const doSign = async () => {
+    setSigning(true); setSignErr(null);
+    try {
+      const msg = `Welcome to BaseCast!\n\nVerify wallet ownership.\nNo gas · No transaction · Free.\n\nWallet: ${address}\nNonce: ${Date.now()}`;
+      const sig = await signMessageAsync({message:msg});
+      saveSession(address, sig);
+      setAuthed(true);
+    } catch(e) {
+      setSignErr(e.shortMessage||"Signature rejected. Try again.");
+    }
+    setSigning(false);
   };
-  const hi = new Set(highlights[patternId]||[]);
-  return (
-    <div style={{display:"grid",gridTemplateColumns:`repeat(${size},1fr)`,gap:2,width:60,height:60}}>
-      {Array.from({length:size*size},(_,i)=>(
-        <div key={i} style={{borderRadius:2,background:hi.has(i)?"#2563EB":"var(--bd)"}}/>
-      ))}
-    </div>
-  );
-}
 
-// ── Bingo Card ────────────────────────────────────────────────────────────────
-function BingoCard({ card, revealedSet, winCells, gridSize, phase, justRevealedNum }) {
-  if (!card || card.length === 0) return null;
-  return (
-    <div style={{
-      display:"grid",
-      gridTemplateColumns:`repeat(${gridSize},1fr)`,
-      gap:5, width:"100%",
-    }}>
-      {card.map((num, i) => {
-        const isRevealed  = revealedSet.has(Number(num));
-        const isWinCell   = winCells && winCells.has(i);
-        const isJustHit   = justRevealedNum === Number(num) && isRevealed;
+  const fetchStats = useCallback(async () => {
+    if (!pub || !USDC || !VAULT) return;
+    try {
+      const [b,vb,mx,mn] = await Promise.all([
+        address ? pub.readContract({address:USDC,  abi:USDC_ABI,  functionName:"balanceOf", args:[address]}) : 0n,
+        pub.readContract({address:VAULT, abi:VAULT_ABI, functionName:"vaultBalance"}),
+        pub.readContract({address:VAULT, abi:VAULT_ABI, functionName:"maxBet"}),
+        pub.readContract({address:VAULT, abi:VAULT_ABI, functionName:"minBet"}),
+      ]);
+      setBal(b); setVault({b:vb,max:mx,min:mn});
+    } catch {}
+  },[pub,address]);
 
-        let bg     = "var(--s2)";
-        let border = "1.5px solid var(--bd)";
-        let color  = "var(--sub)";
-        let shadow = "none";
-        let scale  = "1";
+  useEffect(()=>{ fetchStats(); },[fetchStats]);
 
-        if (isWinCell) {
-          bg     = "rgba(16,185,129,0.18)";
-          border = "1.5px solid #10B981";
-          color  = "#10B981";
-          shadow = "0 0 12px rgba(16,185,129,0.45)";
-        } else if (isJustHit) {
-          bg     = "rgba(37,99,235,0.35)";
-          border = "1.5px solid #60A5FA";
-          color  = "#BFDBFE";
-          shadow = "0 0 14px rgba(37,99,235,0.7)";
-          scale  = "1.12";
-        } else if (isRevealed) {
-          bg     = "rgba(37,99,235,0.18)";
-          border = "1.5px solid #2563EB";
-          color  = "#93C5FD";
-          shadow = "0 0 6px rgba(37,99,235,0.3)";
-        }
+  const fetchLb = useCallback(async () => {
+    if (!pub || !VAULT) return;
+    setLbLd(true);
+    try {
+      const addrs = await pub.readContract({address:VAULT,abi:VAULT_ABI,functionName:"getLeaderboardAddresses"});
+      if (!addrs.length) { setLb([]); setLbLd(false); return; }
+      const [vols,pnls] = await pub.readContract({
+        address:VAULT,abi:VAULT_ABI,functionName:"getMultipleStats",args:[addrs]
+      });
+      setLb(addrs.map((a,i)=>({address:a,volume:vols[i],pnl:pnls[i]})));
+    } catch {}
+    setLbLd(false);
+  },[pub]);
 
-        return (
-          <div key={i} style={{
-            aspectRatio:"1",
-            borderRadius:7,
-            display:"flex",alignItems:"center",justifyContent:"center",
-            fontFamily:"'JetBrains Mono',monospace",
-            fontSize: gridSize===3 ? 17 : 12,
-            fontWeight:600,
-            background: bg,
-            border: border,
-            color: color,
-            boxShadow: shadow,
-            transform: `scale(${scale})`,
-            transition:"all 0.25s ease",
-          }}>
-            {num}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Mode Icons ────────────────────────────────────────────────────────────────
-function ModeIcon({ id, active }) {
-  const color = active ? "#fff" : "var(--sub)";
-  const svg = { width:18, height:18, viewBox:"0 0 24 24", fill:"none",
-    stroke:color, strokeWidth:2, strokeLinecap:"round", strokeLinejoin:"round" };
-  if (id === 0) return (
-    <svg {...svg}>
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-    </svg>
-  );
-  if (id === 1) return (
-    <svg {...svg}>
-      <path d="M3 12a9 9 0 1 0 18 0A9 9 0 0 0 3 12"/>
-      <path d="M12 8v4l2 2"/>
-      <path d="M8 5.5 10 7"/>
-      <path d="M16 5.5 14 7"/>
-    </svg>
-  );
-  if (id === 3) return (
-    <svg {...svg}>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-  );
-  return (
-    <svg {...svg}>
-      <circle cx="12" cy="12" r="10"/>
-      <circle cx="12" cy="12" r="4"/>
-      <line x1="12" y1="2" x2="12" y2="6"/>
-      <line x1="12" y1="18" x2="12" y2="22"/>
-      <line x1="2"  y1="12" x2="6"  y2="12"/>
-      <line x1="18" y1="12" x2="22" y2="12"/>
-    </svg>
-  );
-}
-
-// ── Main Component ────────────────────────────────────────────────────────────
-export default function BingoGame({ balance, refetchBalance }) {
-  const { address }  = useAccount();
-  const pub          = usePublicClient();
-  const { data: wc } = useWalletClient();
-
-  const [mode,        setMode]        = useState(0);
-  const [pattern,     setPattern]     = useState(0);
-  const [wager,       setWager]       = useState("1");
-  const [phase,       setPhase]       = useState("idle");
-  const [result,      setResult]      = useState(null);
-  const [revealIndex, setRevealIndex] = useState(0);
-  const [winCells,    setWinCells]    = useState(null);
-  const [justRevealed,setJustRevealed]= useState(null);
-  const [showConfetti,setShowConfetti]= useState(false);
-  const [error,       setError]       = useState(null);
-  const justRevealedTimer = useRef(null);
-
-  const revealedSet = result
-    ? new Set(result.drawn.slice(0, revealIndex).map(Number))
-    : new Set();
+  useEffect(()=>{ if(tab==="leaderboard") fetchLb(); },[tab,fetchLb]);
 
   const ensureAllow = async (amt) => {
-    const al = await pub.readContract({
-      address:USDC_ADDR, abi:USDC_ABI,
-      functionName:"allowance", args:[address, VAULT_ADDR],
-    });
+    const al = await pub.readContract({address:USDC,abi:USDC_ABI,functionName:"allowance",args:[address,VAULT]});
     if (al >= amt) return;
-    const {request} = await pub.simulateContract({
-      address:USDC_ADDR, abi:USDC_ABI,
-      functionName:"approve", args:[VAULT_ADDR, amt*1000n],
-      account:address,
-    });
+    const {request} = await pub.simulateContract({address:USDC,abi:USDC_ABI,functionName:"approve",args:[VAULT,amt*1000n],account:address});
     const h = await wc.writeContract(request);
     await pub.waitForTransactionReceipt({hash:h});
   };
 
-  const pollResult = (seqNum, fromBlock) => {
-    let i = 0;
-    const iv = setInterval(async () => {
-      if (++i > 90) {
-        clearInterval(iv);
-        setError("Timeout — bet is safe, check history");
-        setPhase("idle");
-        return;
-      }
+  const pollBet = (seqNum, addr, abi, cb) => {
+    let i=0;
+    const iv = setInterval(async()=>{
+      if(++i>60){clearInterval(iv);return;}
       try {
-        const bet = await pub.readContract({
-          address:BINGO_ADDR, abi:BINGO_ABI,
-          functionName:"getBet", args:[seqNum],
-        });
-        if (bet.status !== 0) {
-          clearInterval(iv);
-          const logs = await pub.getLogs({
-            address:BINGO_ADDR,
-            event: BINGO_ABI.find(x=>x.name==="BingoResult"),
-            args:  { seqNum },
-            fromBlock: fromBlock,
-          });
-          let card=[], drawn=[];
-          if (logs[0]?.args) {
-            card  = logs[0].args.card        || [];
-            drawn = logs[0].args.drawnNumbers|| [];
-          }
-          setResult({
-            won:     bet.status===1,
-            payout:  bet.payout,
-            wager:   bet.wager,
-            mode:    bet.mode,
-            pattern: bet.pattern,
-            card:    card.map(Number),
-            drawn:   drawn.map(Number),
-            gridSize:bet.gridSize,
-          });
-          setRevealIndex(0);
-          setWinCells(null);
-          setJustRevealed(null);
-          setPhase("revealing");
-          refetchBalance?.();
-        }
-      } catch {}
-    }, 2500);
+        const bet = await pub.readContract({address:addr,abi,functionName:"getBet",args:[seqNum]});
+        if(bet.status!==0){clearInterval(iv);cb(bet);fetchStats();}
+      }catch{}
+    },2000);
   };
 
-  const placeBet = useCallback(async () => {
-    if (!address || !wc || !BINGO_ADDR) return;
-    setError(null); setResult(null); setRevealIndex(0); setWinCells(null);
+  const doFlip = async () => {
+    if (!hasConsented()) { setShowConsent(true); return; }
+    setCfErr(null); setCfRes(null);
     try {
-      const w = parseUnits(wager, 6);
-      setPhase("approving");
-      await ensureAllow(w);
-
-      const fee = await pub.readContract({
-        address:BINGO_ADDR, abi:BINGO_ABI, functionName:"getEntropyFee",
+      const w = parseUnits(cfWager,6);
+      if (vault.max > 0n && w > vault.max) { setCfErr(`Bet too high — max bet is ${usd(vault.max)}`); return; }
+      if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
+      setCfS("approving"); await ensureAllow(w);
+      const fee = await pub.readContract({address:COINFLIP,abi:CF_ABI,functionName:"getEntropyFee"});
+      setCfS("placing");
+      const {request} = await pub.simulateContract({
+        address:COINFLIP,abi:CF_ABI,functionName:"placeBet",
+        args:[w, cfChoice==="HEADS"?0:1],
+        value:fee, account:address,
       });
-      setPhase("placing");
+      const hash = await wc.writeContract(request);
+      const rx   = await pub.waitForTransactionReceipt({hash});
+      const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
+      if(seq!==null) localStorage.setItem(`txhash:cf-${seq}`, hash);
+      setCfS("pending");
+      if(seq!==null) pollBet(seq,COINFLIP,CF_ABI,(bet)=>{
+        const won = bet.status===1;
+        const res = (parseInt(bet.randomSeed.slice(-2),16)&1)===0?"HEADS":"TAILS";
+        won ? playWin() : playLose();
+        setCfCoin(res);
+        setCfRes({won,payout:bet.payout,wager:bet.wager,result:res,hash});
+        setCfS("settled");
+      });
+    } catch(e){
+      setCfErr(e.shortMessage||e.message||"Failed");
+      setCfS("idle");
+    }
+  };
 
+  const doDice = async () => {
+    if (!hasConsented()) { setShowConsent(true); return; }
+    setDErr(null); setDRes(null);
+    try {
+      const w = parseUnits(dWager,6);
+      if (vault.max > 0n && w > vault.max) { setDErr(`Bet too high — max bet is ${usd(vault.max)}`); return; }
+      if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
+      setDS("approving"); await ensureAllow(w);
+      const fee = await pub.readContract({address:DICEROLL,abi:DR_ABI,functionName:"getEntropyFee"});
+      setDS("placing");
       let req;
-      if (mode===0) {
-        const {request} = await pub.simulateContract({
-          address:BINGO_ADDR, abi:BINGO_ABI, functionName:"placeTurbo",
-          args:[w], value:fee, account:address,
-        });
-        req = request;
-      } else if (mode===1) {
-        const {request} = await pub.simulateContract({
-          address:BINGO_ADDR, abi:BINGO_ABI, functionName:"placeSpeed",
-          args:[w], value:fee, account:address,
-        });
-        req = request;
+      if(dMode==="range"){
+        const {request} = await pub.simulateContract({address:DICEROLL,abi:DR_ABI,functionName:"placeBetRange",args:[w,dHigh],value:fee,account:address});
+        req=request;
       } else {
-        const {request} = await pub.simulateContract({
-          address:BINGO_ADDR, abi:BINGO_ABI, functionName:"placePattern",
-          args:[w, pattern], value:fee, account:address,
-        });
-        req = request;
+        const {request} = await pub.simulateContract({address:DICEROLL,abi:DR_ABI,functionName:"placeBetExact",args:[w,dExact],value:fee,account:address});
+        req=request;
       }
-
-      const hash    = await wc.writeContract(req);
-      const receipt = await pub.waitForTransactionReceipt({hash});
-      const seq     = receipt.logs.at(-1)?.topics?.[1]
-        ? BigInt(receipt.logs.at(-1).topics[1]) : null;
-      if (seq !== null) localStorage.setItem(`txhash:bg-${seq}`, hash);
-
-      setPhase("pending");
-      if (seq !== null) pollResult(seq, receipt.blockNumber);
-    } catch(e) {
-      setError(e.shortMessage || e.message || "Transaction failed");
-      setPhase("idle");
+      const hash = await wc.writeContract(req);
+      const rx   = await pub.waitForTransactionReceipt({hash});
+      const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
+      if(seq!==null) localStorage.setItem(`txhash:dr-${seq}`, hash);
+      setDS("pending");
+      if(seq!==null) pollBet(seq,DICEROLL,DR_ABI,(bet)=>{
+        const won = bet.status===1;
+        const rolled = Number(bet.rolledNumber);
+        won ? playWin() : playLose();
+        setDNum(rolled);
+        setDRes({won,payout:bet.payout,wager:bet.wager,rolled,hash});
+        setDS("settled");
+      });
+    } catch(e){
+      setDErr(e.shortMessage||e.message||"Failed");
+      setDS("idle");
     }
-  }, [address, wc, pub, wager, mode, pattern]);
-
-  const revealNext = useCallback(() => {
-    if (!result || phase !== "revealing") return;
-    const nextIndex = revealIndex + 1;
-    const newNum    = result.drawn[revealIndex];
-
-    setJustRevealed(Number(newNum));
-    clearTimeout(justRevealedTimer.current);
-    justRevealedTimer.current = setTimeout(() => setJustRevealed(null), 600);
-
-    const newRevealed = new Set(result.drawn.slice(0, nextIndex).map(Number));
-    const isMatch     = result.card.includes(Number(newNum));
-    playRevealTick(isMatch);
-
-    setRevealIndex(nextIndex);
-
-    if (nextIndex >= result.drawn.length) {
-      const won = checkWin(result.card, newRevealed, result.mode, result.pattern, result.gridSize);
-      if (won) {
-        const cells = getWinningCells(result.card, newRevealed, result.mode, result.pattern);
-        setWinCells(cells);
-        setPhase("won");
-        setShowConfetti(true);
-        playWin();
-        setTimeout(() => setShowConfetti(false), 2200);
-      } else {
-        setPhase("lost");
-      }
-    }
-  }, [result, phase, revealIndex]);
-
-  const reset = () => {
-    setPhase("idle");
-    setResult(null);
-    setRevealIndex(0);
-    setWinCells(null);
-    setJustRevealed(null);
-    setError(null);
   };
 
-  const busy  = ["approving","placing","pending"].includes(phase);
-  const balF  = parseFloat(formatUnits(balance||0n, 6));
-  const wagerF= parseFloat(wager||0);
+  const busy = s => ["approving","placing","pending"].includes(s);
 
-  const payoutMult = (() => {
-    if (mode === 0) return 2.9;
-    if (mode === 1) return 2.4;
-    const multStr = PATTERNS[pattern]?.mult ?? "2.4×";
-    return parseFloat(multStr.replace("×", ""));
-  })();
-
-  const btnLabel = () => {
-    if (phase==="approving") return "Approving USDC...";
-    if (phase==="placing")   return "Placing bet...";
-    if (phase==="pending")   return "Drawing numbers...";
-    const mLabel = ["PLAY TURBO","PLAY SPEED","PLAY PATTERN"][mode];
-    return `${mLabel} · $${wager}`;
+  const doVerify = async () => {
+    if (!pub || !verifySeq.trim()) return;
+    setVerifyLoading(true); setVerifyResult(null); setVerifyErr(null);
+    try {
+      const seq = BigInt(verifySeq.trim());
+      let bet = null, gameType = null, contractAddr = null;
+      try {
+        const b = await pub.readContract({address:COINFLIP,abi:CF_ABI,functionName:"getBet",args:[seq]});
+        if (b.player !== "0x0000000000000000000000000000000000000000") { bet=b; gameType="coinflip"; contractAddr=COINFLIP; }
+      } catch {}
+      if (!bet) {
+        try {
+          const b = await pub.readContract({address:DICEROLL,abi:DR_ABI,functionName:"getBet",args:[seq]});
+          if (b.player !== "0x0000000000000000000000000000000000000000") { bet=b; gameType="diceroll"; contractAddr=DICEROLL; }
+        } catch {}
+      }
+      if (!bet) { setVerifyErr("No bet found for this sequence number. Check the number and try again."); setVerifyLoading(false); return; }
+      const reqTx = localStorage.getItem(`txhash:${gameType==="coinflip"?"cf":"dr"}-${seq}`);
+      let callbackTx = null;
+      try {
+        const latest = await pub.getBlockNumber();
+        const fromBlock = latest > 2000n ? latest - 2000n : 0n;
+        const logs = await pub.getLogs({address:contractAddr,event:BET_RESOLVED_EVENT,args:{seqNum:seq},fromBlock,toBlock:"latest"});
+        if (logs.length > 0) callbackTx = logs[0].transactionHash;
+      } catch {}
+      setVerifyResult({gameType, seq:seq.toString(), player:bet.player, status:Number(bet.status), wager:bet.wager, payout:bet.payout, timestamp:Number(bet.timestamp), randomSeed:bet.randomSeed, reqTx, callbackTx, contractAddr});
+    } catch { setVerifyErr("Invalid sequence number or network error. Make sure you are on the right network."); }
+    setVerifyLoading(false);
   };
 
-  const totalDrawn  = result?.drawn?.length ?? 0;
-  const revealLeft  = totalDrawn - revealIndex;
-  const revealLabel = revealLeft > 0 ? `Reveal ${ordinal(revealIndex+1)} number` : null;
+  const sortedLb = [...lb].sort((a,b)=>lbSrt==="volume"?Number(b.volume-a.volume):Number(b.pnl-a.pnl)).slice(0,10);
+  const wrongNet = isConnected && chainId !== CHAIN_ID;
 
   return (
-    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+    <div className={light?"light":""} style={{minHeight:"100vh",background:light?"linear-gradient(125deg,#e8eeff 0%,#f5f0ff 40%,#e0f0ff 100%)":"transparent",transition:"background 0.4s ease"}}>
+      <style>{CSS}</style>
 
-      {phase==="idle" && (
-        <div style={{display:"flex",gap:8}}>
-          {MODES.map(m=>(
-            <button key={m.id}
-              onClick={()=>{ if(!m.disabled){setMode(m.id);reset();} }}
-              disabled={m.disabled}
-              style={{
-                flex:1,padding:"12px 8px",border:"none",borderRadius:10,
-                cursor:m.disabled?"not-allowed":"pointer",transition:"all 0.15s",
-                fontFamily:"'Outfit',sans-serif",fontWeight:600,fontSize:12,
-                background: m.disabled ? "var(--bg)" : mode===m.id ? "#2563EB" : "var(--s2)",
-                color:       m.disabled ? "var(--sub)" : mode===m.id ? "#fff"   : "var(--sub)",
-                outline: mode===m.id ? "2px solid rgba(37,99,235,0.4)" : "none",
-                opacity: m.disabled ? 0.6 : 1,
-              }}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
-                <ModeIcon id={m.id} active={mode===m.id}/>
-                <span>{m.label}</span>
-              </div>
-              <div style={{fontSize:9,fontWeight:400,marginTop:3,
-                color:mode===m.id?"rgba(255,255,255,0.7)":"var(--sub)"}}>{m.desc}</div>
-            </button>
-          ))}
-        </div>
+      {showConsent && (
+        <ConsentModal onAccept={() => setShowConsent(false)} />
       )}
 
-      {mode === 2 && phase==="idle" && (
-        <div style={{
-          background:"var(--bg)",border:"1px solid var(--bd)",
-          borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:10,
-        }}>
-          <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"2px"}}>CHOOSE PATTERN</div>
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {PATTERNS.map(p=>(
-              <button key={p.id}
-                onClick={()=>setPattern(p.id)}
-                style={{
-                  display:"flex",alignItems:"center",gap:12,padding:"10px 12px",
-                  background:pattern===p.id?"rgba(37,99,235,0.12)":"transparent",
-                  border:`1.5px solid ${pattern===p.id?"#2563EB":"var(--bd)"}`,
-                  borderRadius:8,cursor:"pointer",textAlign:"left",
-                }}>
-                <PatternPreview patternId={p.id}/>
-                <div style={{flex:1}}>
-                  <div style={{
-                    fontFamily:"'Outfit',sans-serif",fontWeight:600,fontSize:13,
-                    color:pattern===p.id?"var(--tx)":"var(--sub)",
-                  }}>{p.label}</div>
-                  <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>{p.desc}</div>
-                </div>
-                <div style={{
-                  fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:600,
-                  color:"#F59E0B",
-                }}>{p.mult}</div>
+      <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <img src="/logo.png" width={44} height={44} style={{borderRadius:10,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
+          <span className="hdr-logo" style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.05em",textTransform:"uppercase"}}>
+            <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
+            <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
+          </span>
+          <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px"}}>Testnet</span>
+        </div>
+        <div className="hdr-right" style={{display:"flex",alignItems:"center",gap:8}}>
+
+          {/* Balance */}
+          {isConnected && authed && (
+            <div style={{textAlign:"right",lineHeight:1.2}}>
+              <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>BALANCE</div>
+              <div className="mono" style={{fontSize:13,color:"var(--green)",fontWeight:600}}>{usd(bal)}</div>
+            </div>
+          )}
+
+          {/* Chain selector */}
+          <ConnectButton.Custom>
+            {({account,chain,openChainModal,openConnectModal,mounted}) => {
+              if (!mounted) return null;
+              if (!account) return (
+                <button onClick={openConnectModal} className="btn" style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:12,width:"auto"}}>
+                  Connect
+                </button>
+              );
+              return (
+                <button onClick={openChainModal} className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"6px 10px",borderRadius:8,fontSize:12,width:"auto",gap:5}}>
+                  {chain?.hasIcon && chain.iconUrl && (
+                    <img src={chain.iconUrl} width={14} height={14} alt={chain.name} style={{borderRadius:"50%"}}/>
+                  )}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}><path d="M7 10l5 5 5-5z"/></svg>
+                </button>
+              );
+            }}
+          </ConnectButton.Custom>
+
+          {/* Dark mode toggle */}
+          <button className="btn" onClick={()=>setLight(l=>!l)} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 10px",borderRadius:8,width:"auto"}}>
+            {light
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            }
+          </button>
+
+          {/* Three-dash menu */}
+          {authed && isConnected && (
+            <div ref={menuRef} style={{position:"relative"}}>
+              <button
+                onClick={()=>setMenuOpen(o=>!o)}
+                className="btn"
+                style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 10px",borderRadius:8,width:"auto",flexDirection:"column",gap:3}}
+              >
+                <span style={{display:"block",width:15,height:2,background:"currentColor",borderRadius:1}}/>
+                <span style={{display:"block",width:15,height:2,background:"currentColor",borderRadius:1}}/>
+                <span style={{display:"block",width:15,height:2,background:"currentColor",borderRadius:1}}/>
               </button>
-            ))}
+
+              {menuOpen && (
+                <div style={{position:"absolute",right:0,top:"calc(100% + 8px)",background:"var(--bg)",border:"1px solid var(--bd)",borderRadius:12,minWidth:230,zIndex:200,boxShadow:"0 8px 40px rgba(0,0,0,0.7)",overflow:"hidden"}}>
+
+                  {/* Wallet address */}
+                  <div style={{padding:"14px 16px",borderBottom:"1px solid var(--bd)"}}>
+                    <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:6}}>CONNECTED WALLET</div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span className="mono" style={{fontSize:12,color:"var(--tx)",flex:1}}>{shortAddr(address)}</span>
+                      <button onClick={copyAddress} style={{background:"none",border:"1px solid var(--bd)",borderRadius:6,color:copied?"var(--green)":"var(--sub)",fontSize:10,padding:"3px 8px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",flexShrink:0,transition:"color 0.2s"}}>
+                        {copied?"✓ Copied":"Copy"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Net profit */}
+                  <div style={{padding:"12px 16px",borderBottom:"1px solid var(--bd)"}}>
+                    <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:6}}>NET PROFIT (ALL GAMES)</div>
+                    {myPnl===null
+                      ? <div style={{fontSize:12,color:"var(--sub)",fontFamily:"'Outfit',sans-serif"}}>Loading...</div>
+                      : <div className="mono" style={{fontSize:18,fontWeight:700,color:myPnl>=0n?"var(--green)":"var(--red)"}}>
+                          {myPnl>=0n?"+":""}{pnl(myPnl)}
+                        </div>
+                    }
+                  </div>
+
+                                    {/* Transaction history — in-app, grouped by date */}
+                  <div style={{borderBottom:"1px solid var(--bd)"}}>
+                    <div style={{padding:"10px 16px 6px",fontSize:9,color:"var(--sub)",letterSpacing:"1.5px"}}>RECENT TRANSACTIONS</div>
+                    {txLoading
+                      ? <div style={{padding:"10px 16px 14px",fontSize:12,color:"var(--sub)",fontFamily:"'Outfit',sans-serif"}}>Loading...</div>
+                      : txHistory.length===0
+                        ? <div style={{padding:"10px 16px 14px",fontSize:12,color:"var(--sub)",fontFamily:"'Outfit',sans-serif"}}>No transactions yet</div>
+                        : <div style={{maxHeight:220,overflowY:"auto"}}>
+                            {groupByDate(txHistory).map(([date,txs])=>(
+                              <div key={date}>
+                                <div style={{padding:"5px 16px",fontSize:9,color:"var(--sub)",letterSpacing:"0.8px",background:"rgba(255,255,255,0.02)",borderTop:"1px solid var(--bd)",fontFamily:"'Outfit',sans-serif"}}>{date}</div>
+                                {txs.map(tx=>(
+                                  <div key={tx.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 16px",borderTop:"1px solid rgba(255,255,255,0.03)"}}>
+                                    <div style={{display:"flex",alignItems:"center",gap:7}}>
+                                      <span style={{fontSize:14,flexShrink:0}}>{tx.type==="coinflip"?"🪙":tx.type==="bingo"?"🎱":"🎲"}</span>
+                                      <div>
+                                        <div style={{fontSize:11,color:"var(--tx)",fontFamily:"'Outfit',sans-serif",fontWeight:500}}>{tx.type==="coinflip"?"Coin Flip":tx.type==="bingo"?`Bingo · ${tx.subLabel}`:"Dice Roll"}</div>
+                                        <div style={{fontSize:10,color:"var(--sub)",fontFamily:"'Outfit',sans-serif"}}>{new Date(tx.timestamp*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</div>
+                                      </div>
+                                    </div>
+                                    <div style={{textAlign:"right"}}>
+                                      <div className="mono" style={{fontSize:11,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
+                                      {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:2}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
+                                      <div style={{display:"flex",alignItems:"center",gap:4,marginTop:2}}>
+                                        <span style={{fontSize:9,color:"var(--sub)"}}>seq:</span>
+                                        <button onClick={()=>navigator.clipboard.writeText(tx.seqNum)} title="Copy sequence number" className="mono" style={{fontSize:9,color:"var(--sub)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"1px 4px",cursor:"pointer"}}>{tx.seqNum}</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                    }
+                  </div>
+
+                  {/* Sign out */}
+                  <button
+                    onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);setMenuOpen(false);}}
+                    style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 16px",background:"none",border:"none",color:"#EF4444",cursor:"pointer",fontFamily:"'Outfit',sans-serif"}}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <span style={{fontSize:13}}>Sign Out</span>
+                  </button>
+
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      </header>
+
+      {wrongNet && (
+        <div style={{background:"rgba(239,68,68,.1)",borderBottom:"1px solid rgba(239,68,68,.3)",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
+          <span style={{fontSize:12,color:"var(--red)"}}>⚠ Wrong network</span>
+          <button className="btn primary" style={{padding:"6px 14px",width:"auto",fontSize:12}} onClick={()=>switchChain({chainId:CHAIN_ID})}>Switch to Base Sepolia</button>
+        </div>
+      )}
+
+      <div className="stats-bar" style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)",overflowX:"auto"}}>
+        {[{l:"VAULT",v:usd(vault.b)},{l:"MAX BET",v:usd(vault.max)},{l:"MIN BET",v:usd(vault.min)}].map(({l,v},i)=>(
+          <div key={i} style={{padding:"8px 20px",borderRight:"1px solid var(--bd)",flexShrink:0}}>
+            <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px"}}>{l}</div>
+            <div className="mono" style={{fontSize:13,marginTop:2,color:"var(--tx)",transition:"color 0.4s ease"}}>{v}</div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {mode !== 2 && phase==="idle" && (
-        <div style={{display:"flex",gap:8}}>
-          {MODE_PAYOUTS[mode].map((p,i)=>(
-            <div key={i} style={{
-              flex:1,background:"var(--bg)",border:"1px solid var(--bd)",
-              borderRadius:8,padding:"10px 12px",
-            }}>
-              <div style={{fontSize:10,color:"var(--sub)"}}>{p.label}</div>
-              <div style={{
-                fontFamily:"'JetBrains Mono',monospace",fontSize:16,
-                color:"#F59E0B",fontWeight:600,marginTop:3,
-              }}>{p.mult}</div>
+      <div style={{display:"flex",borderBottom:"1px solid var(--bd)",background:"var(--s1)"}}>
+        {[
+          {id:"coinflip",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{flexShrink:0}}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/><path d="M8 2l4 3-4 3" strokeLinecap="round"/></svg>,label:"Coin Flip"},
+          {id:"dice",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>,label:"Dice Roll"},
+          {id:"bingo",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>,label:"Bingo"},
+          {id:"verify",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,label:"Verify Bet"},
+          {id:"leaderboard",icon:<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{flexShrink:0}}><rect x="2" y="14" width="4" height="8"/><rect x="9" y="9" width="4" height="13"/><rect x="16" y="4" width="4" height="18"/></svg>,label:"Leaderboard"},
+        ].map(t=>(
+          <button key={t.id} className={`tab${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)} style={{display:"flex",alignItems:"center",gap:6}}>{t.icon}{t.label}</button>
+        ))}
+        <button className="tab" disabled style={{display:"flex",alignItems:"center",gap:6,color:"#D97706",opacity:0.75,cursor:"default",borderBottom:"2px solid transparent"}}>✦ More Coming...</button>
+      </div>
+
+      <main className="main-pad" style={{maxWidth:480,margin:"0 auto",padding:"20px 16px"}}>
+
+        {!isConnected && tab!=="leaderboard" && (
+          <div className="card fi" style={{textAlign:"center",padding:"48px 24px"}}>
+            <div style={{marginBottom:28}}>
+              <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:11,letterSpacing:"0.25em",textTransform:"uppercase",color:"#fff",opacity:0.85,marginBottom:8}}>
+                WELCOME TO
+              </div>
+              <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:48,letterSpacing:"0.04em",lineHeight:1,textTransform:"uppercase"}}>
+                <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(96,200,255,0.45))"}}>BASE</span>
+                <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(255,216,77,0.45))"}}>CAST</span>
+              </div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:18}}>
+                <div style={{flex:1,height:1,background:"linear-gradient(to right,transparent,#4A90D9)",maxWidth:60}}/>
+                <span style={{fontFamily:"'Courgette',cursive",fontSize:11,color:"#9094B0",whiteSpace:"nowrap"}}>
+                  Provably fair on-chain game hub <span style={{color:"#60C8FF"}}>■</span> Base chain
+                </span>
+                <div style={{flex:1,height:1,background:"linear-gradient(to left,transparent,#FFD166)",maxWidth:60}}/>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      <div style={{
-        background:"var(--bg)",border:"1px solid var(--bd)",
-        borderRadius:14,padding:"24px 20px",
-        minHeight:220,display:"flex",flexDirection:"column",
-        alignItems:"center",gap:16,position:"relative",overflow:"hidden",
-      }}>
-        <div style={{
-          position:"absolute",inset:0,
-          background:"radial-gradient(ellipse at 50% 0%,rgba(37,99,235,0.06),transparent 70%)",
-          pointerEvents:"none",
-        }}/>
-
-        {showConfetti && <ConfettiBurst/>}
-
-        {phase==="idle" && (
-          <>
-            <div style={{
-              display:"grid",
-              gridTemplateColumns:`repeat(${MODES[mode].grid},1fr)`,
-              gap:4,width:MODES[mode].grid===3?120:180,
-            }}>
-              {Array.from({length:MODES[mode].grid**2},(_,i)=>(
-                <div key={i} style={{
-                  aspectRatio:"1",borderRadius:5,
-                  background:"var(--s2)",border:"1px solid var(--bd)",
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  fontFamily:"'JetBrains Mono',monospace",
-                  fontSize:MODES[mode].grid===3?14:11,
-                  color:"var(--sub)",
-                }}>?</div>
-              ))}
+            <div style={{display:"flex",justifyContent:"center"}}>
+              <ConnectButton label="Connect Wallet to Play"/>
             </div>
-            <div style={{fontSize:11,color:"var(--sub)",letterSpacing:"2px"}}>
-              {MODES[mode].grid}×{MODES[mode].grid} BINGO CARD
-            </div>
-          </>
+          </div>
         )}
 
-        {busy && (
-          <>
-            <div style={{
-              width:48,height:48,borderRadius:"50%",
-              border:"3px solid var(--bd)",
-              borderTopColor:"#2563EB",borderRightColor:"#F59E0B",
-              animation:"spin2 0.9s linear infinite",
-            }}/>
-            <div style={{fontSize:12,color:"#2563EB",letterSpacing:"1px"}}>
-              {phase==="approving"?"APPROVING USDC...":
-               phase==="placing"  ?"PLACING BET...":
-               "DRAWING NUMBERS..."}
+        {isConnected && !authed && tab!=="leaderboard" && (
+          <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
+        )}
+
+        {tab==="coinflip" && isConnected && authed && (
+          <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div className="card" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,padding:"32px 20px",minHeight:180,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 50% 0%,rgba(37,99,235,.06),transparent 70%)",pointerEvents:"none"}}/>
+              {cfS==="idle"&&<><Coin side={cfChoice}/><div style={{fontSize:11,color:"var(--sub)",letterSpacing:"2px"}}>PICK YOUR SIDE</div></>}
+              {busy(cfS)&&<><Coin side={cfCoin} anim={cfS==="pending"}/><div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--blue)"}}><Spin/>{cfS==="approving"?"Approving USDC...":cfS==="placing"?"Placing bet...":"Waiting for Pyth..."}</div></>}
+              {cfS==="settled"&&cfRes&&(
+                <div className={cfRes.won?"win":"lose"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,width:"100%"}}>
+                  <Coin side={cfRes.result}/>
+                  <div style={{fontWeight:700,fontSize:28,color:cfRes.won?"var(--green)":"var(--red)"}}>{cfRes.won?`+${usd(cfRes.payout)}`:`-${usd(cfRes.wager)}`}</div>
+                  <div style={{fontSize:12,color:"var(--sub)"}}>Rolled <b style={{color:"var(--tx)"}}>{cfRes.result}</b> · You picked <b style={{color:cfRes.won?"var(--green)":"var(--red)"}}>{cfChoice}</b></div>
+                  <a href={`${EXPLORER}/tx/${cfRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)",fontFamily:"'JetBrains Mono',monospace"}}>View on Explorer ↗</a>
+                  <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 18px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>{setCfS("idle");setCfRes(null);setCfCoin("HEADS")}}>Play again</button>
+                </div>
+              )}
+              {cfErr&&<div style={{fontSize:12,color:"var(--red)",textAlign:"center",padding:"0 8px"}}>⚠ {cfErr}</div>}
             </div>
-            {phase==="pending" && (
-              <div style={{fontSize:10,color:"var(--sub)",textAlign:"center"}}>
-                Pyth Entropy is generating your card · Usually under 30s
+            <div style={{display:"flex",gap:8}}>
+              {["HEADS","TAILS"].map(s=>(
+                <button key={s} className={`btn choice${cfChoice===s?" sel":""}`} style={{flexDirection:"column",gap:6,padding:"14px 10px"}} onClick={()=>{setCfChoice(s);setCfCoin(s)}} disabled={busy(cfS)}>
+                  <span style={{fontSize:22}}>{s==="HEADS"?"🟡":"⚪"}</span>
+                  <span style={{fontSize:13}}>{s}</span>
+                  <span style={{fontSize:10,color:"var(--sub)",fontWeight:400}}>1.94×</span>
+                </button>
+              ))}
+            </div>
+            <div className="card" style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"2px"}}>WAGER (USDC)</div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{color:"var(--sub)",fontSize:16}}>$</span>
+                <input className="inp" type="number" value={cfWager} onChange={e=>setCfWager(e.target.value)} disabled={busy(cfS)}/>
+              </div>
+              <QuickBtns set={setCfWager}/>
+              <PayInfo wager={cfWager} mult={1.94}/>
+            </div>
+            <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(cfS)||!parseFloat(cfWager)||parseFloat(cfWager)>parseFloat(formatUnits(bal,6))} onClick={doFlip}>
+              {busy(cfS)?<><Spin/>{cfS==="approving"?"Approving...":cfS==="placing"?"Placing...":"Waiting for result..."}</>:<span className="shimmer">FLIP COIN</span>}
+            </button>
+            <div style={{fontSize:10,color:"var(--dim)",textAlign:"center"}}>Pyth Entropy v2 · Provably fair · 3% house edge</div>
+          </div>
+        )}
+
+        {tab==="dice" && isConnected && authed && (
+          <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div className="card" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,padding:"32px 20px",minHeight:180,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 50% 0%,rgba(37,99,235,.06),transparent 70%)",pointerEvents:"none"}}/>
+              {dS==="idle"&&<><Die n={dMode==="exact"?dExact:3} size={72}/><div style={{fontSize:11,color:"var(--sub)",letterSpacing:"2px"}}>PLACE YOUR BET</div></>}
+              {busy(dS)&&<><Die n={dNum} size={72} anim={dS==="pending"}/><div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"var(--blue)"}}><Spin/>{dS==="approving"?"Approving USDC...":dS==="placing"?"Placing bet...":"Rolling..."}</div></>}
+              {dS==="settled"&&dRes&&(
+                <div className={dRes.won?"win":"lose"} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,width:"100%"}}>
+                  <Die n={dRes.rolled} size={72}/>
+                  <div style={{fontWeight:700,fontSize:28,color:dRes.won?"var(--green)":"var(--red)"}}>{dRes.won?`+${usd(dRes.payout)}`:`-${usd(dRes.wager)}`}</div>
+                  <div style={{fontSize:12,color:"var(--sub)"}}>Rolled <b style={{color:"var(--tx)"}}>{dRes.rolled}</b></div>
+                  <a href={`${EXPLORER}/tx/${dRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)",fontFamily:"'JetBrains Mono',monospace"}}>View on Explorer ↗</a>
+                  <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 18px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>{setDS("idle");setDRes(null);setDNum(1)}}>Roll again</button>
+                </div>
+              )}
+              {dErr&&<div style={{fontSize:12,color:"var(--red)",textAlign:"center"}}>⚠ {dErr}</div>}
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              {["range","exact"].map(m=>(
+                <button key={m} className={`btn choice${dMode===m?" sel":""}`} style={{padding:11}} onClick={()=>setDMode(m)} disabled={busy(dS)}>{m==="range"?"Range (1.94×)":"Exact (5.82×)"}</button>
+              ))}
+            </div>
+            {dMode==="range"?(
+              <div style={{display:"flex",gap:8}}>
+                {[{v:true,l:"HIGH",e:"⬆",s:"4·5·6"},{v:false,l:"LOW",e:"⬇",s:"1·2·3"}].map(c=>(
+                  <button key={c.l} className={`btn choice${dHigh===c.v?" sel":""}`} style={{flexDirection:"column",gap:6,padding:"14px 10px"}} onClick={()=>setDHigh(c.v)} disabled={busy(dS)}>
+                    <span style={{fontSize:22}}>{c.e}</span><span style={{fontSize:13}}>{c.l}</span><span style={{fontSize:10,color:"var(--sub)",fontWeight:400}}>{c.s}</span>
+                  </button>
+                ))}
+              </div>
+            ):(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:6}}>
+                {[1,2,3,4,5,6].map(n=>(
+                  <button key={n} className={`btn choice${dExact===n?" sel":""}`} style={{padding:"10px 0",justifyContent:"center"}} onClick={()=>setDExact(n)} disabled={busy(dS)}><Die n={n} size={34}/></button>
+                ))}
               </div>
             )}
-          </>
+            <div className="card" style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"2px"}}>WAGER (USDC)</div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{color:"var(--sub)",fontSize:16}}>$</span>
+                <input className="inp" type="number" value={dWager} onChange={e=>setDWager(e.target.value)} disabled={busy(dS)}/>
+              </div>
+              <QuickBtns set={setDWager}/>
+              <PayInfo wager={dWager} mult={dMode==="range"?1.94:5.82}/>
+            </div>
+            <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(dS)||!parseFloat(dWager)||parseFloat(dWager)>parseFloat(formatUnits(bal,6))} onClick={doDice}>
+              {busy(dS)?<><Spin/>{dS==="approving"?"Approving...":dS==="placing"?"Placing...":"Rolling..."}</>:<span className="shimmer">ROLL DICE</span>}
+            </button>
+            <div style={{fontSize:10,color:"var(--dim)",textAlign:"center"}}>Pyth Entropy v2 · Provably fair · 3% house edge</div>
+          </div>
         )}
 
-        {phase==="revealing" && result && (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
-            <div style={{width:"100%",display:"flex",flexDirection:"column",gap:6}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"2px"}}>YOUR CARD</div>
-                <div style={{fontSize:11,color:"var(--sub)",fontFamily:"'JetBrains Mono',monospace"}}>
-                  {revealIndex} / {totalDrawn} drawn
+        {tab==="bingo" && isConnected && authed && (
+          <div className="fi">
+            <BingoGame balance={bal} refetchBalance={fetchStats}/>
+          </div>
+        )}
+
+        {tab==="bingo" && isConnected && !authed && (
+          <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
+        )}
+
+        {tab==="leaderboard" && (
+          <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+              {["volume","pnl"].map(s=>(
+                <button key={s} className="btn" style={{background:lbSrt===s?"var(--blue)":"var(--s2)",border:`1px solid ${lbSrt===s?"var(--blue)":"var(--bd)"}`,color:lbSrt===s?"#fff":"var(--sub)",padding:"7px 14px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>setLbSrt(s)}>{s==="volume"?"By Volume":"By PnL"}</button>
+              ))}
+              <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 14px",fontSize:12,borderRadius:8,width:"auto"}} onClick={fetchLb}>↻</button>
+            </div>
+            {lbLd?(
+              <div style={{display:"flex",justifyContent:"center",padding:48}}><Spin size={28}/></div>
+            ):sortedLb.length===0?(
+              <div className="card" style={{textAlign:"center",padding:48,color:"var(--sub)",fontSize:13}}>No players yet — be the first!</div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {sortedLb.map((p,i)=>(
+                  <div key={p.address} className="card" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderLeft:`3px solid ${i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--bd)"}`}}>
+                    <div style={{width:28,height:28,borderRadius:"50%",background:i===0?"rgba(245,158,11,.15)":"var(--s2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--sub)",flexShrink:0}}>{i+1}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div className="mono" style={{fontSize:12,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {p.address.slice(0,8)}...{p.address.slice(-6)}
+                        {p.address===address&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.1)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div className="mono" style={{fontSize:12,color:"var(--tx)",fontWeight:600}}>{usd(p.volume)}</div>
+                      <div className="mono" style={{fontSize:11,marginTop:2,color:p.pnl>=0n?"var(--green)":"var(--red)"}}>{pnl(p.pnl)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{display:"flex",justifyContent:"space-between",padding:"0 4px"}}>
+              <div style={{fontSize:10,color:"var(--dim)"}}>🏆 Top 10 · {lb.length} players</div>
+              <div style={{fontSize:10,color:"var(--dim)"}}>Vol = total wagered · PnL = net profit</div>
+            </div>
+          </div>
+        )}
+
+        {tab==="verify" && (
+          <div className="fi" style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div className="card">
+              <div style={{fontSize:13,fontWeight:700,color:"var(--tx)",marginBottom:4}}>Verify a Bet On-Chain</div>
+              <div style={{fontSize:11,color:"var(--sub)",marginBottom:16,lineHeight:1.6}}>Paste a sequence number from your transaction history to verify the outcome directly from the blockchain.</div>
+              <div style={{display:"flex",gap:8}}>
+                <input className="inp" placeholder="Paste sequence number (e.g. 73911)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
+                <button className="btn primary" style={{width:"auto",padding:"0 20px",fontSize:13,flexShrink:0}} onClick={doVerify} disabled={verifyLoading||!verifySeq.trim()}>{verifyLoading?<Spin/>:"Verify"}</button>
+              </div>
+              {verifyErr && <div style={{marginTop:12,fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{verifyErr}</div>}
+            </div>
+            {verifyResult && (
+              <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>{verifyResult.gameType==="coinflip"?"🪙 Coin Flip":"🎲 Dice Roll"} — Seq #{verifyResult.seq}</div>
+                  <div style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:verifyResult.status===0?"rgba(245,158,11,.15)":verifyResult.status===1?"rgba(16,185,129,.15)":"rgba(239,68,68,.15)",color:verifyResult.status===0?"var(--gold)":verifyResult.status===1?"var(--green)":"var(--red)"}}>
+                    {verifyResult.status===0?"PENDING":verifyResult.status===1?"WON":"LOST"}
+                  </div>
+                </div>
+                {[
+                  {label:"Chain",      value:CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"},
+                  {label:"Sequence #", value:`#${verifyResult.seq}`},
+                  {label:"Player",     value:`${verifyResult.player.slice(0,10)}...${verifyResult.player.slice(-8)}`},
+                  {label:"Wager",      value:usd(verifyResult.wager)},
+                  {label:"Payout",     value:verifyResult.status===1?usd(verifyResult.payout):"—"},
+                  {label:"Timestamp",  value:verifyResult.timestamp>0?new Date(verifyResult.timestamp*1000).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}):"—"},
+                ].map(({label,value})=>(
+                  <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                    <span style={{fontSize:11,color:"var(--sub)"}}>{label}</span>
+                    <span className="mono" style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
+                  </div>
+                ))}
+                <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:11,color:"var(--sub)"}}>Randomness (seed)</span>
+                    <button onClick={()=>navigator.clipboard.writeText(verifyResult.randomSeed)} title="Copy" className="mono" style={{fontSize:9,color:"var(--sub)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"2px 6px",cursor:"pointer"}}>{verifyResult.randomSeed.slice(0,10)}...{verifyResult.randomSeed.slice(-8)} 📋</button>
+                  </div>
+                </div>
+                <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:11,color:"var(--sub)"}}>Request Tx</span>
+                    {verifyResult.reqTx
+                      ? <a href={`${EXPLORER}/tx/${verifyResult.reqTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.reqTx.slice(0,10)}...{verifyResult.reqTx.slice(-8)} ↗</a>
+                      : <span style={{fontSize:11,color:"var(--dim)"}}>Not stored locally</span>}
+                  </div>
+                </div>
+                <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:11,color:"var(--sub)"}}>Callback Tx</span>
+                    {verifyResult.callbackTx
+                      ? <a href={`${EXPLORER}/tx/${verifyResult.callbackTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.callbackTx.slice(0,10)}...{verifyResult.callbackTx.slice(-8)} ↗</a>
+                      : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not in recent blocks"}</span>}
+                  </div>
+                </div>
+                <div style={{padding:"9px 0"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:11,color:"var(--sub)"}}>Pyth Entropy</span>
+                    <a href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View randomness ↗</a>
+                  </div>
                 </div>
               </div>
-              <div style={{width:"100%",height:3,background:"var(--s2)",borderRadius:2,overflow:"hidden"}}>
-                <div style={{
-                  height:"100%",borderRadius:2,
-                  background:"linear-gradient(90deg,#2563EB,#60A5FA)",
-                  width:`${(revealIndex/totalDrawn)*100}%`,
-                  transition:"width 0.3s ease",
-                }}/>
-              </div>
-            </div>
-
-            <div style={{width:"100%",maxWidth:result.gridSize===3?180:240}}>
-              <BingoCard
-                card={result.card}
-                revealedSet={revealedSet}
-                winCells={null}
-                gridSize={result.gridSize}
-                phase={phase}
-                justRevealedNum={justRevealed}
-              />
-            </div>
-
-            <button
-              onClick={revealNext}
-              style={{
-                background:"linear-gradient(135deg,#1D4ED8,#2563EB)",
-                color:"#fff",border:"none",borderRadius:10,
-                padding:"13px 28px",width:"100%",maxWidth:280,
-                fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:14,
-                cursor:"pointer",letterSpacing:"0.5px",
-                boxShadow:"0 4px 16px rgba(37,99,235,0.4)",
-                transition:"all 0.15s",
-                display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-              }}
-              onMouseEnter={e=>e.currentTarget.style.transform="translateY(-1px)"}
-              onMouseLeave={e=>e.currentTarget.style.transform="translateY(0)"}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 8v4l3 3"/>
-                <path d="M3.6 9h16.8"/>
-                <path d="M3.6 15h16.8"/>
-              </svg>
-              {revealLabel}
-            </button>
+            )}
           </div>
         )}
 
-        {phase==="won" && result && (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
-            <div style={{
-              fontFamily:"'JetBrains Mono',monospace",fontWeight:800,fontSize:28,
-              color:"#10B981",textAlign:"center",letterSpacing:"3px",
-              animation:"pulse-win 0.6s ease-in-out",
-              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-            }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-              BINGO!
-            </div>
-            <div style={{
-              fontFamily:"'JetBrains Mono',monospace",fontSize:18,
-              color:"#F59E0B",fontWeight:600,
-            }}>
-              +{usd(result.payout)}
-            </div>
+      </main>
 
-            <div style={{width:"100%",maxWidth:result.gridSize===3?180:240}}>
-              <BingoCard
-                card={result.card}
-                revealedSet={revealedSet}
-                winCells={winCells}
-                gridSize={result.gridSize}
-                phase={phase}
-                justRevealedNum={null}
-              />
-            </div>
-
-            <div style={{fontSize:11,color:"var(--sub)",textAlign:"center"}}>
-              {revealIndex} of {totalDrawn} numbers revealed ·{" "}
-              {result.card.filter(n=>revealedSet.has(n)).length} matched
-            </div>
-
-            <button onClick={reset} style={{
-              background:"rgba(16,185,129,0.12)",border:"1px solid #10B981",
-              color:"#10B981",borderRadius:8,padding:"8px 22px",
-              cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontWeight:600,fontSize:12,
-            }}>
-              Play Again
-            </button>
-          </div>
-        )}
-
-        {phase==="lost" && result && (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
-            <div style={{
-              fontFamily:"'JetBrains Mono',monospace",fontWeight:800,fontSize:22,
-              color:"#EF4444",letterSpacing:"2px",
-              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-            }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="15" y1="9" x2="9" y2="15"/>
-                <line x1="9" y1="9" x2="15" y2="15"/>
-              </svg>
-              NO MATCH
-            </div>
-
-            <div style={{width:"100%",maxWidth:result.gridSize===3?180:240}}>
-              <BingoCard
-                card={result.card}
-                revealedSet={revealedSet}
-                winCells={null}
-                gridSize={result.gridSize}
-                phase={phase}
-                justRevealedNum={null}
-              />
-            </div>
-
-            <div style={{fontSize:11,color:"var(--sub)",textAlign:"center"}}>
-              All {totalDrawn} numbers drawn ·{" "}
-              {result.card.filter(n=>revealedSet.has(n)).length} matched on your card
-            </div>
-
-            <button onClick={reset} style={{
-              background:"transparent",border:"1px solid var(--bd)",
-              color:"var(--sub)",borderRadius:8,padding:"7px 20px",
-              cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:12,
-            }}>
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <div style={{fontSize:12,color:"#EF4444",textAlign:"center",padding:"0 12px"}}>
-            ⚠ {error}
-          </div>
-        )}
-      </div>
-
-      {phase==="idle" && (
-        <>
-          <div style={{
-            background:"var(--bg)",border:"1px solid var(--bd)",
-            borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:10,
-          }}>
-            <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"2px"}}>WAGER (USDC)</div>
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <span style={{color:"var(--sub)",fontSize:16}}>$</span>
-              <input
-                style={{
-                  background:"var(--s2)",border:"1.5px solid var(--bd)",borderRadius:8,
-                  color:"var(--tx)",fontFamily:"'Outfit',sans-serif",
-                  fontSize:18,fontWeight:600,padding:"10px 14px",width:"100%",outline:"none",
-                }}
-                type="number" value={wager}
-                onChange={e=>setWager(e.target.value)}
-              />
-            </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {["1","5","10","25","50"].map(v=>(
-                <button key={v} onClick={()=>setWager(v)}
-                  style={{
-                    background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:7,
-                    color:"var(--sub)",padding:"5px 12px",fontSize:12,
-                    fontFamily:"'Outfit',sans-serif",cursor:"pointer",
-                  }}>${v}</button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{
-            display:"flex",justifyContent:"space-between",alignItems:"center",
-            background:"rgba(37,99,235,0.06)",border:"1px solid rgba(37,99,235,0.15)",
-            borderRadius:8,padding:"10px 14px",
-          }}>
-            <div>
-              <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1px"}}>WIN PAYOUT</div>
-              <div style={{
-                fontFamily:"'JetBrains Mono',monospace",fontSize:16,
-                color:"#00F5A0",fontWeight:600,marginTop:2,
-              }}>
-                ${(wagerF * payoutMult).toFixed(2)}
-              </div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1px"}}>MULTIPLIER</div>
-              <div style={{
-                fontFamily:"'JetBrains Mono',monospace",fontSize:16,
-                color:"#FFD166",fontWeight:600,marginTop:2,
-              }}>
-                {payoutMult}×
-              </div>
-            </div>
-          </div>
-
-          <button
-            disabled={busy || !wagerF || wagerF > balF || !BINGO_ADDR}
-            onClick={placeBet}
-            style={{
-              background:"#2563EB",color:"#fff",border:"none",borderRadius:10,
-              padding:"15px",width:"100%",
-              fontFamily:"'Outfit',sans-serif",fontWeight:600,fontSize:15,
-              cursor:"pointer",
-              opacity:(!wagerF||wagerF>balF)?0.7:1,
-              transition:"all 0.15s",
-            }}>
-            {btnLabel()}
-          </button>
-        </>
-      )}
-
-      {busy && (
-        <button disabled style={{
-          background:"#1D4ED8",color:"#fff",border:"none",borderRadius:10,
-          padding:"15px",width:"100%",
-          fontFamily:"'Outfit',sans-serif",fontWeight:600,fontSize:15,
-          cursor:"not-allowed",opacity:0.7,
-          display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-        }}>
-          <div style={{
-            width:16,height:16,borderRadius:"50%",
-            border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",
-            animation:"spin2 0.8s linear infinite",
-          }}/>
-          {btnLabel()}
-        </button>
-      )}
-
-      <style>{`
-        @keyframes pulse-win {
-          0%   { transform: scale(0.8); opacity:0.5; }
-          60%  { transform: scale(1.08); }
-          100% { transform: scale(1); opacity:1; }
-        }
-      `}</style>
-
-      <div style={{fontSize:10,color:"var(--sub)",textAlign:"center"}}>
-        Pyth Entropy v2 · Provably fair · 3% house edge
-      </div>
+      <AppFooter />
     </div>
   );
-}
+                            }
