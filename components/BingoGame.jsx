@@ -441,6 +441,7 @@ export default function BingoGame({ balance, refetchBalance }) {
       const receipt = await pub.waitForTransactionReceipt({hash});
       const seq     = receipt.logs.at(-1)?.topics?.[1]
         ? BigInt(receipt.logs.at(-1).topics[1]) : null;
+            if (seq !== null) localStorage.setItem(`txhash:bg-${seq}`, hash);
 
       setPhase("pending");
       if (seq !== null) pollResult(seq, receipt.blockNumber);
