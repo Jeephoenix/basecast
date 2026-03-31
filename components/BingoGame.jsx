@@ -63,9 +63,9 @@ function ordinal(n) {
 }
 
 const MODES = [
-  { id:0, key:"TURBO",   label:"Turbo",   grid:3, desc:"3×3 · Fastest · Any line wins" },
-  { id:1, key:"SPEED",   label:"Speed",   grid:5, desc:"5×5 · First line or full card"  },
-    { id:2, key:"PATTERN", label:"Pattern", grid:5, desc:"5×5 · Choose your pattern"      },
+  { id:0, key:"TURBO",       label:"Turbo",       grid:3, desc:"3×3 · Fastest · Any line wins" },
+  { id:1, key:"SPEED",       label:"Speed",       grid:5, desc:"5×5 · First line or full card"  },
+  { id:2, key:"PATTERN",     label:"Pattern",     grid:5, desc:"5×5 · Choose your pattern"      },
   { id:3, key:"MULTIPLAYER", label:"Multiplayer", grid:5, desc:"Coming soon...", disabled:true },
 ];
 
@@ -214,7 +214,7 @@ function PatternPreview({ patternId, size=5 }) {
   return (
     <div style={{display:"grid",gridTemplateColumns:`repeat(${size},1fr)`,gap:2,width:60,height:60}}>
       {Array.from({length:size*size},(_,i)=>(
-        <div key={i} style={{borderRadius:2,background:hi.has(i)?"#2563EB":"#1E2130"}}/>
+        <div key={i} style={{borderRadius:2,background:hi.has(i)?"#2563EB":"var(--bd)"}}/>
       ))}
     </div>
   );
@@ -234,9 +234,9 @@ function BingoCard({ card, revealedSet, winCells, gridSize, phase, justRevealedN
         const isWinCell   = winCells && winCells.has(i);
         const isJustHit   = justRevealedNum === Number(num) && isRevealed;
 
-        let bg     = "#13151C";
-        let border = "1.5px solid #1E2130";
-        let color  = "#374151";
+        let bg     = "var(--s2)";
+        let border = "1.5px solid var(--bd)";
+        let color  = "var(--sub)";
         let shadow = "none";
         let scale  = "1";
 
@@ -283,7 +283,7 @@ function BingoCard({ card, revealedSet, winCells, gridSize, phase, justRevealedN
 
 // ── Mode Icons ────────────────────────────────────────────────────────────────
 function ModeIcon({ id, active }) {
-  const color = active ? "#fff" : "#6B7280";
+  const color = active ? "#fff" : "var(--sub)";
   const svg = { width:18, height:18, viewBox:"0 0 24 24", fill:"none",
     stroke:color, strokeWidth:2, strokeLinecap:"round", strokeLinejoin:"round" };
   if (id === 0) return (
@@ -299,7 +299,7 @@ function ModeIcon({ id, active }) {
       <path d="M16 5.5 14 7"/>
     </svg>
   );
-    if (id === 3) return (
+  if (id === 3) return (
     <svg {...svg}>
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
       <circle cx="9" cy="7" r="4"/>
@@ -441,7 +441,7 @@ export default function BingoGame({ balance, refetchBalance }) {
       const receipt = await pub.waitForTransactionReceipt({hash});
       const seq     = receipt.logs.at(-1)?.topics?.[1]
         ? BigInt(receipt.logs.at(-1).topics[1]) : null;
-            if (seq !== null) localStorage.setItem(`txhash:bg-${seq}`, hash);
+      if (seq !== null) localStorage.setItem(`txhash:bg-${seq}`, hash);
 
       setPhase("pending");
       if (seq !== null) pollResult(seq, receipt.blockNumber);
@@ -519,15 +519,15 @@ export default function BingoGame({ balance, refetchBalance }) {
       {phase==="idle" && (
         <div style={{display:"flex",gap:8}}>
           {MODES.map(m=>(
-                        <button key={m.id}
+            <button key={m.id}
               onClick={()=>{ if(!m.disabled){setMode(m.id);reset();} }}
               disabled={m.disabled}
               style={{
                 flex:1,padding:"12px 8px",border:"none",borderRadius:10,
                 cursor:m.disabled?"not-allowed":"pointer",transition:"all 0.15s",
                 fontFamily:"'Outfit',sans-serif",fontWeight:600,fontSize:12,
-                background: m.disabled ? "#0E1017" : mode===m.id ? "#2563EB" : "#13151C",
-                color:       m.disabled ? "#374151" : mode===m.id ? "#fff"     : "#6B7280",
+                background: m.disabled ? "var(--bg)" : mode===m.id ? "#2563EB" : "var(--s2)",
+                color:       m.disabled ? "var(--sub)" : mode===m.id ? "#fff"   : "var(--sub)",
                 outline: mode===m.id ? "2px solid rgba(37,99,235,0.4)" : "none",
                 opacity: m.disabled ? 0.6 : 1,
               }}>
@@ -536,7 +536,7 @@ export default function BingoGame({ balance, refetchBalance }) {
                 <span>{m.label}</span>
               </div>
               <div style={{fontSize:9,fontWeight:400,marginTop:3,
-                color:mode===m.id?"rgba(255,255,255,0.7)":"#374151"}}>{m.desc}</div>
+                color:mode===m.id?"rgba(255,255,255,0.7)":"var(--sub)"}}>{m.desc}</div>
             </button>
           ))}
         </div>
@@ -544,10 +544,10 @@ export default function BingoGame({ balance, refetchBalance }) {
 
       {mode === 2 && phase==="idle" && (
         <div style={{
-          background:"#0E1017",border:"1px solid #1E2130",
+          background:"var(--bg)",border:"1px solid var(--bd)",
           borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:10,
         }}>
-          <div style={{fontSize:10,color:"#6B7280",letterSpacing:"2px"}}>CHOOSE PATTERN</div>
+          <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"2px"}}>CHOOSE PATTERN</div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {PATTERNS.map(p=>(
               <button key={p.id}
@@ -555,16 +555,16 @@ export default function BingoGame({ balance, refetchBalance }) {
                 style={{
                   display:"flex",alignItems:"center",gap:12,padding:"10px 12px",
                   background:pattern===p.id?"rgba(37,99,235,0.12)":"transparent",
-                  border:`1.5px solid ${pattern===p.id?"#2563EB":"#1E2130"}`,
+                  border:`1.5px solid ${pattern===p.id?"#2563EB":"var(--bd)"}`,
                   borderRadius:8,cursor:"pointer",textAlign:"left",
                 }}>
                 <PatternPreview patternId={p.id}/>
                 <div style={{flex:1}}>
                   <div style={{
                     fontFamily:"'Outfit',sans-serif",fontWeight:600,fontSize:13,
-                    color:pattern===p.id?"#F0F2F8":"#9CA3AF",
+                    color:pattern===p.id?"var(--tx)":"var(--sub)",
                   }}>{p.label}</div>
-                  <div style={{fontSize:11,color:"#4B5563",marginTop:2}}>{p.desc}</div>
+                  <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>{p.desc}</div>
                 </div>
                 <div style={{
                   fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:600,
@@ -580,10 +580,10 @@ export default function BingoGame({ balance, refetchBalance }) {
         <div style={{display:"flex",gap:8}}>
           {MODE_PAYOUTS[mode].map((p,i)=>(
             <div key={i} style={{
-              flex:1,background:"#0E1017",border:"1px solid #1E2130",
+              flex:1,background:"var(--bg)",border:"1px solid var(--bd)",
               borderRadius:8,padding:"10px 12px",
             }}>
-              <div style={{fontSize:10,color:"#6B7280"}}>{p.label}</div>
+              <div style={{fontSize:10,color:"var(--sub)"}}>{p.label}</div>
               <div style={{
                 fontFamily:"'JetBrains Mono',monospace",fontSize:16,
                 color:"#F59E0B",fontWeight:600,marginTop:3,
@@ -594,7 +594,7 @@ export default function BingoGame({ balance, refetchBalance }) {
       )}
 
       <div style={{
-        background:"#0E1017",border:"1px solid #1E2130",
+        background:"var(--bg)",border:"1px solid var(--bd)",
         borderRadius:14,padding:"24px 20px",
         minHeight:220,display:"flex",flexDirection:"column",
         alignItems:"center",gap:16,position:"relative",overflow:"hidden",
@@ -617,15 +617,15 @@ export default function BingoGame({ balance, refetchBalance }) {
               {Array.from({length:MODES[mode].grid**2},(_,i)=>(
                 <div key={i} style={{
                   aspectRatio:"1",borderRadius:5,
-                  background:"#13151C",border:"1px solid #1E2130",
+                  background:"var(--s2)",border:"1px solid var(--bd)",
                   display:"flex",alignItems:"center",justifyContent:"center",
                   fontFamily:"'JetBrains Mono',monospace",
                   fontSize:MODES[mode].grid===3?14:11,
-                  color:"#374151",
+                  color:"var(--sub)",
                 }}>?</div>
               ))}
             </div>
-            <div style={{fontSize:11,color:"#6B7280",letterSpacing:"2px"}}>
+            <div style={{fontSize:11,color:"var(--sub)",letterSpacing:"2px"}}>
               {MODES[mode].grid}×{MODES[mode].grid} BINGO CARD
             </div>
           </>
@@ -635,7 +635,7 @@ export default function BingoGame({ balance, refetchBalance }) {
           <>
             <div style={{
               width:48,height:48,borderRadius:"50%",
-              border:"3px solid #1E2130",
+              border:"3px solid var(--bd)",
               borderTopColor:"#2563EB",borderRightColor:"#F59E0B",
               animation:"spin2 0.9s linear infinite",
             }}/>
@@ -645,7 +645,7 @@ export default function BingoGame({ balance, refetchBalance }) {
                "DRAWING NUMBERS..."}
             </div>
             {phase==="pending" && (
-              <div style={{fontSize:10,color:"#374151",textAlign:"center"}}>
+              <div style={{fontSize:10,color:"var(--sub)",textAlign:"center"}}>
                 Pyth Entropy is generating your card · Usually under 30s
               </div>
             )}
@@ -656,12 +656,12 @@ export default function BingoGame({ balance, refetchBalance }) {
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
             <div style={{width:"100%",display:"flex",flexDirection:"column",gap:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{fontSize:10,color:"#6B7280",letterSpacing:"2px"}}>YOUR CARD</div>
-                <div style={{fontSize:11,color:"#4B5563",fontFamily:"'JetBrains Mono',monospace"}}>
+                <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"2px"}}>YOUR CARD</div>
+                <div style={{fontSize:11,color:"var(--sub)",fontFamily:"'JetBrains Mono',monospace"}}>
                   {revealIndex} / {totalDrawn} drawn
                 </div>
               </div>
-              <div style={{width:"100%",height:3,background:"#13151C",borderRadius:2,overflow:"hidden"}}>
+              <div style={{width:"100%",height:3,background:"var(--s2)",borderRadius:2,overflow:"hidden"}}>
                 <div style={{
                   height:"100%",borderRadius:2,
                   background:"linear-gradient(90deg,#2563EB,#60A5FA)",
@@ -739,7 +739,7 @@ export default function BingoGame({ balance, refetchBalance }) {
               />
             </div>
 
-            <div style={{fontSize:11,color:"#6B7280",textAlign:"center"}}>
+            <div style={{fontSize:11,color:"var(--sub)",textAlign:"center"}}>
               {revealIndex} of {totalDrawn} numbers revealed ·{" "}
               {result.card.filter(n=>revealedSet.has(n)).length} matched
             </div>
@@ -780,14 +780,14 @@ export default function BingoGame({ balance, refetchBalance }) {
               />
             </div>
 
-            <div style={{fontSize:11,color:"#6B7280",textAlign:"center"}}>
+            <div style={{fontSize:11,color:"var(--sub)",textAlign:"center"}}>
               All {totalDrawn} numbers drawn ·{" "}
               {result.card.filter(n=>revealedSet.has(n)).length} matched on your card
             </div>
 
             <button onClick={reset} style={{
-              background:"transparent",border:"1px solid #1E2130",
-              color:"#6B7280",borderRadius:8,padding:"7px 20px",
+              background:"transparent",border:"1px solid var(--bd)",
+              color:"var(--sub)",borderRadius:8,padding:"7px 20px",
               cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:12,
             }}>
               Try Again
@@ -805,16 +805,16 @@ export default function BingoGame({ balance, refetchBalance }) {
       {phase==="idle" && (
         <>
           <div style={{
-            background:"#0E1017",border:"1px solid #1E2130",
+            background:"var(--bg)",border:"1px solid var(--bd)",
             borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:10,
           }}>
-            <div style={{fontSize:10,color:"#6B7280",letterSpacing:"2px"}}>WAGER (USDC)</div>
+            <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"2px"}}>WAGER (USDC)</div>
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <span style={{color:"#6B7280",fontSize:16}}>$</span>
+              <span style={{color:"var(--sub)",fontSize:16}}>$</span>
               <input
                 style={{
-                  background:"#13151C",border:"1.5px solid #1E2130",borderRadius:8,
-                  color:"#F0F2F8",fontFamily:"'Outfit',sans-serif",
+                  background:"var(--s2)",border:"1.5px solid var(--bd)",borderRadius:8,
+                  color:"var(--tx)",fontFamily:"'Outfit',sans-serif",
                   fontSize:18,fontWeight:600,padding:"10px 14px",width:"100%",outline:"none",
                 }}
                 type="number" value={wager}
@@ -825,8 +825,8 @@ export default function BingoGame({ balance, refetchBalance }) {
               {["1","5","10","25","50"].map(v=>(
                 <button key={v} onClick={()=>setWager(v)}
                   style={{
-                    background:"#13151C",border:"1px solid #1E2130",borderRadius:7,
-                    color:"#6B7280",padding:"5px 12px",fontSize:12,
+                    background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:7,
+                    color:"var(--sub)",padding:"5px 12px",fontSize:12,
                     fontFamily:"'Outfit',sans-serif",cursor:"pointer",
                   }}>${v}</button>
               ))}
@@ -839,7 +839,7 @@ export default function BingoGame({ balance, refetchBalance }) {
             borderRadius:8,padding:"10px 14px",
           }}>
             <div>
-              <div style={{fontSize:10,color:"#9094B0",letterSpacing:"1px"}}>WIN PAYOUT</div>
+              <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1px"}}>WIN PAYOUT</div>
               <div style={{
                 fontFamily:"'JetBrains Mono',monospace",fontSize:16,
                 color:"#00F5A0",fontWeight:600,marginTop:2,
@@ -848,7 +848,7 @@ export default function BingoGame({ balance, refetchBalance }) {
               </div>
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{fontSize:10,color:"#9094B0",letterSpacing:"1px"}}>MULTIPLIER</div>
+              <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1px"}}>MULTIPLIER</div>
               <div style={{
                 fontFamily:"'JetBrains Mono',monospace",fontSize:16,
                 color:"#FFD166",fontWeight:600,marginTop:2,
@@ -899,9 +899,9 @@ export default function BingoGame({ balance, refetchBalance }) {
         }
       `}</style>
 
-      <div style={{fontSize:10,color:"#374151",textAlign:"center"}}>
+      <div style={{fontSize:10,color:"var(--sub)",textAlign:"center"}}>
         Pyth Entropy v2 · Provably fair · 3% house edge
       </div>
     </div>
   );
-   }
+          }
