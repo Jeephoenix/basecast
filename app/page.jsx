@@ -885,7 +885,7 @@ export default function App() {
               {[
                 {id:"coinflip",label:"Coin Flip",  mult:"1.94×",  desc:"Pick heads or tails",        Icon:IcoCoin,  color:"#6C63FF"},
                 {id:"dice",    label:"Dice Roll",  mult:"5.82×",  desc:"Range or exact number",       Icon:IcoDice,  color:"#00F5A0"},
-                {id:"bingo",   label:"Bingo",      mult:"5×",     desc:"Match a winning pattern",     Icon:IcoBingo, color:"#FFD166"},
+                {id:"bingo",   label:"Bingo",      mult:"Up to 20×", desc:"Match a winning pattern",     Icon:IcoBingo, color:"#FFD166"},
                 {id:"verify",  label:"Verify Bet", mult:"",       desc:"Audit any bet on-chain",      Icon:IcoShield,color:"#9094B0"},
               ].map(({id,label,mult,desc,Icon,color})=>(
                 <button key={id} className="card" onClick={()=>{setTab(id);setNavSection("games");}} style={{cursor:"pointer",display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",transition:"border-color .15s,transform .15s",background:"rgba(255,255,255,0.04)"}}>
@@ -1293,3 +1293,4 @@ export default function App() {
     </div>
   );
 }
+
