@@ -353,6 +353,7 @@ export default function App() {
   const [showConsent, setShowConsent] = useState(false);
   const [myPnl,   setMyPnl]   = useState(null);
   const [copied,    setCopied]    = useState(false);
+  const [copiedSeq, setCopiedSeq] = useState(null);
   const [txHistory, setTxHistory] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
   const [txExpanded, setTxExpanded] = useState(false);
@@ -1209,7 +1210,13 @@ export default function App() {
                               <div className="mono" style={{fontSize:12,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
                               {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none"}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
                               <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:4,marginTop:2}}>
-                                <span style={{fontSize:9,color:"var(--sub)"}}>seq: {tx.seqNum}</span>
+                                <span
+                                  onClick={()=>{navigator.clipboard.writeText(tx.seqNum);setCopiedSeq(tx.seqNum);setTimeout(()=>setCopiedSeq(null),2000);}}
+                                  title="Tap to copy"
+                                  style={{fontSize:9,color:copiedSeq===tx.seqNum?"var(--green)":"var(--sub)",cursor:"pointer",transition:"color .2s",userSelect:"none"}}
+                                >
+                                  {copiedSeq===tx.seqNum?"copied!":"seq: "+tx.seqNum}
+                                </span>
                                 <button onClick={()=>{setVerifySeq(tx.seqNum);setVerifyResult(null);setVerifyErr(null);document.getElementById("verify-section")?.scrollIntoView({behavior:"smooth",block:"start"});}} style={{fontSize:9,color:"var(--blue)",background:"rgba(108,99,255,0.1)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:3,padding:"1px 6px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontWeight:600}}>Verify ↗</button>
                               </div>
                             </div>
