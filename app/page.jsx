@@ -162,8 +162,9 @@ const CSS = `
   --bg:#07050f;--s1:rgba(255,255,255,0.04);--s2:rgba(255,255,255,0.07);--bd:rgba(255,255,255,0.1);
   --blue:#6C63FF;--blue2:#4F46E5;--green:#00F5A0;--red:#FF4D6D;
   --gold:#FFD166;--tx:#F0F2FF;--sub:#9094B0;--dim:#3D4060;
+  --nav-bg:#0b0c18;
 }
-.light{--bg:#ffffff;--s1:rgba(255,255,255,0.95);--s2:rgba(255,255,255,0.98);--bd:rgba(0,0,0,0.1);--tx:#0A0B1A;--sub:#5560A0;--dim:#9AA5CC;--blue:#4338CA;--blue2:#3730A3;--green:#059669;--gold:#D97706;--red:#DC2626}
+.light{--bg:#ffffff;--s1:rgba(255,255,255,0.95);--s2:rgba(255,255,255,0.98);--bd:rgba(0,0,0,0.1);--tx:#0A0B1A;--sub:#5560A0;--dim:#9AA5CC;--blue:#4338CA;--blue2:#3730A3;--green:#059669;--gold:#D97706;--red:#DC2626;--nav-bg:#ffffff;}
 body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050f 100%);background-attachment:fixed;color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#6C63FF,#00F5A0);border-radius:4px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -195,7 +196,7 @@ body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050
 .mono{font-family:'JetBrains Mono',monospace}
 @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
 .shimmer{background:linear-gradient(90deg,#00F5A0,#a8ff78,#FFD166,#00D4AA,#00F5A0);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 2.5s linear infinite;font-weight:700}
-.nav-bar{display:flex;background:var(--s1);border-bottom:1px solid var(--bd)}
+.nav-bar{display:flex;background:var(--nav-bg);border-bottom:1px solid var(--bd)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 8px;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:var(--sub);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;transition:all .15s;outline:none}
 .nav-item.active{color:var(--blue);border-bottom-color:var(--blue)}
 .nav-item:hover:not(.active){color:var(--tx)}
@@ -644,7 +645,7 @@ export default function App() {
       {showConsent && <ConsentModal onAccept={() => setShowConsent(false)} />}
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--s1)",position:"sticky",top:0,zIndex:50}}>
+      <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--nav-bg)",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <img src="/logo.png" width={44} height={44} style={{borderRadius:10,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
           <span className="hdr-logo" style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.05em",textTransform:"uppercase"}}>
