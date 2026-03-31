@@ -1070,10 +1070,6 @@ export default function App() {
             {tab==="bingo" && isConnected && authed && (
               <div className="fi"><BingoGame balance={bal} refetchBalance={fetchStats} vaultMax={vault.max} vaultMin={vault.min}/></div>
             )}
-            {tab==="bingo" && isConnected && !authed && (
-              <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
-            )}
-
             {/* ── Verify ── */}
             {tab==="verify" && (
               <div className="fi" style={{display:"flex",flexDirection:"column",gap:16}}>
