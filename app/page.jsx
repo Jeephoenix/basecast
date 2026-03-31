@@ -769,7 +769,7 @@ export default function App() {
               {[
                 {label:"Coin Flip",    desc:"50/50 — Heads or Tails",         mult:"1.94×",  color:"#F59E0B", bg:"rgba(245,158,11,0.1)",   icon:"🪙"},
                 {label:"Dice Roll",    desc:"Range or exact number",            mult:"up to 5.82×", color:"#2563EB", bg:"rgba(37,99,235,0.1)",    icon:"🎲"},
-                {label:"Bingo",        desc:"Pattern matching · 4 modes",       mult:"up to 5×",    color:"#60C8FF", bg:"rgba(96,200,255,0.1)",   icon:"🎯"},
+                {label:"Bingo",        desc:"Pattern matching · 4 modes",       mult:"up to 20×",   color:"#60C8FF", bg:"rgba(96,200,255,0.1)",   icon:"🎯"},
               ].map(({label,desc,mult,color,bg,icon})=>(
                 <div key={label} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12}}>
                   <div style={{width:44,height:44,borderRadius:12,background:bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{icon}</div>
@@ -825,7 +825,7 @@ export default function App() {
             {[
               {id:"coinflip", label:"Coin Flip",   desc:"50/50 · 1.94× payout",         Icon:IcoCoin},
               {id:"dice",     label:"Dice Roll",   desc:"Range 1.94× · Exact 5.82×",     Icon:IcoDice},
-              {id:"bingo",    label:"Bingo",       desc:"Pattern matching · up to 5×",   Icon:IcoBingo},
+              {id:"bingo",    label:"Bingo",       desc:"Pattern matching · up to 20×",  Icon:IcoBingo},
               {id:"verify",   label:"Verify Bet",  desc:"Check any bet on-chain",         Icon:IcoShield},
             ].map(({id,label,desc,Icon})=>(
               <button key={id} className="game-card-btn" onClick={()=>{setTab(id);setNavSection("games");setGamesOpen(false);}}>
@@ -919,7 +919,6 @@ export default function App() {
               ))}
             </div>
 
-            <div style={{fontSize:10,color:"var(--dim)",textAlign:"center",paddingBottom:4}}>Pyth Entropy v2 &middot; Provably fair &middot; 3% house edge &middot; Base chain</div>
           </div>
         )}
 
