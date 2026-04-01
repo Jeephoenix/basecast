@@ -5,7 +5,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 export const metadata = {
   title:       "BaseCast — Provably Fair Casino on Base",
   description: "On-chain casino powered by Pyth Entropy v2. CoinFlip + Dice on Base.",
-  metadataBase: new URL("https://basecast.netlify.app"),
+  metadataBase: new URL("https://castgames.vercel.app?v2"),
   openGraph: {
     title:       "BaseCast",
     description: "Provably Fair On-Chain Casino on Base",
