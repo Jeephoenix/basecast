@@ -113,6 +113,10 @@ const BET_RESOLVED_EVENT = {name:"BetResolved",type:"event",inputs:[
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const usd  = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
 const pnl  = (v) => `${v<0n?"-":"+"}$${parseFloat(formatUnits(v<0n?-v:v,6)).toFixed(2)}`;
+function refCode(addr) {
+  return addr.slice(2, 10).toUpperCase();
+}
+
 function getLbName(addr) {
   try {
     const saved = localStorage.getItem(`bc_profile_${addr}`);
@@ -569,10 +573,20 @@ export default function App() {
     const refSource = localStorage.getItem("bc_ref_source");
     const already   = localStorage.getItem("bc_ref_recorded");
     if (!refSource || already) return;
-    if (refSource.toLowerCase() === address.toLowerCase()) return;
+    if (refSource === refCode(address)) return;
 
     const register = async () => {
       try {
+        let referrerAddress = refSource;
+        if (refSource.length === 8) {
+          try {
+            const res = await fetch(`/api/referral?resolve=${refSource}`);
+            const json = await res.json();
+            if (!json.address) { localStorage.setItem("bc_ref_recorded","1"); return; }
+            referrerAddress = json.address;
+          } catch { return; }
+        }
+
         if (REFERRAL) {
           const alreadyRegistered = await pub.readContract({
             address: REFERRAL, abi: REFERRAL_ABI,
@@ -584,7 +598,7 @@ export default function App() {
           }
           const { request } = await pub.simulateContract({
             address: REFERRAL, abi: REFERRAL_ABI,
-            functionName: "registerReferral", args: [refSource],
+            functionName: "registerReferral", args: [referrerAddress],
             account: address,
           });
           await wc.writeContract(request);
@@ -602,8 +616,14 @@ export default function App() {
 
   const fetchRefCount = useCallback(async () => {
     if (!address || !pub) return;
+    fetch("/api/referral", {
+      method: "PUT",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ address }),
+    }).catch(()=>{});
     try {
-      const res = await fetch(`/api/referral?code=${address}`);
+      const code = refCode(address);
+      const res = await fetch(`/api/referral?code=${code}`);
       const json = await res.json();
       setRefCount(json.count ?? 0);
     } catch { setRefCount(0); }
@@ -1475,11 +1495,11 @@ export default function App() {
                   <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>Your referral link — share it to earn <span style={{color:"#8B82FF",fontWeight:700}}>1% of every bet</span> your referrals place.</div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}>
                     <div style={{flex:1,background:"var(--s2)",borderRadius:10,padding:"10px 14px",fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:"var(--sub)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",userSelect:"all"}}>
-                      {typeof window!=="undefined"?`${window.location.origin}?ref=${address}`:"Loading…"}
+                      {typeof window!=="undefined"?`${window.location.origin}?ref=${refCode(address)}`:"Loading…"}
                     </div>
                     <button
                       onClick={()=>{
-                        const link = `${window.location.origin}?ref=${address}`;
+                        const link = `${window.location.origin}?ref=${refCode(address)}`;
                         navigator.clipboard.writeText(link).then(()=>{ setCopiedRef(true); setTimeout(()=>setCopiedRef(false),2000); });
                       }}
                       style={{flexShrink:0,background:"var(--blue)",border:"none",borderRadius:10,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,fontFamily:"'Outfit',sans-serif",transition:"opacity .2s",opacity:copiedRef?0.7:1,whiteSpace:"nowrap"}}>
@@ -1488,7 +1508,7 @@ export default function App() {
                   </div>
                   {typeof navigator!=="undefined" && navigator.share && (
                     <button
-                      onClick={()=>{ navigator.share({ title:"Join Basecast", text:"Play provably fair on-chain casino games on Base.", url:`${window.location.origin}?ref=${address}` }).catch(()=>{}); }}
+                      onClick={()=>{ navigator.share({ title:"Join Basecast", text:"Play provably fair on-chain casino games on Base.", url:`${window.location.origin}?ref=${refCode(address)}` }).catch(()=>{}); }}
                       style={{background:"none",border:"1px solid var(--bd)",borderRadius:10,padding:"9px",color:"var(--sub)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Outfit',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                       Share via…
