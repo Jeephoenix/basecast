@@ -500,7 +500,7 @@ export function AppFooter() {
           fontSize: 10, color: "#9094B0", lineHeight: 1.9,
           fontFamily: "'Outfit',sans-serif",
         }}>
-          BaseCast · Pyth Entropy · Base Network
+          BaseCast · Pyth Network · Base
           <br />
           Gambling involves risk. 18+ only. Play responsibly.
           <br />
