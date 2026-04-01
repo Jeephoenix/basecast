@@ -105,7 +105,7 @@ contract ReferralRewards is ReentrancyGuard {
     function claimRewards() external nonReentrant {
         uint256 amount = pendingRewards[msg.sender];
         require(amount > 0, "Nothing to claim");
-        require(usdc.balanceOf(address(this)) >= amount, "Rewards pool empty — try again later");
+        require(usdc.balanceOf(address(this)) >= amount, "Rewards pool empty - try again later");
 
         pendingRewards[msg.sender] = 0;
         unchecked { totalPaidOut += amount; }
