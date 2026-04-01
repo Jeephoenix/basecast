@@ -523,20 +523,25 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
               onClick={()=>{ if(!m.disabled){setMode(m.id);reset();} }}
               disabled={m.disabled}
               style={{
-                flex:1,padding:"12px 8px",border:"none",borderRadius:10,
+                flex:1,padding:"12px 8px",borderRadius:10,
                 cursor:m.disabled?"not-allowed":"pointer",transition:"all 0.15s",
                 fontFamily:"'Outfit',sans-serif",fontWeight:600,fontSize:12,
                 background: m.disabled ? "var(--bg)" : mode===m.id ? "#2563EB" : "var(--s2)",
-                color:       m.disabled ? "var(--sub)" : mode===m.id ? "#fff"   : "var(--sub)",
-                outline: mode===m.id ? "2px solid rgba(37,99,235,0.4)" : "none",
-                opacity: m.disabled ? 0.6 : 1,
+                color:       m.disabled ? "var(--sub)" : mode===m.id ? "#fff"   : "var(--tx)",
+                border: mode===m.id
+                  ? "1.5px solid #2563EB"
+                  : m.disabled
+                    ? "1.5px solid var(--bd)"
+                    : "1.5px solid var(--bd)",
+                boxShadow: mode===m.id ? "0 2px 10px rgba(37,99,235,0.3)" : "none",
+                opacity: m.disabled ? 0.5 : 1,
               }}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
                 <ModeIcon id={m.id} active={mode===m.id}/>
                 <span>{m.label}</span>
               </div>
               <div style={{fontSize:9,fontWeight:400,marginTop:3,
-                color:mode===m.id?"rgba(255,255,255,0.7)":"var(--sub)"}}>{m.desc}</div>
+                color:mode===m.id?"rgba(255,255,255,0.75)":m.disabled?"var(--sub)":"var(--sub)"}}>{m.desc}</div>
             </button>
           ))}
         </div>
