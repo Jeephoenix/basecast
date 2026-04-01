@@ -5,7 +5,10 @@ import "@rainbow-me/rainbowkit/styles.css";
 export const metadata = {
   title:       "BaseCast — Provably Fair Casino on Base",
   description: "On-chain casino powered by Pyth Entropy v2. CoinFlip + Dice on Base.",
-  metadataBase: new URL("https://castgames.vercel.app?v2"),
+  metadataBase: new URL("https://castgames.vercel.app"),
+  other: {
+    "base:app_id": "69cd4bf319afd75ffc3d3b31",
+  },
   openGraph: {
     title:       "BaseCast",
     description: "Provably Fair On-Chain Casino on Base",
