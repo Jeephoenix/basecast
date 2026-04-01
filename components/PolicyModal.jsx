@@ -374,6 +374,89 @@ export function ConsentModal({ onAccept }) {
   );
 }
 
+// ── Floating feedback button — always visible above mobile nav ────────────────
+export function FeedbackButton() {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <>
+      <style>{`
+        .feedback-fab {
+          position: fixed;
+          right: 18px;
+          bottom: 80px;
+          z-index: 200;
+          display: flex;
+          align-items: center;
+          gap: 0;
+          cursor: pointer;
+          text-decoration: none;
+          border-radius: 28px;
+          background: linear-gradient(135deg, #229ED9, #1a7fc1);
+          box-shadow: 0 4px 20px rgba(34,158,217,0.45);
+          padding: 0;
+          overflow: hidden;
+          max-width: 44px;
+          transition: max-width 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s, transform 0.2s;
+          white-space: nowrap;
+        }
+        .feedback-fab:hover, .feedback-fab.hovered {
+          max-width: 200px;
+          box-shadow: 0 6px 28px rgba(34,158,217,0.6);
+          transform: translateY(-2px);
+        }
+        .feedback-fab-icon {
+          width: 44px;
+          height: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .feedback-fab-label {
+          font-family: 'Outfit', sans-serif;
+          font-size: 13px;
+          font-weight: 600;
+          color: #fff;
+          padding-right: 14px;
+          opacity: 0;
+          transition: opacity 0.2s 0.1s;
+        }
+        .feedback-fab:hover .feedback-fab-label,
+        .feedback-fab.hovered .feedback-fab-label {
+          opacity: 1;
+        }
+        @media (max-width: 520px) {
+          .feedback-fab {
+            bottom: 74px;
+            right: 14px;
+          }
+        }
+        @media (min-width: 521px) {
+          .feedback-fab {
+            bottom: 32px;
+          }
+        }
+      `}</style>
+      <a
+        href="https://t.me/Jeephoenix"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`feedback-fab${hovered ? " hovered" : ""}`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        title="Feedback & Bug Reports"
+      >
+        <span className="feedback-fab-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.367l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.192z"/>
+          </svg>
+        </span>
+        <span className="feedback-fab-label">Feedback &amp; Bugs</span>
+      </a>
+    </>
+  );
+}
+
 // ── Footer component — drop this at the bottom of page.jsx ───────────────────
 export function AppFooter() {
   const [modal, setModal] = useState(null); // null | "privacy" | "terms"
@@ -383,6 +466,7 @@ export function AppFooter() {
       {modal && (
         <PolicyModal defaultTab={modal} onClose={() => setModal(null)} />
       )}
+      <FeedbackButton />
       <footer style={{
         textAlign: "center", padding: "24px 20px",
         borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: 20,
@@ -422,23 +506,6 @@ export function AppFooter() {
               Terms of Service
             </button>
           </span>
-        </div>
-        <div style={{ marginTop: 14 }}>
-          <a
-            href="https://t.me/Jeephoenix"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              background: "rgba(37,99,235,.1)", border: "1px solid rgba(37,99,235,.25)",
-              borderRadius: 8, padding: "7px 14px", fontSize: 11,
-              color: "#6C63FF", textDecoration: "none",
-              fontFamily: "'Outfit',sans-serif",
-            }}
-          >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9094B0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M9 9V6a3 3 0 0 1 6 0v3"/><path d="M10 16.5a4 4 0 0 1-4-4v-3a4 4 0 0 1 8 0v3a4 4 0 0 1-4 4z"/><path d="M6 9H3"/><path d="M18 9h-3"/><path d="M6 15H3"/><path d="M18 15h-3"/><path d="M10 20v1"/><path d="M14 20v1"/></svg>
-            Feedback & Bug Reports
-          </a>
         </div>
       </footer>
     </>
