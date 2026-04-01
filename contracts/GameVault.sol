@@ -5,6 +5,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+interface IReferralRewards {
+    function creditReward(address player, uint256 wager) external;
+}
+
 /// @title GameVault — BaseCast Treasury + Leaderboard
 contract GameVault is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -16,6 +20,9 @@ contract GameVault is ReentrancyGuard {
     uint256 public maxBetBps  = 100;      // 1% of vault
     uint256 public minBet     = 500_000;  // $0.50 USDC (6 decimals)
     uint256 public houseProfit;
+
+    /// @notice Optional referral rewards contract. Zero address = disabled.
+    address public referralRewards;
 
     mapping(address => bool) public authorizedGames;
 
@@ -71,6 +78,11 @@ contract GameVault is ReentrancyGuard {
     function setMinBet(uint256 amount) external onlyOwner { minBet = amount; }
     function setPaused(bool _p)        external onlyOwner { paused = _p; }
 
+    /// @notice Link the ReferralRewards contract. Pass address(0) to disable.
+    function setReferralContract(address _ref) external onlyOwner {
+        referralRewards = _ref;
+    }
+
     function transferOwnership(address newOwner) external onlyOwner {
         require(newOwner != address(0), "Zero");
         owner = newOwner;
@@ -98,6 +110,11 @@ contract GameVault is ReentrancyGuard {
             uint256 loss = payout - wager;
             houseProfit  = houseProfit > loss ? houseProfit - loss : 0;
         }
+        // Credit referral reward — uses try/catch so it never blocks settlement
+        if (referralRewards != address(0)) {
+            try IReferralRewards(referralRewards).creditReward(player, wager) {} catch {}
+        }
+
         _updateStats(player, wager, payout);
         emit BetSettled(msg.sender, player, wager, payout);
     }
