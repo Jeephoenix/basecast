@@ -1439,13 +1439,13 @@ export default function App() {
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,width:"100%"}}>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>USDC BALANCE</div>
-                      <div className="mono" style={{fontSize:17,fontWeight:700,color:"var(--green)"}}>{usd(bal)}</div>
+                      <div style={{fontSize:17,fontWeight:700,color:"var(--green)",fontFamily:"'Outfit',sans-serif"}}>{usd(bal)}</div>
                     </div>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>NET PROFIT</div>
                       {myPnl===null
                         ? <div style={{fontSize:13,color:"var(--sub)"}}>—</div>
-                        : <div className="mono" style={{fontSize:17,fontWeight:700,color:myPnl>=0n?"var(--green)":"var(--red)"}}>{myPnl>=0n?"+":""}{pnl(myPnl)}</div>
+                        : <div style={{fontSize:17,fontWeight:700,color:myPnl>=0n?"var(--green)":"var(--red)",fontFamily:"'Outfit',sans-serif"}}>{pnl(myPnl)}</div>
                       }
                     </div>
                   </div>
@@ -1459,17 +1459,17 @@ export default function App() {
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>REFERRED</div>
-                      <div className="mono" style={{fontSize:17,fontWeight:700,color:"var(--tx)"}}>{refCount===null?"…":refCount}</div>
+                      <div style={{fontSize:17,fontWeight:700,color:"var(--tx)",fontFamily:"'Outfit',sans-serif"}}>{refCount===null?"…":refCount}</div>
                     </div>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>CLAIMABLE</div>
-                      <div className="mono" style={{fontSize:17,fontWeight:700,color:"var(--green)"}}>
+                      <div style={{fontSize:17,fontWeight:700,color:"var(--green)",fontFamily:"'Outfit',sans-serif"}}>
                         {refPending===null?"…":usd(refPending)}
                       </div>
                     </div>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>LIFETIME</div>
-                      <div className="mono" style={{fontSize:17,fontWeight:700,color:"var(--sub)"}}>
+                      <div style={{fontSize:17,fontWeight:700,color:"var(--sub)",fontFamily:"'Outfit',sans-serif"}}>
                         {refEarned===null?"…":usd(refEarned)}
                       </div>
                     </div>
