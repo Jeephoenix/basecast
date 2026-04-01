@@ -1,12 +1,26 @@
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
 
+function makeCode(address) {
+  return address.slice(2, 10).toUpperCase();
+}
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
+  const db = getPool();
+
+  const resolve = searchParams.get("resolve");
+  if (resolve) {
+    const { rows } = await db.query(
+      "SELECT address FROM ref_codes WHERE code = $1",
+      [resolve.toUpperCase()]
+    );
+    return NextResponse.json({ address: rows[0]?.address || null });
+  }
+
   const code = (searchParams.get("code") || "").toUpperCase();
   if (!code) return NextResponse.json({ count: 0 });
 
-  const db = getPool();
   const { rows } = await db.query(
     "SELECT wallet FROM referrals WHERE code = $1",
     [code]
@@ -44,6 +58,29 @@ export async function POST(req) {
     return NextResponse.json({ ok: true, count: parseInt(rows[0].count, 10) });
   } catch (err) {
     console.error("POST /api/referral error:", err);
+    return NextResponse.json({ ok: false }, { status: 500 });
+  }
+}
+
+export async function PUT(req) {
+  try {
+    const { address } = await req.json();
+    if (!address) return NextResponse.json({ ok: false }, { status: 400 });
+
+    const addr = address.toLowerCase();
+    const code = makeCode(address);
+    const db = getPool();
+
+    await db.query(
+      `INSERT INTO ref_codes (code, address)
+       VALUES ($1, $2)
+       ON CONFLICT (address) DO UPDATE SET code = EXCLUDED.code`,
+      [code, addr]
+    );
+
+    return NextResponse.json({ ok: true, code });
+  } catch (err) {
+    console.error("PUT /api/referral error:", err);
     return NextResponse.json({ ok: false }, { status: 500 });
   }
 }
