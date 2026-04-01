@@ -927,8 +927,8 @@ export default function App() {
                   <div key={label} className="card glow-card" style={{display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",background:isAlpha?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.03)",padding:"16px",opacity:isAlpha?0.6:1}}>
                     <div style={{width:42,height:42,borderRadius:12,background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,flexShrink:0}}>{icon}</div>
                     <div>
-                      <div style={{fontWeight:700,fontSize:13,color:isAlpha?"#D4AF37":"var(--tx)",marginBottom:2}}>{label}</div>
-                      <div style={{fontSize:11,color:"var(--sub)"}} dangerouslySetInnerHTML={{__html:desc}}/>
+                      <div style={{fontWeight:700,fontSize:14,color:"var(--tx)",marginBottom:2}}>{label}</div>
+                      <div style={{fontSize:12,color:"var(--sub)"}} dangerouslySetInnerHTML={{__html:desc}}/>
                     </div>
                     {!isAlpha && <div style={{fontSize:12,fontWeight:700,color:"var(--gold)"}}>Up to {mult}</div>}
                   </div>
@@ -1084,7 +1084,7 @@ export default function App() {
               {[
                 {id:"coinflip",label:"Coin Flip",  mult:"1.94×",  desc:"Pick heads or tails",        Icon:IcoCoin,  color:"#6C63FF", bg:"rgba(108,99,255,0.14)"},
                 {id:"dice",    label:"Dice Roll",  mult:"5.82×",  desc:"Range or exact number",       Icon:IcoDice,  color:"#00F5A0", bg:"rgba(0,245,160,0.12)"},
-                {id:"bingo",   label:"Bingo",      mult:"Up to 20×", desc:"Match a winning pattern",  Icon:IcoBingo, color:"#FFD166", bg:"rgba(255,209,102,0.12)"},
+                {id:"bingo",   label:"Bingo",      mult:"20×", desc:"Match a winning pattern",  Icon:IcoBingo, color:"#FFD166", bg:"rgba(255,209,102,0.12)"},
               ].map(({id,label,mult,desc,Icon,color,bg})=>(
                 <button key={id} className="card glow-card" onClick={()=>{setTab(id);setNavSection("games");}} style={{cursor:"pointer",display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",background:"rgba(255,255,255,0.04)"}}>
                   <div style={{width:40,height:40,borderRadius:10,background:bg,display:"flex",alignItems:"center",justifyContent:"center",color}}>
@@ -1092,7 +1092,7 @@ export default function App() {
                   </div>
                   <div>
                     <div style={{fontWeight:700,fontSize:14,color:"var(--tx)"}}>{label}</div>
-                    <div style={{fontSize:11,color:"var(--sub)",marginTop:3}}>{desc}</div>
+                    <div style={{fontSize:12,color:"var(--sub)",marginTop:3}}>{desc}</div>
                   </div>
                   {mult && <div style={{fontSize:12,fontWeight:700,color:"var(--gold)"}}>Up to {mult}</div>}
                 </button>
@@ -1102,8 +1102,8 @@ export default function App() {
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>
                 </div>
                 <div>
-                  <div style={{fontWeight:700,fontSize:14,color:"#D4AF37"}}>More Coming...</div>
-                  <div style={{fontSize:11,color:"var(--sub)",marginTop:3}}>New games &amp; features ahead</div>
+                  <div style={{fontWeight:700,fontSize:14,color:"var(--tx)"}}>More Coming...</div>
+                  <div style={{fontSize:12,color:"var(--sub)",marginTop:3}}>New games &amp; features ahead</div>
                 </div>
               </div>
             </div>
