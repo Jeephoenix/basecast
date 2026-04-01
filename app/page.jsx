@@ -379,6 +379,9 @@ export default function App() {
   const [refClaiming,     setRefClaiming]     = useState(false);
   const [refClaimErr,     setRefClaimErr]     = useState(null);
   const [lbLd,  setLbLd]  = useState(false);
+  const [lbNames, setLbNames] = useState({});
+  const [usernameErr, setUsernameErr] = useState("");
+  const [usernameSaving, setUsernameSaving] = useState(false);
   const [light, setLight] = useState(false);
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
@@ -522,6 +525,11 @@ export default function App() {
         address:VAULT,abi:VAULT_ABI,functionName:"getMultipleStats",args:[addrs]
       });
       setLb(addrs.map((a,i)=>({address:a,volume:vols[i],pnl:pnls[i]})));
+      try {
+        const res = await fetch(`/api/username?addresses=${addrs.join(",")}`);
+        const json = await res.json();
+        setLbNames(json.usernames || {});
+      } catch {}
     } catch {}
     setLbLd(false);
   },[pub]);
@@ -531,8 +539,20 @@ export default function App() {
   useEffect(()=>{
     if (!address) { setUsername(""); setProfilePic(null); return; }
     const saved = localStorage.getItem(`bc_profile_${address}`);
-    if (saved) { try { const p=JSON.parse(saved); setUsername(p.username||""); setProfilePic(p.pic||null); } catch{} }
-    else { setUsername(""); setProfilePic(null); }
+    let localPic = null;
+    if (saved) { try { const p=JSON.parse(saved); localPic=p.pic||null; } catch{} }
+    setProfilePic(localPic);
+    fetch(`/api/username?address=${address}`)
+      .then(r=>r.json())
+      .then(json=>{
+        const serverName = json.username || "";
+        setUsername(serverName);
+        if (address) localStorage.setItem(`bc_profile_${address}`, JSON.stringify({username:serverName, pic:localPic}));
+      })
+      .catch(()=>{
+        if (saved) { try { const p=JSON.parse(saved); setUsername(p.username||""); } catch{ setUsername(""); } }
+        else setUsername("");
+      });
   },[address]);
 
   useEffect(()=>{
@@ -619,12 +639,46 @@ export default function App() {
     setRefClaiming(false);
   };
 
-  const saveProfile = (newName, newPic) => {
+  const saveProfile = async (newName, newPic) => {
     const pic = newPic !== undefined ? newPic : profilePic;
     const name = newName !== undefined ? newName : username;
+
+    if (newName !== undefined && name !== "") {
+      if (name.length < 4) {
+        setUsernameErr("Username must be at least 4 characters");
+        return false;
+      }
+      if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+        setUsernameErr("Only letters, numbers and underscores allowed");
+        return false;
+      }
+      setUsernameSaving(true);
+      setUsernameErr("");
+      try {
+        const res = await fetch("/api/username", {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ username: name, address }),
+        });
+        const json = await res.json();
+        if (!json.ok) {
+          setUsernameErr(json.error || "Failed to save username");
+          setUsernameSaving(false);
+          return false;
+        }
+      } catch {
+        setUsernameErr("Network error — please try again");
+        setUsernameSaving(false);
+        return false;
+      }
+      setUsernameSaving(false);
+    }
+
     if (address) localStorage.setItem(`bc_profile_${address}`, JSON.stringify({username:name, pic}));
     setUsername(name);
     setProfilePic(pic);
+    setUsernameErr("");
+    return true;
   };
 
   const handlePicUpload = (e) => {
@@ -1320,16 +1374,29 @@ export default function App() {
                       <input
                         className="inp"
                         value={usernameInput}
-                        onChange={e=>setUsernameInput(e.target.value)}
-                        onKeyDown={e=>{if(e.key==="Enter"){saveProfile(usernameInput.trim());setEditingProfile(false);}if(e.key==="Escape")setEditingProfile(false);}}
-                        placeholder="Enter username…"
+                        onChange={e=>{setUsernameInput(e.target.value);setUsernameErr("");}}
+                        onKeyDown={async e=>{
+                          if(e.key==="Enter"){
+                            const ok = await saveProfile(usernameInput.trim());
+                            if(ok) setEditingProfile(false);
+                          }
+                          if(e.key==="Escape"){setEditingProfile(false);setUsernameErr("");}
+                        }}
+                        placeholder="At least 4 characters…"
                         maxLength={24}
                         autoFocus
-                        style={{textAlign:"center",fontSize:15,padding:"9px 14px"}}
+                        disabled={usernameSaving}
+                        style={{textAlign:"center",fontSize:15,padding:"9px 14px",opacity:usernameSaving?0.6:1}}
                       />
+                      {usernameErr && (
+                        <div style={{fontSize:11,color:"var(--red)",textAlign:"center",padding:"0 4px"}}>{usernameErr}</div>
+                      )}
+                      {!usernameErr && usernameInput.trim().length > 0 && usernameInput.trim().length < 4 && (
+                        <div style={{fontSize:11,color:"var(--sub)",textAlign:"center"}}>{4 - usernameInput.trim().length} more character{4 - usernameInput.trim().length !== 1 ? "s" : ""} needed</div>
+                      )}
                       <div style={{display:"flex",gap:8,width:"100%"}}>
-                        <button className="btn primary" style={{flex:1,padding:"9px",fontSize:13}} onClick={()=>{saveProfile(usernameInput.trim());setEditingProfile(false);}}>Save</button>
-                        <button className="btn" style={{flex:1,padding:"9px",fontSize:13,background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)"}} onClick={()=>setEditingProfile(false)}>Cancel</button>
+                        <button className="btn primary" style={{flex:1,padding:"9px",fontSize:13,opacity:usernameSaving?0.6:1}} disabled={usernameSaving} onClick={async()=>{const ok=await saveProfile(usernameInput.trim());if(ok)setEditingProfile(false);}}>{usernameSaving?"Saving…":"Save"}</button>
+                        <button className="btn" style={{flex:1,padding:"9px",fontSize:13,background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)"}} disabled={usernameSaving} onClick={()=>{setEditingProfile(false);setUsernameErr("");}}>Cancel</button>
                       </div>
                     </div>
                   ) : (
@@ -1580,8 +1647,9 @@ export default function App() {
                 ):(
                   <div style={{display:"flex",flexDirection:"column",gap:8}}>
                     {sortedLb.map((p,i)=>{
-                      const lbName = getLbName(p.address);
-                      const hasUsername = lbName !== `${p.address.slice(0,8)}...${p.address.slice(-6)}`;
+                      const serverName = lbNames[p.address.toLowerCase()];
+                      const lbName = serverName || getLbName(p.address);
+                      const hasUsername = !!serverName || lbName !== `${p.address.slice(0,8)}...${p.address.slice(-6)}`;
                       return (
                       <div key={p.address} className="card" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderLeft:`3px solid ${i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--bd)"}`}}>
                         <div style={{width:28,height:28,borderRadius:"50%",background:i===0?"rgba(245,158,11,.15)":"var(--s2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--sub)",flexShrink:0}}>{i+1}</div>
@@ -1625,4 +1693,5 @@ export default function App() {
     </div>
   );
 }
+
 
