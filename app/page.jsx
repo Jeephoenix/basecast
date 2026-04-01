@@ -1056,7 +1056,7 @@ export default function App() {
                 <div style={{fontSize:11,color:"var(--sub)"}}>Stay updated on new games and features</div>
               </div>
               <div style={{display:"flex",gap:8}}>
-                <a href="#" className="social-link" title="Twitter / X">
+                <a href="https://x.com/basecast_" target="_blank" rel="noopener noreferrer" className="social-link" title="Twitter / X">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.736l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </a>
                 <a href="#" className="social-link" title="Discord">
@@ -1713,5 +1713,6 @@ export default function App() {
     </div>
   );
 }
+
 
 
