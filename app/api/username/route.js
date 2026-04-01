@@ -1,19 +1,8 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { getPool } from "@/lib/db";
 
-const FILE = path.join(process.cwd(), "data", "usernames.json");
 const MIN_LENGTH = 4;
 const MAX_LENGTH = 24;
-
-function load() {
-  try { return JSON.parse(fs.readFileSync(FILE, "utf8")); }
-  catch { return { byAddress: {}, byUsername: {} }; }
-}
-
-function save(data) {
-  fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
-}
 
 function normalise(username) {
   return username.trim().toLowerCase();
@@ -21,29 +10,36 @@ function normalise(username) {
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const data = load();
+  const db = getPool();
 
   const username = searchParams.get("username");
   if (username !== null) {
     const key = normalise(username);
-    const taken = !!data.byUsername[key];
-    return NextResponse.json({ available: !taken });
+    const { rows } = await db.query(
+      "SELECT 1 FROM usernames WHERE LOWER(username) = $1 LIMIT 1",
+      [key]
+    );
+    return NextResponse.json({ available: rows.length === 0 });
   }
 
   const address = searchParams.get("address");
   if (address) {
-    const addr = address.toLowerCase();
-    const name = data.byAddress[addr] || null;
-    return NextResponse.json({ username: name });
+    const { rows } = await db.query(
+      "SELECT username FROM usernames WHERE address = $1",
+      [address.toLowerCase()]
+    );
+    return NextResponse.json({ username: rows[0]?.username || null });
   }
 
   const addresses = searchParams.get("addresses");
   if (addresses) {
     const addrs = addresses.split(",").map(a => a.toLowerCase());
+    const { rows } = await db.query(
+      "SELECT address, username FROM usernames WHERE address = ANY($1)",
+      [addrs]
+    );
     const result = {};
-    for (const addr of addrs) {
-      result[addr] = data.byAddress[addr] || null;
-    }
+    for (const row of rows) result[row.address] = row.username;
     return NextResponse.json({ usernames: result });
   }
 
@@ -63,36 +59,52 @@ export async function POST(req) {
     const addr = address.toLowerCase();
 
     if (trimmed.length < MIN_LENGTH) {
-      return NextResponse.json({ ok: false, error: `Username must be at least ${MIN_LENGTH} characters` }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: `Username must be at least ${MIN_LENGTH} characters` },
+        { status: 400 }
+      );
     }
 
     if (trimmed.length > MAX_LENGTH) {
-      return NextResponse.json({ ok: false, error: `Username must be at most ${MAX_LENGTH} characters` }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: `Username must be at most ${MAX_LENGTH} characters` },
+        { status: 400 }
+      );
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(trimmed)) {
-      return NextResponse.json({ ok: false, error: "Only letters, numbers and underscores allowed" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Only letters, numbers and underscores allowed" },
+        { status: 400 }
+      );
     }
 
-    const data = load();
+    const db = getPool();
 
-    const existingOwner = data.byUsername[key];
-    if (existingOwner && existingOwner !== addr) {
-      return NextResponse.json({ ok: false, error: "Username already taken" }, { status: 409 });
+    const { rows } = await db.query(
+      "SELECT address FROM usernames WHERE LOWER(username) = $1",
+      [key]
+    );
+
+    if (rows.length > 0 && rows[0].address !== addr) {
+      return NextResponse.json(
+        { ok: false, error: "Username already taken" },
+        { status: 409 }
+      );
     }
 
-    const oldUsername = data.byAddress[addr];
-    if (oldUsername && oldUsername !== key) {
-      delete data.byUsername[oldUsername];
-    }
-
-    data.byAddress[addr] = key;
-    data.byUsername[key] = addr;
-    save(data);
+    await db.query(
+      `INSERT INTO usernames (address, username, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (address) DO UPDATE
+         SET username = EXCLUDED.username,
+             updated_at = NOW()`,
+      [addr, key]
+    );
 
     return NextResponse.json({ ok: true, username: key });
-  } catch {
+  } catch (err) {
+    console.error("POST /api/username error:", err);
     return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });
   }
 }
-
