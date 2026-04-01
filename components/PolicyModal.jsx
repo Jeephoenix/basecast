@@ -493,7 +493,7 @@ export function AppFooter() {
       )}
       <FeedbackButton />
       <footer style={{
-        textAlign: "center", padding: "24px 20px",
+        textAlign: "center", padding: "24px 20px 90px",
         borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: 20,
       }}>
         <div style={{
@@ -536,3 +536,4 @@ export function AppFooter() {
     </>
   );
 }
+
