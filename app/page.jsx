@@ -17,6 +17,7 @@ const VAULT    = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
 const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
 const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
 const BINGO    = process.env.NEXT_PUBLIC_BINGO_ADDRESS;
+const REFERRAL = process.env.NEXT_PUBLIC_REFERRAL_ADDRESS;
 const USDC     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
 const EXPLORER = CHAIN_ID === 8453 ? "https://basescan.org" : "https://sepolia.basescan.org";
@@ -37,6 +38,19 @@ const VAULT_ABI = [
   {name:"getMultipleStats",        type:"function", stateMutability:"view",
     inputs:[{name:"players",type:"address[]"}],
     outputs:[{name:"volumes",type:"uint128[]"},{name:"pnls",type:"int128[]"}]},
+];
+const REFERRAL_ABI = [
+  {name:"registerReferral", type:"function", stateMutability:"nonpayable", inputs:[{name:"referrer",type:"address"}], outputs:[]},
+  {name:"claimRewards",     type:"function", stateMutability:"nonpayable", inputs:[], outputs:[]},
+  {name:"referrerOf",       type:"function", stateMutability:"view",       inputs:[{name:"",type:"address"}], outputs:[{type:"address"}]},
+  {name:"getReferrerStats", type:"function", stateMutability:"view",
+    inputs:[{name:"referrer",type:"address"}],
+    outputs:[
+      {name:"pending",type:"uint256"},
+      {name:"earned", type:"uint256"},
+      {name:"volume", type:"uint256"},
+      {name:"count",  type:"uint256"},
+    ]},
 ];
 const CF_ABI = [
   {name:"placeBet",      type:"function", stateMutability:"payable",
@@ -351,6 +365,12 @@ export default function App() {
   const [username,        setUsername]        = useState("");
   const [editingProfile,  setEditingProfile]  = useState(false);
   const [usernameInput,   setUsernameInput]   = useState("");
+  const [refCount,        setRefCount]        = useState(null);
+  const [copiedRef,       setCopiedRef]       = useState(false);
+  const [refPending,      setRefPending]      = useState(null);
+  const [refEarned,       setRefEarned]       = useState(null);
+  const [refClaiming,     setRefClaiming]     = useState(false);
+  const [refClaimErr,     setRefClaimErr]     = useState(null);
   const [lbLd,  setLbLd]  = useState(false);
   const [light, setLight] = useState(false);
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
@@ -505,6 +525,90 @@ export default function App() {
     const saved = localStorage.getItem("bc_profile");
     if (saved) { try { const p=JSON.parse(saved); setUsername(p.username||""); setProfilePic(p.pic||null); } catch{} }
   },[]);
+
+  useEffect(()=>{
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (!ref) return;
+    const already = localStorage.getItem("bc_ref_recorded");
+    if (already) return;
+    localStorage.setItem("bc_ref_source", ref.toUpperCase());
+  },[]);
+
+  useEffect(()=>{
+    if (!address || !authed || !wc || !pub) return;
+    const refSource = localStorage.getItem("bc_ref_source");
+    const already   = localStorage.getItem("bc_ref_recorded");
+    if (!refSource || already) return;
+    if (refSource.toLowerCase() === address.toLowerCase()) return;
+
+    const register = async () => {
+      try {
+        if (REFERRAL) {
+          const alreadyRegistered = await pub.readContract({
+            address: REFERRAL, abi: REFERRAL_ABI,
+            functionName: "referrerOf", args: [address],
+          });
+          if (alreadyRegistered && alreadyRegistered !== "0x0000000000000000000000000000000000000000") {
+            localStorage.setItem("bc_ref_recorded","1");
+            return;
+          }
+          const { request } = await pub.simulateContract({
+            address: REFERRAL, abi: REFERRAL_ABI,
+            functionName: "registerReferral", args: [refSource],
+            account: address,
+          });
+          await wc.writeContract(request);
+        }
+        fetch("/api/referral", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ referrerCode: refSource, wallet: address }),
+        }).catch(()=>{});
+        localStorage.setItem("bc_ref_recorded","1");
+      } catch {}
+    };
+    register();
+  },[address, authed, wc, pub]);
+
+  const fetchRefCount = useCallback(async () => {
+    if (!address || !pub) return;
+    try {
+      const res = await fetch(`/api/referral?code=${address}`);
+      const json = await res.json();
+      setRefCount(json.count ?? 0);
+    } catch { setRefCount(0); }
+
+    if (REFERRAL) {
+      try {
+        const stats = await pub.readContract({
+          address: REFERRAL, abi: REFERRAL_ABI,
+          functionName: "getReferrerStats", args: [address],
+        });
+        setRefPending(stats[0]);
+        setRefEarned(stats[1]);
+      } catch {}
+    }
+  }, [address, pub]);
+
+  useEffect(()=>{ if(navSection==="profile" && authed) fetchRefCount(); },[navSection,authed,fetchRefCount]);
+
+  const claimReferralRewards = async () => {
+    if (!wc || !pub || !REFERRAL) return;
+    setRefClaiming(true); setRefClaimErr(null);
+    try {
+      const { request } = await pub.simulateContract({
+        address: REFERRAL, abi: REFERRAL_ABI,
+        functionName: "claimRewards", args: [],
+        account: address,
+      });
+      await wc.writeContract(request);
+      await fetchRefCount();
+    } catch(e) {
+      setRefClaimErr(e?.shortMessage || "Transaction failed");
+    }
+    setRefClaiming(false);
+  };
 
   const saveProfile = (newName, newPic) => {
     const pic = newPic !== undefined ? newPic : profilePic;
@@ -1249,6 +1353,71 @@ export default function App() {
                       }
                     </div>
                   </div>
+                </div>
+
+                {/* Referral card */}
+                <div className="card" style={{display:"flex",flexDirection:"column",gap:14}}>
+                  <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>REFERRAL PROGRAM</div>
+
+                  {/* Stats row */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                    <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
+                      <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>REFERRED</div>
+                      <div className="mono" style={{fontSize:17,fontWeight:700,color:"var(--tx)"}}>{refCount===null?"…":refCount}</div>
+                    </div>
+                    <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
+                      <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>CLAIMABLE</div>
+                      <div className="mono" style={{fontSize:17,fontWeight:700,color:"var(--green)"}}>
+                        {refPending===null?"…":usd(refPending)}
+                      </div>
+                    </div>
+                    <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
+                      <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>LIFETIME</div>
+                      <div className="mono" style={{fontSize:17,fontWeight:700,color:"var(--sub)"}}>
+                        {refEarned===null?"…":usd(refEarned)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Claim button */}
+                  {REFERRAL && (
+                    <button
+                      onClick={claimReferralRewards}
+                      disabled={refClaiming || !refPending || refPending===0n}
+                      style={{width:"100%",padding:"11px",background:(refPending && refPending>0n)?"var(--green)":"var(--s2)",border:"none",borderRadius:10,color:(refPending && refPending>0n)?"#000":"var(--dim)",fontSize:13,fontWeight:700,cursor:(refPending && refPending>0n)?"pointer":"default",fontFamily:"'Outfit',sans-serif",transition:"opacity .2s",opacity:refClaiming?0.6:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                      {refClaiming
+                        ? <><Spin size={14}/> Claiming…</>
+                        : (refPending && refPending>0n)
+                          ? <>Claim {usd(refPending)} USDC</>
+                          : "No rewards to claim yet"
+                      }
+                    </button>
+                  )}
+                  {refClaimErr && <div style={{fontSize:11,color:"var(--red)",textAlign:"center"}}>{refClaimErr}</div>}
+
+                  {/* Referral link */}
+                  <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>Your referral link — share it to earn <span style={{color:"#8B82FF",fontWeight:700}}>1% of every bet</span> your referrals place.</div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <div style={{flex:1,background:"var(--s2)",borderRadius:10,padding:"10px 14px",fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:"var(--sub)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",userSelect:"all"}}>
+                      {typeof window!=="undefined"?`${window.location.origin}?ref=${address}`:"Loading…"}
+                    </div>
+                    <button
+                      onClick={()=>{
+                        const link = `${window.location.origin}?ref=${address}`;
+                        navigator.clipboard.writeText(link).then(()=>{ setCopiedRef(true); setTimeout(()=>setCopiedRef(false),2000); });
+                      }}
+                      style={{flexShrink:0,background:"var(--blue)",border:"none",borderRadius:10,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,fontFamily:"'Outfit',sans-serif",transition:"opacity .2s",opacity:copiedRef?0.7:1,whiteSpace:"nowrap"}}>
+                      {copiedRef?<><IcoCheck/> Copied!</>:<><IcoCopy/> Copy</>}
+                    </button>
+                  </div>
+                  {typeof navigator!=="undefined" && navigator.share && (
+                    <button
+                      onClick={()=>{ navigator.share({ title:"Join Basecast", text:"Play provably fair on-chain casino games on Base.", url:`${window.location.origin}?ref=${address}` }).catch(()=>{}); }}
+                      style={{background:"none",border:"1px solid var(--bd)",borderRadius:10,padding:"9px",color:"var(--sub)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Outfit',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                      Share via…
+                    </button>
+                  )}
                 </div>
 
                 {/* Transaction history */}
