@@ -23,3 +23,7 @@ Thumbs.db
 # Misc
 coverage/
 deployments/
+
+# Runtime data (server-generated, not committed)
+data/usernames.json
+data/referrals.json
