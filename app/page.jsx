@@ -113,6 +113,13 @@ const BET_RESOLVED_EVENT = {name:"BetResolved",type:"event",inputs:[
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const usd  = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
 const pnl  = (v) => `${v<0n?"-":"+"}$${parseFloat(formatUnits(v<0n?-v:v,6)).toFixed(2)}`;
+function getLbName(addr) {
+  try {
+    const saved = localStorage.getItem(`bc_profile_${addr}`);
+    if (saved) { const p = JSON.parse(saved); if (p.username) return p.username; }
+  } catch {}
+  return `${addr.slice(0,8)}...${addr.slice(-6)}`;
+}
 function playWin() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1572,12 +1579,15 @@ export default function App() {
                   <div className="card" style={{textAlign:"center",padding:48,color:"var(--sub)",fontSize:13}}>No players yet — be the first!</div>
                 ):(
                   <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                    {sortedLb.map((p,i)=>(
+                    {sortedLb.map((p,i)=>{
+                      const lbName = getLbName(p.address);
+                      const hasUsername = lbName !== `${p.address.slice(0,8)}...${p.address.slice(-6)}`;
+                      return (
                       <div key={p.address} className="card" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderLeft:`3px solid ${i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--bd)"}`}}>
                         <div style={{width:28,height:28,borderRadius:"50%",background:i===0?"rgba(245,158,11,.15)":"var(--s2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--sub)",flexShrink:0}}>{i+1}</div>
                         <div style={{flex:1,minWidth:0}}>
-                          <div className="mono" style={{fontSize:12,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                            {p.address.slice(0,8)}...{p.address.slice(-6)}
+                          <div style={{fontSize:12,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUsername?"'Outfit',sans-serif":"'JetBrains Mono',monospace",fontWeight:hasUsername?600:400}}>
+                            {lbName}
                             {p.address===address&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.1)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
                           </div>
                         </div>
@@ -1586,7 +1596,8 @@ export default function App() {
                           <div className="mono" style={{fontSize:11,marginTop:2,color:p.pnl>=0n?"var(--green)":"var(--red)"}}>{pnl(p.pnl)}</div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 <div style={{display:"flex",justifyContent:"space-between",padding:"0 4px",fontSize:10,color:"var(--dim)"}}>
