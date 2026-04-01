@@ -391,8 +391,9 @@ export function FeedbackButton() {
           cursor: pointer;
           text-decoration: none;
           border-radius: 28px;
-          background: linear-gradient(135deg, #229ED9, #1a7fc1);
-          box-shadow: 0 4px 20px rgba(34,158,217,0.45);
+          background: linear-gradient(135deg, #3a3d4a, #2a2d38);
+          border: 1px solid rgba(255,255,255,0.12);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.5);
           padding: 0;
           overflow: hidden;
           max-width: 44px;
@@ -401,8 +402,9 @@ export function FeedbackButton() {
         }
         .feedback-fab:hover, .feedback-fab.hovered {
           max-width: 200px;
-          box-shadow: 0 6px 28px rgba(34,158,217,0.6);
+          box-shadow: 0 6px 28px rgba(0,0,0,0.6);
           transform: translateY(-2px);
+          border-color: rgba(255,255,255,0.22);
         }
         .feedback-fab-icon {
           width: 44px;
@@ -447,8 +449,31 @@ export function FeedbackButton() {
         title="Feedback & Bug Reports"
       >
         <span className="feedback-fab-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.367l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.958.192z"/>
+          <svg width="23" height="23" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* body */}
+            <ellipse cx="50" cy="57" rx="26" ry="30" fill="#b0b4c1"/>
+            {/* head */}
+            <ellipse cx="50" cy="26" rx="14" ry="13" fill="#b0b4c1"/>
+            {/* wing split */}
+            <line x1="50" y1="28" x2="50" y2="86" stroke="#2a2d38" strokeWidth="3.5" strokeLinecap="round"/>
+            {/* antennae */}
+            <line x1="43" y1="14" x2="30" y2="3" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
+            <line x1="57" y1="14" x2="70" y2="3" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
+            {/* legs left */}
+            <line x1="24" y1="50" x2="7"  y2="44" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
+            <line x1="24" y1="60" x2="6"  y2="62" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
+            <line x1="25" y1="72" x2="10" y2="80" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
+            {/* legs right */}
+            <line x1="76" y1="50" x2="93" y2="44" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
+            <line x1="76" y1="60" x2="94" y2="62" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
+            <line x1="75" y1="72" x2="90" y2="80" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
+            {/* circuit dots */}
+            <circle cx="40" cy="52" r="4" fill="#2a2d38"/>
+            <circle cx="40" cy="66" r="4" fill="#2a2d38"/>
+            <circle cx="57" cy="59" r="4" fill="#2a2d38"/>
+            {/* circuit lines */}
+            <polyline points="40,52 34,58 40,66" stroke="#2a2d38" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="40" y1="59" x2="57" y2="59" stroke="#2a2d38" strokeWidth="2.5" strokeLinecap="round"/>
           </svg>
         </span>
         <span className="feedback-fab-label">Feedback &amp; Bugs</span>
