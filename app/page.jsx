@@ -347,6 +347,10 @@ export default function App() {
   const [dErr,   setDErr]   = useState(null);
   const [lb,    setLb]    = useState([]);
   const [lbSrt, setLbSrt] = useState("volume");
+  const [profilePic,      setProfilePic]      = useState(null);
+  const [username,        setUsername]        = useState("");
+  const [editingProfile,  setEditingProfile]  = useState(false);
+  const [usernameInput,   setUsernameInput]   = useState("");
   const [lbLd,  setLbLd]  = useState(false);
   const [light, setLight] = useState(false);
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
@@ -496,6 +500,27 @@ export default function App() {
   },[pub]);
 
   useEffect(()=>{ if(navSection==="profile") fetchLb(); },[navSection,fetchLb]);
+
+  useEffect(()=>{
+    const saved = localStorage.getItem("bc_profile");
+    if (saved) { try { const p=JSON.parse(saved); setUsername(p.username||""); setProfilePic(p.pic||null); } catch{} }
+  },[]);
+
+  const saveProfile = (newName, newPic) => {
+    const pic = newPic !== undefined ? newPic : profilePic;
+    const name = newName !== undefined ? newName : username;
+    localStorage.setItem("bc_profile", JSON.stringify({username:name, pic}));
+    setUsername(name);
+    setProfilePic(pic);
+  };
+
+  const handlePicUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => saveProfile(undefined, ev.target.result);
+    reader.readAsDataURL(file);
+  };
 
   const ensureAllow = async (amt) => {
     const al = await pub.readContract({address:USDC,abi:USDC_ABI,functionName:"allowance",args:[address,VAULT]});
@@ -1153,31 +1178,74 @@ export default function App() {
               <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
             ) : (
               <>
-                {/* Wallet card */}
-                <div className="card" style={{display:"flex",flexDirection:"column",gap:14}}>
-                  <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>CONNECTED WALLET</div>
-                  <div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <div style={{width:40,height:40,borderRadius:12,background:"linear-gradient(135deg,#6C63FF,#4F46E5)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:14,fontWeight:700,color:"#fff",fontFamily:"monospace"}}>
-                      {address?address.slice(2,4).toUpperCase():"??"}
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div className="mono" style={{fontSize:13,color:"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{shortAddr(address)}</div>
-                      <div style={{fontSize:10,color:"var(--sub)",marginTop:2}}>{CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"}</div>
-                    </div>
-                    <button onClick={copyAddress} style={{background:"none",border:"1px solid var(--bd)",borderRadius:8,color:copied?"var(--green)":"var(--sub)",fontSize:11,padding:"6px 10px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",flexShrink:0,display:"flex",alignItems:"center",gap:5,transition:"color 0.2s"}}>
-                      {copied?<><IcoCheck/>Copied</>:<><IcoCopy/>Copy</>}
-                    </button>
+                {/* Profile header card */}
+                <div className="card" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,padding:"28px 20px"}}>
+                  {/* Avatar */}
+                  <div style={{position:"relative"}}>
+                    <input type="file" id="pic-upload" accept="image/*" style={{display:"none"}} onChange={handlePicUpload}/>
+                    <label htmlFor="pic-upload" style={{cursor:"pointer",display:"block"}}>
+                      <div style={{width:88,height:88,borderRadius:"50%",overflow:"hidden",border:"2px solid var(--bd)",background:"linear-gradient(135deg,#6C63FF,#4F46E5)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,position:"relative"}}>
+                        {profilePic
+                          ? <img src={profilePic} alt="avatar" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                          : <span style={{fontSize:28,fontWeight:700,color:"#fff",fontFamily:"monospace"}}>{address?address.slice(2,4).toUpperCase():"??"}</span>
+                        }
+                        <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",opacity:0,transition:"opacity .2s"}}
+                          onMouseEnter={e=>e.currentTarget.style.opacity=1}
+                          onMouseLeave={e=>e.currentTarget.style.opacity=0}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        </div>
+                      </div>
+                    </label>
+                    <label htmlFor="pic-upload" style={{position:"absolute",bottom:0,right:0,width:26,height:26,borderRadius:"50%",background:"var(--blue)",border:"2px solid var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </label>
                   </div>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                    <div style={{background:"var(--s2)",borderRadius:10,padding:"12px 14px"}}>
-                      <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>USDC BALANCE</div>
-                      <div className="mono" style={{fontSize:18,fontWeight:700,color:"var(--green)"}}>{usd(bal)}</div>
+
+                  {/* Username */}
+                  {editingProfile ? (
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8,width:"100%",maxWidth:260}}>
+                      <input
+                        className="inp"
+                        value={usernameInput}
+                        onChange={e=>setUsernameInput(e.target.value)}
+                        onKeyDown={e=>{if(e.key==="Enter"){saveProfile(usernameInput.trim());setEditingProfile(false);}if(e.key==="Escape")setEditingProfile(false);}}
+                        placeholder="Enter username…"
+                        maxLength={24}
+                        autoFocus
+                        style={{textAlign:"center",fontSize:15,padding:"9px 14px"}}
+                      />
+                      <div style={{display:"flex",gap:8,width:"100%"}}>
+                        <button className="btn primary" style={{flex:1,padding:"9px",fontSize:13}} onClick={()=>{saveProfile(usernameInput.trim());setEditingProfile(false);}}>Save</button>
+                        <button className="btn" style={{flex:1,padding:"9px",fontSize:13,background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)"}} onClick={()=>setEditingProfile(false)}>Cancel</button>
+                      </div>
                     </div>
-                    <div style={{background:"var(--s2)",borderRadius:10,padding:"12px 14px"}}>
+                  ) : (
+                    <div style={{textAlign:"center"}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                        <div style={{fontWeight:700,fontSize:18,color:"var(--tx)"}}>{username||"Anonymous"}</div>
+                        <button onClick={()=>{setUsernameInput(username);setEditingProfile(true);}} style={{background:"none",border:"none",cursor:"pointer",color:"var(--sub)",padding:2,display:"flex",alignItems:"center"}} title="Edit username">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                      </div>
+                      <button onClick={copyAddress} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:4,margin:"4px auto 0",color:copied?"var(--green)":"var(--sub)",fontSize:11,fontFamily:"'JetBrains Mono',monospace",transition:"color .2s",padding:0}}>
+                        {copied?<IcoCheck/>:<IcoCopy/>}
+                        {shortAddr(address)}
+                      </button>
+                      <div style={{fontSize:10,color:"var(--dim)",marginTop:3}}>{CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"}</div>
+                    </div>
+                  )}
+
+                  {/* Balance row */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,width:"100%"}}>
+                    <div style={{background:"var(--s2)",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
+                      <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>USDC BALANCE</div>
+                      <div className="mono" style={{fontSize:17,fontWeight:700,color:"var(--green)"}}>{usd(bal)}</div>
+                    </div>
+                    <div style={{background:"var(--s2)",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>NET PROFIT</div>
                       {myPnl===null
-                        ? <div style={{fontSize:13,color:"var(--sub)"}}>Loading...</div>
-                        : <div className="mono" style={{fontSize:18,fontWeight:700,color:myPnl>=0n?"var(--green)":"var(--red)"}}>{myPnl>=0n?"+":""}{pnl(myPnl)}</div>
+                        ? <div style={{fontSize:13,color:"var(--sub)"}}>—</div>
+                        : <div className="mono" style={{fontSize:17,fontWeight:700,color:myPnl>=0n?"var(--green)":"var(--red)"}}>{myPnl>=0n?"+":""}{pnl(myPnl)}</div>
                       }
                     </div>
                   </div>
