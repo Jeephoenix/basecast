@@ -522,9 +522,11 @@ export default function App() {
   useEffect(()=>{ if(navSection==="profile") fetchLb(); },[navSection,fetchLb]);
 
   useEffect(()=>{
-    const saved = localStorage.getItem("bc_profile");
+    if (!address) { setUsername(""); setProfilePic(null); return; }
+    const saved = localStorage.getItem(`bc_profile_${address}`);
     if (saved) { try { const p=JSON.parse(saved); setUsername(p.username||""); setProfilePic(p.pic||null); } catch{} }
-  },[]);
+    else { setUsername(""); setProfilePic(null); }
+  },[address]);
 
   useEffect(()=>{
     const params = new URLSearchParams(window.location.search);
@@ -613,7 +615,7 @@ export default function App() {
   const saveProfile = (newName, newPic) => {
     const pic = newPic !== undefined ? newPic : profilePic;
     const name = newName !== undefined ? newName : username;
-    localStorage.setItem("bc_profile", JSON.stringify({username:name, pic}));
+    if (address) localStorage.setItem(`bc_profile_${address}`, JSON.stringify({username:name, pic}));
     setUsername(name);
     setProfilePic(pic);
   };
