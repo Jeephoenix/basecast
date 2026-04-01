@@ -73,12 +73,24 @@ async function main() {
   console.log(`   → ${bingoAddr}`);
   if (net !== "hardhat") await bingo.deploymentTransaction().wait(3);
 
-  // 5. Authorize
+  // 5. ReferralRewards
+  console.log("🎁 Deploying ReferralRewards...");
+  const referral = await (await ethers.getContractFactory("ReferralRewards")).deploy(usdcAddr, vaultAddr);
+  await referral.waitForDeployment();
+  const referralAddr = await referral.getAddress();
+  console.log(`   → ${referralAddr}`);
+  if (net !== "hardhat") await referral.deploymentTransaction().wait(3);
+
+  // 6. Authorize games + wire referral contract
   console.log("\n🔐 Authorizing games...");
   await (await vault.setGameAuthorized(coinflipAddr, true)).wait();
   await (await vault.setGameAuthorized(dicerollAddr, true)).wait();
   await (await vault.setGameAuthorized(bingoAddr, true)).wait();
   console.log("   CoinFlip ✓  DiceRoll ✓  Bingo ✓");
+
+  console.log("\n🔗 Linking ReferralRewards to GameVault...");
+  await (await vault.setReferralContract(referralAddr)).wait();
+  console.log("   ReferralRewards ✓");
 
   // Summary
   console.log("\n╔══════════════════════════════════════╗");
@@ -88,14 +100,16 @@ async function main() {
   console.log(`  NEXT_PUBLIC_VAULT_ADDRESS=${vaultAddr}`);
   console.log(`  NEXT_PUBLIC_COINFLIP_ADDRESS=${coinflipAddr}`);
   console.log(`  NEXT_PUBLIC_DICEROLL_ADDRESS=${dicerollAddr}`);
-    console.log(`  NEXT_PUBLIC_BINGO_ADDRESS=${bingoAddr}`);
+  console.log(`  NEXT_PUBLIC_BINGO_ADDRESS=${bingoAddr}`);
+  console.log(`  NEXT_PUBLIC_REFERRAL_ADDRESS=${referralAddr}`);
   console.log(`  NEXT_PUBLIC_USDC_ADDRESS=${usdcAddr}`);
   console.log(`  NEXT_PUBLIC_CHAIN_ID=${cfg.chainId}`);
   console.log(`  NEXT_PUBLIC_ENTROPY_ADDRESS=${cfg.entropy}`);
   console.log(`  NEXT_PUBLIC_ENTROPY_PROVIDER=${cfg.provider}`);
   console.log("\n  ⚠️  Post-deploy:");
   console.log("  1. Approve USDC + call vault.depositHouseFunds(amount)");
-  console.log("  2. Send 0.05 ETH to CoinFlip, DiceRoll, and Bingo (for Pyth fees)");
+  console.log("  2. Approve USDC + call referral.depositRewards(amount) to seed the rewards pool");
+  console.log("  3. Send 0.05 ETH to CoinFlip, DiceRoll, and Bingo (for Pyth fees)");
 }
 
 main().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });
