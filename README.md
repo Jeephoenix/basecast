@@ -89,6 +89,7 @@ In Remix → GameVault → approve USDC → depositHouseFunds(amount)
 ```
 Send 0.05 ETH to CoinFlip address
 Send 0.05 ETH to DiceRoll address
+Send 0.05 ETH to Bingo address
 ```
 
 ---
