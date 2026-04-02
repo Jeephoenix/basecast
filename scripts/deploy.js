@@ -96,7 +96,7 @@ async function main() {
   console.log("\n╔══════════════════════════════════════╗");
   console.log("║        Deployment Complete 🚀        ║");
   console.log("╚══════════════════════════════════════╝\n");
-  console.log("  Paste into your .env / Netlify env vars:\n");
+  console.log("  Paste into your .env / Vercel env vars:\n");
   console.log(`  NEXT_PUBLIC_VAULT_ADDRESS=${vaultAddr}`);
   console.log(`  NEXT_PUBLIC_COINFLIP_ADDRESS=${coinflipAddr}`);
   console.log(`  NEXT_PUBLIC_DICEROLL_ADDRESS=${dicerollAddr}`);
