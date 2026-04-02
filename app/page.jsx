@@ -265,7 +265,7 @@ const Coin = ({side="HEADS",anim=false}) => (
     width:72,height:72,borderRadius:"50%",flexShrink:0,userSelect:"none",
     background:side==="HEADS"?"linear-gradient(135deg,#D97706,#92400E)":"linear-gradient(135deg,#6B7280,#374151)",
     display:"flex",alignItems:"center",justifyContent:"center",
-    fontSize:24,fontFamily:"'JetBrains Mono',monospace",color:"rgba(0,0,0,.5)",
+    fontSize:24,fontFamily:"'Inter',sans-serif",color:"rgba(0,0,0,.5)",
     boxShadow:side==="HEADS"?"0 4px 16px rgba(217,119,6,.3)":"0 4px 16px rgba(107,114,128,.2)",
   }}>{side==="HEADS"?"H":"T"}</div>
 );
@@ -299,7 +299,7 @@ const PayInfo = ({wager,mult}) => (
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.15)",borderRadius:8,padding:"10px 14px"}}>
     <div>
       <div style={{fontSize:10,color:"var(--sub)"}}>WIN PAYOUT</div>
-      <div className="mono" style={{fontSize:16,color:"var(--green)",marginTop:2}}>${(parseFloat(wager||0)*mult).toFixed(2)}</div>
+      <div style={{fontSize:16,color:"var(--green)",marginTop:2,fontWeight:600}}>${(parseFloat(wager||0)*mult).toFixed(2)}</div>
     </div>
     <div style={{textAlign:"right"}}>
       <div style={{fontSize:10,color:"var(--sub)"}}>MULTIPLIER</div>
@@ -322,7 +322,7 @@ function SignScreen({isSigning,error,onSign}) {
       </div>
       <div style={{background:"rgba(37,99,235,.07)",border:"1px solid rgba(37,99,235,.2)",borderRadius:10,padding:"14px 16px",width:"100%",textAlign:"left"}}>
         <div style={{fontSize:10,color:"var(--blue)",letterSpacing:"2px",marginBottom:8}}>YOU&#39;RE SIGNING</div>
-        <div className="mono" style={{fontSize:11,color:"var(--sub)",lineHeight:1.8}}>
+        <div style={{fontSize:11,color:"var(--sub)",lineHeight:1.8}}>
           Welcome to BaseCast!<br/>
           Verify wallet ownership<br/>
           <span style={{color:"var(--dim)"}}>No gas · No transaction · Free</span>
@@ -893,7 +893,7 @@ export default function App() {
           {isConnected && authed && (
             <div style={{textAlign:"right",lineHeight:1.2}}>
               <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>BALANCE</div>
-              <div className="mono" style={{fontSize:13,color:"var(--green)",fontWeight:600}}>{usd(bal)}</div>
+              <div style={{fontSize:13,color:"var(--green)",fontWeight:600}}>{usd(bal)}</div>
             </div>
           )}
           <ConnectButton.Custom>
@@ -1153,7 +1153,7 @@ export default function App() {
               {[{l:"VAULT",v:usd(vault.b)},{l:"MAX BET",v:usd(vault.max)},{l:"MIN BET",v:usd(vault.min)}].map(({l,v},i)=>(
                 <div key={i} style={{flex:1,padding:"12px 16px",borderRight:i<2?"1px solid var(--bd)":"none"}}>
                   <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px"}}>{l}</div>
-                  <div className="mono" style={{fontSize:14,marginTop:3,color:"var(--tx)",fontWeight:600}}>{v}</div>
+                  <div style={{fontSize:14,marginTop:3,color:"var(--tx)",fontWeight:600}}>{v}</div>
                 </div>
               ))}
             </div>
@@ -1393,7 +1393,7 @@ export default function App() {
                       <Coin side={cfRes.result}/>
                       <div style={{fontWeight:700,fontSize:28,color:cfRes.won?"var(--green)":"var(--red)"}}>{cfRes.won?`+${usd(cfRes.payout)}`:`-${usd(cfRes.wager)}`}</div>
                       <div style={{fontSize:12,color:"var(--sub)"}}>Rolled <b style={{color:"var(--tx)"}}>{cfRes.result}</b> &middot; You picked <b style={{color:cfRes.won?"var(--green)":"var(--red)"}}>{cfChoice}</b></div>
-                      <a href={`${EXPLORER}/tx/${cfRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)",fontFamily:"'JetBrains Mono',monospace"}}>View on Explorer ↗</a>
+                      <a href={`${EXPLORER}/tx/${cfRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)"}}>View on Explorer ↗</a>
                       <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 18px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>{setCfS("idle");setCfRes(null);setCfCoin("HEADS")}}>Play again</button>
                     </div>
                   )}
@@ -1441,7 +1441,7 @@ export default function App() {
                       <Die n={dRes.rolled} size={72}/>
                       <div style={{fontWeight:700,fontSize:28,color:dRes.won?"var(--green)":"var(--red)"}}>{dRes.won?`+${usd(dRes.payout)}`:`-${usd(dRes.wager)}`}</div>
                       <div style={{fontSize:12,color:"var(--sub)"}}>Rolled <b style={{color:"var(--tx)"}}>{dRes.rolled}</b></div>
-                      <a href={`${EXPLORER}/tx/${dRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)",fontFamily:"'JetBrains Mono',monospace"}}>View on Explorer ↗</a>
+                      <a href={`${EXPLORER}/tx/${dRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)"}}>View on Explorer ↗</a>
                       <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 18px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>{setDS("idle");setDRes(null);setDNum(1)}}>Roll again</button>
                     </div>
                   )}
@@ -1679,7 +1679,7 @@ export default function App() {
                               </div>
                             </div>
                             <div style={{textAlign:"right"}}>
-                              <div className="mono" style={{fontSize:12,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
+                              <div style={{fontSize:12,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
                               {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none"}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
                               <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:4,marginTop:2}}>
                                 <span
@@ -1758,7 +1758,7 @@ export default function App() {
                     ].map(({label,value})=>(
                       <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
                         <span style={{fontSize:11,color:"var(--sub)"}}>{label}</span>
-                        <span className="mono" style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
+                        <span style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
                       </div>
                     ))}
                     <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
@@ -1786,7 +1786,7 @@ export default function App() {
                     <div style={{padding:"9px 0"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <span style={{fontSize:11,color:"var(--sub)"}}>Pyth Entropy</span>
-                        <a href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View randomness ↗</a>
+                        <a href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View randomness ↗</a>
                       </div>
                     </div>
                   </div>
@@ -1820,8 +1820,8 @@ export default function App() {
                           </div>
                         </div>
                         <div style={{textAlign:"right",flexShrink:0}}>
-                          <div className="mono" style={{fontSize:12,color:"var(--tx)",fontWeight:600}}>{usd(p.volume)}</div>
-                          <div className="mono" style={{fontSize:11,marginTop:2,color:p.pnl>=0n?"var(--green)":"var(--red)"}}>{pnl(p.pnl)}</div>
+                          <div style={{fontSize:12,color:"var(--tx)",fontWeight:600}}>{usd(p.volume)}</div>
+                          <div style={{fontSize:11,marginTop:2,color:p.pnl>=0n?"var(--green)":"var(--red)"}}>{pnl(p.pnl)}</div>
                         </div>
                       </div>
                       );
