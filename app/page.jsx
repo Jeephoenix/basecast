@@ -397,6 +397,7 @@ export default function App() {
   const [txHistory, setTxHistory] = useState([]);
   const [txLoading, setTxLoading] = useState(false);
   const [txExpanded, setTxExpanded] = useState(false);
+  const [faqOpen,    setFaqOpen]    = useState(null);
 
   useEffect(() => {
     if (address && getSession(address)) setAuthed(true);
@@ -1222,6 +1223,130 @@ export default function App() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* ── Quick Start Guide ───────────────────────────────────────── */}
+            <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>QUICK START GUIDE</div>
+            <div className="card" style={{display:"flex",flexDirection:"column",gap:0,padding:"8px 20px"}}>
+              {[
+                {n:1, title:"Connect your wallet", body:"Tap Connect and choose MetaMask, Coinbase Wallet, Rainbow, Rabby, OKX, or any WalletConnect-compatible wallet."},
+                {n:2, title:"Sign in (free)", body:"Sign a gasless message to verify wallet ownership. No transaction, no ETH cost — just a one-time signature."},
+                {n:3, title:"Approve USDC once", body:"On your first bet the app asks you to approve the vault contract to spend USDC on your behalf. You only do this once per wallet."},
+                {n:4, title:"Place a bet", body:"Pick a game, set your wager, and send the Pyth randomness fee in ETH (~$0.01–0.05). Your USDC is held by the vault until the result is ready."},
+                {n:5, title:"Collect winnings instantly", body:"Pyth delivers a verifiable random number on-chain. If you win, USDC is sent directly to your wallet — no manual claim needed."},
+              ].map(({n,title,body},i,arr)=>(
+                <div key={n} style={{display:"flex",gap:14,padding:"16px 0",borderBottom:i<arr.length-1?"1px solid var(--bd)":"none"}}>
+                  <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#6C63FF,#4F46E5)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:12,flexShrink:0,marginTop:1}}>{n}</div>
+                  <div>
+                    <div style={{fontWeight:600,fontSize:13,color:"var(--tx)",marginBottom:4}}>{title}</div>
+                    <div style={{fontSize:12,color:"var(--sub)",lineHeight:1.65}}>{body}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Game Odds Table ─────────────────────────────────────────── */}
+            <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>GAME ODDS &amp; PAYOUTS</div>
+            <div className="card" style={{padding:0,overflow:"hidden"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead>
+                  <tr style={{background:"rgba(108,99,255,0.08)"}}>
+                    {["Game","Bet Type","Payout","House Edge"].map((h,i)=>(
+                      <th key={i} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,fontSize:11,color:"var(--sub)",letterSpacing:"0.8px",borderBottom:"1px solid var(--bd)"}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {game:"Coin Flip",  type:"Heads / Tails",  payout:"1.94×",  edge:"3%"},
+                    {game:"Dice Roll",  type:"Low (1–3) or High (4–6)", payout:"1.94×", edge:"3%"},
+                    {game:"Dice Roll",  type:"Exact number (1–6)",       payout:"5.82×", edge:"3%"},
+                    {game:"Bingo",      type:"TURBO — any line (3×3)",   payout:"2.9×",  edge:"3%"},
+                    {game:"Bingo",      type:"TURBO — full card",         payout:"8×",    edge:"3%"},
+                    {game:"Bingo",      type:"SPEED — first line (5×5)", payout:"2.4×",  edge:"3%"},
+                    {game:"Bingo",      type:"SPEED — full card",         payout:"18×",   edge:"3%"},
+                    {game:"Bingo",      type:"PATTERN — full blackout",   payout:"20×",   edge:"3%"},
+                  ].map(({game,type,payout,edge},i)=>(
+                    <tr key={i} style={{borderBottom:"1px solid var(--bd)"}}>
+                      <td style={{padding:"10px 14px",color:"var(--tx)",fontWeight:500}}>{game}</td>
+                      <td style={{padding:"10px 14px",color:"var(--sub)"}}>{type}</td>
+                      <td style={{padding:"10px 14px",color:"var(--gold)",fontWeight:700}}>{payout}</td>
+                      <td style={{padding:"10px 14px",color:"var(--sub)"}}>{edge}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ── Supported Wallets ───────────────────────────────────────── */}
+            <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>SUPPORTED WALLETS</div>
+            <div className="card" style={{display:"flex",flexWrap:"wrap",gap:10}}>
+              {["MetaMask","Coinbase","Rainbow","Rabby","OKX","WalletConnect"].map(w=>(
+                <div key={w} style={{display:"flex",alignItems:"center",gap:7,background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:8,padding:"6px 12px"}}>
+                  <div style={{width:7,height:7,borderRadius:"50%",background:"var(--green)",flexShrink:0}}/>
+                  <span style={{fontSize:12,color:"var(--tx)",fontWeight:500}}>{w}</span>
+                </div>
+              ))}
+              <div style={{fontSize:11,color:"var(--sub)",width:"100%",marginTop:2}}>Any other WalletConnect v2 compatible wallet also works.</div>
+            </div>
+
+            {/* ── FAQ ────────────────────────────────────────────────────── */}
+            <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>FREQUENTLY ASKED QUESTIONS</div>
+            <div className="card" style={{padding:0,overflow:"hidden"}}>
+              {[
+                {q:"Is BaseCast provably fair?",
+                 a:"Yes. Every game outcome is determined by Pyth Network's Entropy v2 — a verifiable random function (VRF) that runs entirely on-chain. Neither BaseCast nor anyone else can predict or manipulate results. You can audit every bet using its on-chain sequence number in the Verify Bet tool."},
+                {q:"What does 'Testnet' mean? Is this real money?",
+                 a:"The app currently runs on Base Sepolia, an Ethereum test network. The USDC used is testnet USDC with no real-world value. This lets you experience the full game mechanics safely before mainnet launch."},
+                {q:"What currency do I play with?",
+                 a:"All wagers are in USDC (USD Coin) on the Base network. USDC is a stablecoin pegged 1:1 to the US dollar, so $1 in-game always means $1."},
+                {q:"Why do I need ETH as well as USDC?",
+                 a:"Your wagers are in USDC, but a tiny amount of ETH (typically $0.01–0.05) is needed to pay for Pyth Network's randomness service. This fee goes to Pyth, not BaseCast. You pay it once per bet as part of the transaction."},
+                {q:"What is the house edge?",
+                 a:"BaseCast charges a flat 3% house edge on all games. This is encoded immutably in the smart contracts — it cannot be changed secretly. For example, a fair 50/50 coin flip would pay 2×, but with the 3% edge it pays 1.94×."},
+                {q:"How do I get testnet USDC and ETH?",
+                 a:"You can obtain Base Sepolia ETH from the Coinbase or Alchemy faucet (search 'Base Sepolia faucet'). Testnet USDC is available from the Circle developer faucet at faucet.circle.com."},
+                {q:"Do I need to approve USDC every time?",
+                 a:"No. On your first bet you approve the vault to spend USDC on your behalf. After that, the approval is valid for all future bets with no further confirmation needed — unless you revoke it manually."},
+                {q:"What happens if my transaction fails?",
+                 a:"If the transaction reverts, your USDC stays in your wallet. You may lose the ETH gas fee for the failed transaction, but your funds are never deducted until a bet is successfully confirmed on-chain."},
+                {q:"How does the referral program work?",
+                 a:"Share your referral link from the Profile tab. Every time someone you referred places a bet, you earn 1% of their wager in USDC. Rewards accumulate and can be claimed at any time from the Referral Program card in your Profile."},
+                {q:"How do I verify a past bet?",
+                 a:"Go to the Profile tab, find the bet in your transaction history, and tap Verify. You can also enter the sequence number directly in the Verify Bet section. The result is reconstructed from the on-chain random seed — fully independently verifiable."},
+                {q:"Which wallets are supported?",
+                 a:"MetaMask, Coinbase Wallet, Rainbow, Rabby, OKX Wallet, and any wallet that supports WalletConnect v2. If your wallet supports Base network and WalletConnect, it will work."},
+                {q:"Can I change a bet after placing it?",
+                 a:"No. Once a bet transaction is confirmed on-chain it is final and irreversible — this is a fundamental property of blockchain technology and is part of what makes the game provably fair."},
+              ].map(({q,a},i)=>(
+                <div key={i} style={{borderBottom:"1px solid var(--bd)"}}>
+                  <button
+                    onClick={()=>setFaqOpen(faqOpen===i?null:i)}
+                    style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,padding:"14px 18px",background:"none",border:"none",cursor:"pointer",textAlign:"left"}}
+                  >
+                    <span style={{fontWeight:600,fontSize:13,color:"var(--tx)",lineHeight:1.4}}>{q}</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,color:"var(--sub)",transform:faqOpen===i?"rotate(180deg)":"rotate(0deg)",transition:"transform .2s"}}><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                  {faqOpen===i && (
+                    <div style={{padding:"0 18px 16px",fontSize:12,color:"var(--sub)",lineHeight:1.75}}>
+                      {a}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* ── Responsible Gaming ──────────────────────────────────────── */}
+            <div className="card" style={{background:"rgba(255,77,109,0.06)",border:"1px solid rgba(255,77,109,0.2)",display:"flex",gap:14,alignItems:"flex-start"}}>
+              <div style={{width:36,height:36,borderRadius:10,background:"rgba(255,77,109,0.15)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--red)",flexShrink:0}}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:"var(--red)",marginBottom:6}}>Responsible Gaming</div>
+                <div style={{fontSize:12,color:"var(--sub)",lineHeight:1.7}}>
+                  Gambling involves risk of loss. Only play with funds you can afford to lose. If you feel gambling is affecting your wellbeing, please seek help at <span style={{color:"var(--blue)"}}>begambleaware.org</span> or similar resources in your region. You must be 18+ to use BaseCast.
+                </div>
+              </div>
             </div>
 
           </div>
