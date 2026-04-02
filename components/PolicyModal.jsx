@@ -500,8 +500,6 @@ export function AppFooter() {
           fontSize: 10, color: "#9094B0", lineHeight: 1.9,
           fontFamily: "'Inter',sans-serif",
         }}>
-          BaseCast · Pyth Network · Base
-          <br />
           Gambling involves risk. 18+ only. Play responsibly.
           <br />
           <span style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 8 }}>
