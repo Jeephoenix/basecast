@@ -19,10 +19,39 @@ const BET_RESOLVED_EVENT = {
   ],
 };
 
+const IcoCoin = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFD166" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M12 6v2m0 8v2M9 9.5C9 8.12 10.34 7 12 7s3 1.12 3 2.5c0 1.5-1.5 2-3 2.5-1.5.5-3 1-3 2.5C9 15.88 10.34 17 12 17s3-1.12 3-2.5"/>
+  </svg>
+);
+
+const IcoDice = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6C63FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/>
+    <circle cx="8.5"  cy="8.5"  r="1.2" fill="#6C63FF" stroke="none"/>
+    <circle cx="15.5" cy="8.5"  r="1.2" fill="#6C63FF" stroke="none"/>
+    <circle cx="8.5"  cy="15.5" r="1.2" fill="#6C63FF" stroke="none"/>
+    <circle cx="15.5" cy="15.5" r="1.2" fill="#6C63FF" stroke="none"/>
+    <circle cx="12"   cy="12"   r="1.2" fill="#6C63FF" stroke="none"/>
+  </svg>
+);
+
+const IcoBingo = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00F5A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <line x1="3"  y1="9"  x2="21" y2="9"/>
+    <line x1="3"  y1="15" x2="21" y2="15"/>
+    <line x1="9"  y1="3"  x2="9"  y2="21"/>
+    <line x1="15" y1="3"  x2="15" y2="21"/>
+    <circle cx="12" cy="12" r="2" fill="#00F5A0" stroke="none"/>
+  </svg>
+);
+
 const GAME_META = {
-  coinflip: { label: "Coin Flip", icon: "🪙" },
-  diceroll: { label: "Dice Roll", icon: "🎲" },
-  bingo:    { label: "Bingo",     icon: "🎯" },
+  coinflip: { label: "Coin Flip", Icon: IcoCoin  },
+  diceroll: { label: "Dice Roll", Icon: IcoDice  },
+  bingo:    { label: "Bingo",     Icon: IcoBingo },
 };
 
 const DEMO = [
@@ -40,7 +69,8 @@ function shortAddr(addr) {
 }
 
 function TickerItem({ game, player, wager, won, payout }) {
-  const meta = GAME_META[game] || { label: game, icon: "🎮" };
+  const meta = GAME_META[game] || { label: game, Icon: () => null };
+  const Icon = meta.Icon;
   return (
     <div style={{
       display: "inline-flex", alignItems: "center", gap: 7,
@@ -48,7 +78,7 @@ function TickerItem({ game, player, wager, won, payout }) {
       borderRight: "1px solid rgba(255,255,255,0.06)",
       height: "100%", whiteSpace: "nowrap", flexShrink: 0,
     }}>
-      <span style={{ fontSize: 14 }}>{meta.icon}</span>
+      <Icon />
       <span style={{
         fontSize: 11, color: "#9094B0",
         fontFamily: "'JetBrains Mono', monospace",
