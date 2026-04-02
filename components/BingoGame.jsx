@@ -263,7 +263,7 @@ function BingoCard({ card, revealedSet, winCells, gridSize, phase, justRevealedN
             aspectRatio:"1",
             borderRadius:7,
             display:"flex",alignItems:"center",justifyContent:"center",
-            fontFamily:"'JetBrains Mono',monospace",
+            fontFamily:"'Inter',sans-serif",
             fontSize: gridSize===3 ? 17 : 12,
             fontWeight:600,
             background: bg,
@@ -572,7 +572,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
                   <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>{p.desc}</div>
                 </div>
                 <div style={{
-                  fontFamily:"'JetBrains Mono',monospace",fontSize:14,fontWeight:600,
+                  fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:600,
                   color:"#F59E0B",
                 }}>{p.mult}</div>
               </button>
@@ -590,7 +590,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
             }}>
               <div style={{fontSize:10,color:"var(--sub)"}}>{p.label}</div>
               <div style={{
-                fontFamily:"'JetBrains Mono',monospace",fontSize:16,
+                fontFamily:"'Inter',sans-serif",fontSize:16,
                 color:"#F59E0B",fontWeight:600,marginTop:3,
               }}>{p.mult}</div>
             </div>
@@ -624,7 +624,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
                   aspectRatio:"1",borderRadius:5,
                   background:"var(--s2)",border:"1px solid var(--bd)",
                   display:"flex",alignItems:"center",justifyContent:"center",
-                  fontFamily:"'JetBrains Mono',monospace",
+                  fontFamily:"'Inter',sans-serif",
                   fontSize:MODES[mode].grid===3?14:11,
                   color:"var(--sub)",
                 }}>?</div>
@@ -662,7 +662,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
             <div style={{width:"100%",display:"flex",flexDirection:"column",gap:6}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"2px"}}>YOUR CARD</div>
-                <div style={{fontSize:11,color:"var(--sub)",fontFamily:"'JetBrains Mono',monospace"}}>
+                <div style={{fontSize:11,color:"var(--sub)",fontFamily:"'Inter',sans-serif"}}>
                   {revealIndex} / {totalDrawn} drawn
                 </div>
               </div>
@@ -716,7 +716,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
         {phase==="won" && result && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
             <div style={{
-              fontFamily:"'JetBrains Mono',monospace",fontWeight:800,fontSize:28,
+              fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:28,
               color:"#10B981",textAlign:"center",letterSpacing:"3px",
               animation:"pulse-win 0.6s ease-in-out",
               display:"flex",alignItems:"center",justifyContent:"center",gap:10,
@@ -727,7 +727,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
               BINGO!
             </div>
             <div style={{
-              fontFamily:"'JetBrains Mono',monospace",fontSize:18,
+              fontFamily:"'Inter',sans-serif",fontSize:18,
               color:"#F59E0B",fontWeight:600,
             }}>
               +{usd(result.payout)}
@@ -762,7 +762,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
         {phase==="lost" && result && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:14,width:"100%"}}>
             <div style={{
-              fontFamily:"'JetBrains Mono',monospace",fontWeight:800,fontSize:22,
+              fontFamily:"'Inter',sans-serif",fontWeight:800,fontSize:22,
               color:"#EF4444",letterSpacing:"2px",
               display:"flex",alignItems:"center",justifyContent:"center",gap:10,
             }}>
@@ -846,7 +846,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
             <div>
               <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1px"}}>WIN PAYOUT</div>
               <div style={{
-                fontFamily:"'JetBrains Mono',monospace",fontSize:16,
+                fontFamily:"'Inter',sans-serif",fontSize:16,
                 color:"#00F5A0",fontWeight:600,marginTop:2,
               }}>
                 ${(wagerF * payoutMult).toFixed(2)}
@@ -855,7 +855,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
             <div style={{textAlign:"right"}}>
               <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1px"}}>MULTIPLIER</div>
               <div style={{
-                fontFamily:"'JetBrains Mono',monospace",fontSize:16,
+                fontFamily:"'Inter',sans-serif",fontSize:16,
                 color:"#FFD166",fontWeight:600,marginTop:2,
               }}>
                 {payoutMult}×
@@ -905,7 +905,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
       `}</style>
 
       <div style={{fontSize:10,color:"var(--sub)",textAlign:"center"}}>
-        Pyth Entropy v2 · Provably fair · 3% house edge
+        Pyth Entropy v2 · Provably fair
       </div>
     </div>
   );
