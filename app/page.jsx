@@ -181,7 +181,7 @@ const DOTS = {
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@900&family=Courgette&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@900&family=Courgette&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#07050f;--s1:rgba(255,255,255,0.04);--s2:rgba(255,255,255,0.07);--bd:rgba(255,255,255,0.1);
@@ -190,7 +190,7 @@ const CSS = `
   --nav-bg:#0b0c18;
 }
 .light{--bg:#ffffff;--s1:rgba(255,255,255,0.95);--s2:rgba(255,255,255,0.98);--bd:rgba(0,0,0,0.1);--tx:#0A0B1A;--sub:#5560A0;--dim:#9AA5CC;--blue:#4338CA;--blue2:#3730A3;--green:#059669;--gold:#D97706;--red:#DC2626;--nav-bg:#ffffff;}
-body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050f 100%);background-attachment:fixed;color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh}
+body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050f 100%);background-attachment:fixed;color:var(--tx);font-family:'Inter',sans-serif;min-height:100vh}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#6C63FF,#00F5A0);border-radius:4px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin2{to{transform:rotate(360deg)}}
@@ -206,28 +206,30 @@ body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050
 .lose{animation:loseShk .4s ease}
 .sp{animation:spin2 .8s linear infinite}
 .spulse{animation:signPulse 2s ease infinite}
-.btn{border:none;border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn{border:none;border-radius:10px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
 .primary{background:linear-gradient(135deg,#6C63FF,#4F46E5);color:#fff;padding:14px;width:100%;font-size:15px;box-shadow:0 4px 20px rgba(108,99,255,0.35)}
 .primary:hover:not(:disabled){background:linear-gradient(135deg,#7C74FF,#6C63FF);transform:translateY(-2px);box-shadow:0 6px 28px rgba(108,99,255,0.5)}
 .primary:disabled{opacity:.4;cursor:not-allowed}
 .choice{background:var(--s2);border:1.5px solid var(--bd);color:var(--sub);padding:14px;flex:1;font-size:14px}
 .choice.sel{border-color:var(--blue);background:rgba(108,99,255,.28);color:var(--tx);box-shadow:inset 0 0 0 1px rgba(108,99,255,.25)}
 .choice:hover:not(:disabled){border-color:var(--blue);color:var(--tx)}
-.inp{background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;color:var(--tx);font-family:'Outfit',sans-serif;font-size:18px;font-weight:600;padding:12px 16px;width:100%;outline:none}
+.inp{background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;color:var(--tx);font-family:'Inter',sans-serif;font-size:18px;font-weight:600;padding:12px 16px;width:100%;outline:none}
 .inp:focus{border-color:var(--blue)}
 .card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:20px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,0.4)}
-.tab{background:none;border:none;border-bottom:2px solid transparent;font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;padding:12px 20px;cursor:pointer;color:var(--sub);transition:all .15s}
+.tab{background:none;border:none;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;padding:12px 20px;cursor:pointer;color:var(--sub);transition:all .15s}
 .tab.on{color:var(--tx);border-bottom-color:var(--blue)}
 .mono{font-family:'JetBrains Mono',monospace}
 @keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
 .shimmer{background:linear-gradient(90deg,#00F5A0,#a8ff78,#FFD166,#00D4AA,#00F5A0);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 2.5s linear infinite;font-weight:700}
 .nav-bar{display:flex;background:var(--nav-bg);border-bottom:1px solid var(--bd)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 8px;border:none;border-bottom:2px solid transparent;background:none;cursor:pointer;color:var(--sub);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;transition:all .15s;outline:none}
-.nav-item.active{color:var(--blue);border-bottom-color:var(--blue)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 8px;border:none;border-bottom:none;background:none;cursor:pointer;color:var(--sub);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;transition:all .15s;outline:none}
+.nav-item.active{color:var(--tx)}
 .nav-item:hover:not(.active){color:var(--tx)}
-.game-card-btn{width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--bd);border-radius:12px;margin-bottom:8px;background:var(--s2);cursor:pointer;text-align:left;color:var(--tx);transition:border-color .15s,background .15s;font-family:'Outfit',sans-serif}
+.nav-icon-pill{display:flex;align-items:center;justify-content:center;width:52px;height:32px;border-radius:16px;transition:background .15s}
+.nav-item.active .nav-icon-pill{background:rgba(255,255,255,0.13)}
+.game-card-btn{width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--bd);border-radius:12px;margin-bottom:8px;background:var(--s2);cursor:pointer;text-align:left;color:var(--tx);transition:border-color .15s,background .15s;font-family:'Inter',sans-serif}
 .game-card-btn:hover{border-color:var(--blue);background:rgba(108,99,255,.1)}
-.gametab{background:none;border:none;border-bottom:2px solid transparent;font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;padding:10px 16px;cursor:pointer;color:var(--sub);transition:all .15s;white-space:nowrap}
+.gametab{background:none;border:none;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:10px 16px;cursor:pointer;color:var(--sub);transition:all .15s;white-space:nowrap}
 .gametab.on{color:var(--tx);border-bottom-color:var(--blue)}
 @media(max-width:520px){
   .hdr{padding:10px 12px!important}
@@ -916,7 +918,7 @@ export default function App() {
               <button key={net.id} onClick={()=>{switchChain({chainId:net.id});setShowNetworkMenu(false);}}
                 style={{display:"flex",alignItems:"center",gap:7,width:"100%",padding:"7px 8px",borderRadius:7,border:"none",cursor:"pointer",
                   background:chainId===net.id?"rgba(108,99,255,0.2)":"transparent",
-                  color:"var(--tx)",fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:chainId===net.id?600:400,transition:"background .15s"}}>
+                  color:"var(--tx)",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:chainId===net.id?600:400,transition:"background .15s"}}>
                 <svg width="20" height="20" viewBox="0 0 2500 2500" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0,borderRadius:"50%"}}>
                   <circle cx="1250" cy="1250" r="1250" fill="#0052FF"/>
                   <path d="M1251.4 2083.3c460.2 0 833.2-373 833.2-833.3 0-460.2-373-833.3-833.2-833.3-438.5 0-798.3 339-831.6 768.8h1097.4v129h-1097.1c33.7 429.5 393.4 768.8 831.3 768.8z" fill="#fff"/>
@@ -949,7 +951,7 @@ export default function App() {
               <div style={{position:"absolute",top:20,right:"5%",width:180,height:180,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,245,160,0.12),transparent 70%)",pointerEvents:"none",animation:"glowPulse 4s ease infinite 2s"}}/>
               <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(108,99,255,0.35),rgba(0,245,160,0.2),transparent)"}}/>
               <div style={{position:"relative",zIndex:1}}>
-                <div style={{fontFamily:"'Outfit',sans-serif",fontWeight:300,fontSize:11,color:"var(--sub)",letterSpacing:"5px",textTransform:"uppercase",marginBottom:10}}>Welcome to</div>
+                <div style={{fontFamily:"'Inter',sans-serif",fontWeight:300,fontSize:11,color:"var(--sub)",letterSpacing:"5px",textTransform:"uppercase",marginBottom:10}}>Welcome to</div>
                 <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:"clamp(30px,8vw,52px)",letterSpacing:"0.01em",textTransform:"uppercase",lineHeight:1,userSelect:"none",marginBottom:14}}>
                   <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 24px rgba(96,200,255,0.5))"}}>BASE</span>
                   <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#C87000 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 24px rgba(255,216,77,0.5))"}}>CAST</span>
@@ -966,7 +968,7 @@ export default function App() {
                         padding:"15px 36px",
                         background:"linear-gradient(135deg,#6C63FF 0%,#2563EB 100%)",
                         border:"none",borderRadius:12,cursor:"pointer",
-                        fontFamily:"'Outfit',sans-serif",fontWeight:700,fontSize:16,
+                        fontFamily:"'Inter',sans-serif",fontWeight:700,fontSize:16,
                         color:"#fff",
                         boxShadow:"0 4px 28px rgba(108,99,255,0.45)",
                         transition:"all .15s",
@@ -1090,7 +1092,7 @@ export default function App() {
               else{setNavSection(id);}
             }}
           >
-            <Icon/>
+            <span className="nav-icon-pill"><Icon/></span>
             {label}
           </button>
         ))}
@@ -1103,7 +1105,7 @@ export default function App() {
           <div className="fi" style={{position:"relative",background:"var(--bg)",border:"1px solid var(--bd)",borderRadius:"20px 20px 0 0",width:"100%",maxWidth:520,padding:"24px 20px 36px",zIndex:101}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
               <div style={{fontWeight:700,fontSize:16,color:"var(--tx)"}}>Select Game</div>
-              <button onClick={()=>setGamesOpen(false)} style={{background:"none",border:"1px solid var(--bd)",borderRadius:8,color:"var(--sub)",padding:"4px 10px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:12}}>Close</button>
+              <button onClick={()=>setGamesOpen(false)} style={{background:"none",border:"1px solid var(--bd)",borderRadius:8,color:"var(--sub)",padding:"4px 10px",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:12}}>Close</button>
             </div>
             {[
               {id:"coinflip", label:"Coin Flip",   desc:"50/50 · 1.94× payout",         Icon:IcoCoin},
@@ -1439,13 +1441,13 @@ export default function App() {
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,width:"100%"}}>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>USDC BALANCE</div>
-                      <div style={{fontSize:17,fontWeight:700,color:"var(--green)",fontFamily:"'Outfit',sans-serif"}}>{usd(bal)}</div>
+                      <div style={{fontSize:17,fontWeight:700,color:"var(--green)",fontFamily:"'Inter',sans-serif"}}>{usd(bal)}</div>
                     </div>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>NET PROFIT</div>
                       {myPnl===null
                         ? <div style={{fontSize:13,color:"var(--sub)"}}>—</div>
-                        : <div style={{fontSize:17,fontWeight:700,color:myPnl>=0n?"var(--green)":"var(--red)",fontFamily:"'Outfit',sans-serif"}}>{pnl(myPnl)}</div>
+                        : <div style={{fontSize:17,fontWeight:700,color:myPnl>=0n?"var(--green)":"var(--red)",fontFamily:"'Inter',sans-serif"}}>{pnl(myPnl)}</div>
                       }
                     </div>
                   </div>
@@ -1459,17 +1461,17 @@ export default function App() {
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>REFERRED</div>
-                      <div style={{fontSize:17,fontWeight:700,color:"var(--tx)",fontFamily:"'Outfit',sans-serif"}}>{refCount===null?"…":refCount}</div>
+                      <div style={{fontSize:17,fontWeight:700,color:"var(--tx)",fontFamily:"'Inter',sans-serif"}}>{refCount===null?"…":refCount}</div>
                     </div>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>CLAIMABLE</div>
-                      <div style={{fontSize:17,fontWeight:700,color:"var(--green)",fontFamily:"'Outfit',sans-serif"}}>
+                      <div style={{fontSize:17,fontWeight:700,color:"var(--green)",fontFamily:"'Inter',sans-serif"}}>
                         {refPending===null?"…":usd(refPending)}
                       </div>
                     </div>
                     <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
                       <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>LIFETIME</div>
-                      <div style={{fontSize:17,fontWeight:700,color:"var(--sub)",fontFamily:"'Outfit',sans-serif"}}>
+                      <div style={{fontSize:17,fontWeight:700,color:"var(--sub)",fontFamily:"'Inter',sans-serif"}}>
                         {refEarned===null?"…":usd(refEarned)}
                       </div>
                     </div>
@@ -1480,7 +1482,7 @@ export default function App() {
                     <button
                       onClick={claimReferralRewards}
                       disabled={refClaiming || !refPending || refPending===0n}
-                      style={{width:"100%",padding:"11px",background:(refPending && refPending>0n)?"var(--green)":"var(--s2)",border:"none",borderRadius:10,color:(refPending && refPending>0n)?"#000":"var(--dim)",fontSize:13,fontWeight:700,cursor:(refPending && refPending>0n)?"pointer":"default",fontFamily:"'Outfit',sans-serif",transition:"opacity .2s",opacity:refClaiming?0.6:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                      style={{width:"100%",padding:"11px",background:(refPending && refPending>0n)?"var(--green)":"var(--s2)",border:"none",borderRadius:10,color:(refPending && refPending>0n)?"#000":"var(--dim)",fontSize:13,fontWeight:700,cursor:(refPending && refPending>0n)?"pointer":"default",fontFamily:"'Inter',sans-serif",transition:"opacity .2s",opacity:refClaiming?0.6:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                       {refClaiming
                         ? <><Spin size={14}/> Claiming…</>
                         : (refPending && refPending>0n)
@@ -1502,14 +1504,14 @@ export default function App() {
                         const link = `${window.location.origin}?ref=${refCode(address)}`;
                         navigator.clipboard.writeText(link).then(()=>{ setCopiedRef(true); setTimeout(()=>setCopiedRef(false),2000); });
                       }}
-                      style={{flexShrink:0,background:"var(--blue)",border:"none",borderRadius:10,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,fontFamily:"'Outfit',sans-serif",transition:"opacity .2s",opacity:copiedRef?0.7:1,whiteSpace:"nowrap"}}>
+                      style={{flexShrink:0,background:"var(--blue)",border:"none",borderRadius:10,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,fontFamily:"'Inter',sans-serif",transition:"opacity .2s",opacity:copiedRef?0.7:1,whiteSpace:"nowrap"}}>
                       {copiedRef?<><IcoCheck/> Copied!</>:<><IcoCopy/> Copy</>}
                     </button>
                   </div>
                   {typeof navigator!=="undefined" && navigator.share && (
                     <button
                       onClick={()=>{ navigator.share({ title:"Join Basecast", text:"Play provably fair on-chain casino games on Base.", url:`${window.location.origin}?ref=${refCode(address)}` }).catch(()=>{}); }}
-                      style={{background:"none",border:"1px solid var(--bd)",borderRadius:10,padding:"9px",color:"var(--sub)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Outfit',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                      style={{background:"none",border:"1px solid var(--bd)",borderRadius:10,padding:"9px",color:"var(--sub)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
                       Share via…
                     </button>
@@ -1549,7 +1551,7 @@ export default function App() {
                                 >
                                   {copiedSeq===tx.seqNum?"copied!":"seq: "+tx.seqNum}
                                 </span>
-                                <button onClick={()=>{setVerifySeq(tx.seqNum);setVerifyResult(null);setVerifyErr(null);document.getElementById("verify-section")?.scrollIntoView({behavior:"smooth",block:"start"});}} style={{fontSize:9,color:"var(--blue)",background:"rgba(108,99,255,0.1)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:3,padding:"1px 6px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontWeight:600}}>Verify ↗</button>
+                                <button onClick={()=>{setVerifySeq(tx.seqNum);setVerifyResult(null);setVerifyErr(null);document.getElementById("verify-section")?.scrollIntoView({behavior:"smooth",block:"start"});}} style={{fontSize:9,color:"var(--blue)",background:"rgba(108,99,255,0.1)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:3,padding:"1px 6px",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:600}}>Verify ↗</button>
                               </div>
                             </div>
                           </div>
@@ -1563,7 +1565,7 @@ export default function App() {
                           width:"100%",padding:"11px",marginTop:2,
                           background:"var(--s2)",border:"1px solid var(--bd)",
                           borderRadius:10,cursor:"pointer",
-                          fontFamily:"'Outfit',sans-serif",fontSize:13,fontWeight:600,
+                          fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,
                           color:"var(--blue)",display:"flex",alignItems:"center",
                           justifyContent:"center",gap:6,transition:"background .15s",
                         }}
@@ -1674,7 +1676,7 @@ export default function App() {
                       <div key={p.address} className="card" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderLeft:`3px solid ${i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--bd)"}`}}>
                         <div style={{width:28,height:28,borderRadius:"50%",background:i===0?"rgba(245,158,11,.15)":"var(--s2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--sub)",flexShrink:0}}>{i+1}</div>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUsername?"'Outfit',sans-serif":"'JetBrains Mono',monospace",fontWeight:hasUsername?600:400}}>
+                          <div style={{fontSize:12,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUsername?"'Inter',sans-serif":"'JetBrains Mono',monospace",fontWeight:hasUsername?600:400}}>
                             {lbName}
                             {p.address===address&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.1)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
                           </div>
@@ -1696,7 +1698,7 @@ export default function App() {
                 {/* Sign out */}
                 <button
                   onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);setNavSection("home");}}
-                  style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",padding:"12px 16px",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:12,color:"#EF4444",cursor:"pointer",fontFamily:"'Outfit',sans-serif",fontSize:13,fontWeight:600}}
+                  style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",padding:"12px 16px",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:12,color:"#EF4444",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600}}
                 >
                   <IcoSignOut/>Sign Out
                 </button>
