@@ -21,6 +21,7 @@ basecast/
 │   ├── GameVault.sol     ← USDC treasury + leaderboard tracking
 │   ├── CoinFlip.sol      ← Heads/Tails — 1.94× (3% edge)
 │   ├── DiceRoll.sol      ← Range (1.94×) or Exact (5.82×) — 3% edge
+│   ├── Bingo.sol         ← Turbo / Speed / Pattern bingo — up to 20× (3% edge)
 │   └── MockUSDC.sol      ← Local testing only
 ├── scripts/
 │   └── deploy.js         ← Deploy all contracts in one command
@@ -174,11 +175,16 @@ Then: deploy → `vault.setGameAuthorized(newGame, true)` → fund with ETH.
 
 ## Odds Reference
 
-| Game        | Win %  | Payout | Edge |
-|-------------|--------|--------|------|
-| Coin Flip   | 48.5%  | 1.94×  | 3%   |
-| Dice Range  | 48.5%  | 1.94×  | 3%   |
-| Dice Exact  | 16.17% | 5.82×  | 3%   |
+| Game                     | Win %  | Payout | Edge |
+|--------------------------|--------|--------|------|
+| Coin Flip                | 48.5%  | 1.94×  | 3%   |
+| Dice Range               | 48.5%  | 1.94×  | 3%   |
+| Dice Exact               | 16.17% | 5.82×  | 3%   |
+| Bingo Turbo — any line   | —      | 2.9×   | 3%   |
+| Bingo Turbo — full card  | —      | 8×     | 3%   |
+| Bingo Speed — first line | —      | 2.4×   | 3%   |
+| Bingo Speed — full card  | —      | 18×    | 3%   |
+| Bingo Pattern — blackout | —      | 20×    | 3%   |
 
 ---
 
