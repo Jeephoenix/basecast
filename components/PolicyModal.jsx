@@ -531,6 +531,8 @@ export function AppFooter() {
               Terms of Service
             </button>
           </span>
+          <br />
+          © 2026 Basecast. All rights reserved.
         </div>
       </footer>
     </>
