@@ -1,6 +1,14 @@
 # BaseCast — Provably Fair On-Chain Casino
 
-**Pyth Entropy v2 · CoinFlip + Dice · Leaderboard · Base Network**
+**Live at [basecast.org](https://www.basecast.org/) · Pyth Entropy v2 · CoinFlip + Dice + Bingo · Base Network**
+
+> Open-source, provably fair on-chain casino. No KYC. No house keys. 100% on-chain randomness via Pyth Entropy.
+
+---
+
+## Repository
+
+[https://github.com/Jeephoenix/basecast](https://github.com/Jeephoenix/basecast)
 
 ---
 
@@ -67,7 +75,7 @@ npm run compile
 npm run deploy:test
 ```
 
-Copy output addresses into your `.env` / Netlify env vars.
+Copy output addresses into your `.env`.
 
 ### Post-deploy (required)
 
@@ -97,13 +105,44 @@ Update env vars:
 
 ---
 
-## Frontend (Netlify)
+## Deploying to Vercel
 
-1. Push to GitHub
-2. Import repo on Netlify
-3. Set **Base directory**: `basecast`
-4. Add all `NEXT_PUBLIC_*` env vars
-5. Deploy
+1. Push to [GitHub](https://github.com/Jeephoenix/basecast)
+2. Import the repo on [Vercel](https://vercel.com)
+3. Add all `NEXT_PUBLIC_*` env vars in the Vercel dashboard
+4. Deploy — Vercel auto-detects Next.js, no extra config needed
+
+The live site is at [https://www.basecast.org/](https://www.basecast.org/).
+
+---
+
+## Running Locally
+
+```bash
+npm install
+cp .env.example .env
+# Fill in your values
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000).
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | WalletConnect Cloud project ID |
+| `NEXT_PUBLIC_VAULT_ADDRESS` | Deployed Vault contract address |
+| `NEXT_PUBLIC_COINFLIP_ADDRESS` | Deployed CoinFlip contract address |
+| `NEXT_PUBLIC_DICEROLL_ADDRESS` | Deployed DiceRoll contract address |
+| `NEXT_PUBLIC_BINGO_ADDRESS` | Deployed Bingo contract address |
+| `NEXT_PUBLIC_REFERRAL_ADDRESS` | Deployed Referral contract address |
+| `NEXT_PUBLIC_USDC_ADDRESS` | USDC token address |
+| `NEXT_PUBLIC_CHAIN_ID` | Chain ID (84532 = Base Sepolia, 8453 = Base Mainnet) |
+| `NEXT_PUBLIC_ENTROPY_ADDRESS` | Pyth Entropy contract address |
 
 ---
 
@@ -140,3 +179,9 @@ Then: deploy → `vault.setGameAuthorized(newGame, true)` → fund with ETH.
 | Coin Flip   | 48.5%  | 1.94×  | 3%   |
 | Dice Range  | 48.5%  | 1.94×  | 3%   |
 | Dice Exact  | 16.17% | 5.82×  | 3%   |
+
+---
+
+## License
+
+MIT — open source and free to fork.
