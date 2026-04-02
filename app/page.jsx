@@ -1229,7 +1229,7 @@ export default function App() {
             <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>QUICK START GUIDE</div>
             <div className="card" style={{display:"flex",flexDirection:"column",gap:0,padding:"8px 20px"}}>
               {[
-                {n:1, title:"Connect your wallet", body:"Tap Connect and choose MetaMask, Coinbase Wallet, Rainbow, Rabby, OKX, or any WalletConnect-compatible wallet."},
+                {n:1, title:"Connect your wallet", body:"Tap Connect and choose MetaMask, Coinbase Wallet, Rainbow, Rabby, OKX, or any EVM-compatible wallet."},
                 {n:2, title:"Sign in (free)", body:"Sign a gasless message to verify wallet ownership. No transaction, no ETH cost — just a one-time signature."},
                 {n:3, title:"Approve USDC once", body:"On your first bet the app asks you to approve the vault contract to spend USDC on your behalf. You only do this once per wallet."},
                 {n:4, title:"Place a bet", body:"Pick a game, set your wager, and send the Pyth randomness fee in ETH (~$0.01–0.05). Your USDC is held by the vault until the result is ready."},
