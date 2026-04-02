@@ -1258,22 +1258,30 @@ export default function App() {
                 </thead>
                 <tbody>
                   {[
-                    {game:"Coin Flip",  type:"Heads / Tails",  payout:"1.94×",  edge:"3%"},
-                    {game:"Dice Roll",  type:"Low (1–3) or High (4–6)", payout:"1.94×", edge:"3%"},
-                    {game:"Dice Roll",  type:"Exact number (1–6)",       payout:"5.82×", edge:"3%"},
-                    {game:"Bingo",      type:"TURBO — any line (3×3)",   payout:"2.9×",  edge:"3%"},
-                    {game:"Bingo",      type:"TURBO — full card",         payout:"8×",    edge:"3%"},
-                    {game:"Bingo",      type:"SPEED — first line (5×5)", payout:"2.4×",  edge:"3%"},
-                    {game:"Bingo",      type:"SPEED — full card",         payout:"18×",   edge:"3%"},
-                    {game:"Bingo",      type:"PATTERN — full blackout",   payout:"20×",   edge:"3%"},
-                  ].map(({game,type,payout,edge},i)=>(
-                    <tr key={i} style={{borderBottom:"1px solid var(--bd)"}}>
-                      <td style={{padding:"10px 14px",color:"var(--tx)",fontWeight:500}}>{game}</td>
-                      <td style={{padding:"10px 14px",color:"var(--sub)"}}>{type}</td>
-                      <td style={{padding:"10px 14px",color:"var(--gold)",fontWeight:700}}>{payout}</td>
-                      <td style={{padding:"10px 14px",color:"var(--sub)"}}>{edge}</td>
-                    </tr>
-                  ))}
+                    {game:"Coin Flip", rows:[
+                      {type:"Heads / Tails",           payout:"1.94×"},
+                    ]},
+                    {game:"Dice Roll", rows:[
+                      {type:"Low (1–3) or High (4–6)", payout:"1.94×"},
+                      {type:"Exact number (1–6)",       payout:"5.82×"},
+                    ]},
+                    {game:"Bingo", rows:[
+                      {type:"TURBO — any line (3×3)",   payout:"2.9×"},
+                      {type:"TURBO — full card",         payout:"8×"},
+                      {type:"SPEED — first line (5×5)", payout:"2.4×"},
+                      {type:"SPEED — full card",         payout:"18×"},
+                      {type:"PATTERN — full blackout",   payout:"20×"},
+                    ]},
+                  ].flatMap(({game,rows})=>
+                    rows.map(({type,payout},j)=>(
+                      <tr key={`${game}-${j}`} style={{borderBottom:"1px solid var(--bd)"}}>
+                        {j===0 && <td rowSpan={rows.length} style={{padding:"10px 14px",color:"var(--tx)",fontWeight:500,verticalAlign:"middle",borderRight:"1px solid var(--bd)"}}>{game}</td>}
+                        <td style={{padding:"10px 14px",color:"var(--sub)"}}>{type}</td>
+                        <td style={{padding:"10px 14px",color:"var(--gold)",fontWeight:700}}>{payout}</td>
+                        <td style={{padding:"10px 14px",color:"var(--sub)"}}>3%</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
