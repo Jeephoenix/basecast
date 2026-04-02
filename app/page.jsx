@@ -1229,7 +1229,7 @@ export default function App() {
             <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>QUICK START GUIDE</div>
             <div className="card" style={{display:"flex",flexDirection:"column",gap:0,padding:"8px 20px"}}>
               {[
-                {n:1, title:"Connect your wallet", body:"Tap Connect and choose MetaMask, Coinbase Wallet, Rainbow, Rabby, OKX, or any EVM-compatible wallet."},
+                {n:1, title:"Connect your wallet", body:"Tap Connect and choose Base Wallet, MetaMask, Rainbow, Rabby, OKX, or any EVM-compatible wallet."},
                 {n:2, title:"Sign in (free)", body:"Sign a gasless message to verify wallet ownership. No transaction, no ETH cost — just a one-time signature."},
                 {n:3, title:"Approve USDC once", body:"On your first bet the app asks you to approve the vault contract to spend USDC on your behalf. You only do this once per wallet."},
                 {n:4, title:"Place a bet", body:"Pick a game, set your wager, and send the Pyth randomness fee in ETH (~$0.01–0.05). Your USDC is held by the vault until the result is ready."},
@@ -1281,7 +1281,7 @@ export default function App() {
             {/* ── Supported Wallets ───────────────────────────────────────── */}
             <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>SUPPORTED WALLETS</div>
             <div className="card" style={{display:"flex",flexWrap:"wrap",gap:10}}>
-              {["MetaMask","Coinbase","Rainbow","Rabby","OKX","WalletConnect"].map(w=>(
+              {["Base","MetaMask","Rainbow","Rabby","OKX","WalletConnect"].map(w=>(
                 <div key={w} style={{display:"flex",alignItems:"center",gap:7,background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:8,padding:"6px 12px"}}>
                   <div style={{width:7,height:7,borderRadius:"50%",background:"var(--green)",flexShrink:0}}/>
                   <span style={{fontSize:12,color:"var(--tx)",fontWeight:500}}>{w}</span>
@@ -1315,7 +1315,7 @@ export default function App() {
                 {q:"How do I verify a past bet?",
                  a:"Go to the Profile tab, find the bet in your transaction history, and tap Verify. You can also enter the sequence number directly in the Verify Bet section. The result is reconstructed from the on-chain random seed — fully independently verifiable."},
                 {q:"Which wallets are supported?",
-                 a:"MetaMask, Coinbase Wallet, Rainbow, Rabby, OKX Wallet, and any wallet that supports WalletConnect v2. If your wallet supports Base network and WalletConnect, it will work."},
+                 a:"Base Wallet, MetaMask, Rainbow, Rabby, OKX Wallet, and any wallet that supports WalletConnect v2. If your wallet supports Base network and WalletConnect, it will work."},
                 {q:"Can I change a bet after placing it?",
                  a:"No. Once a bet transaction is confirmed on-chain it is final and irreversible — this is a fundamental property of blockchain technology and is part of what makes the game provably fair."},
               ].map(({q,a},i)=>(
