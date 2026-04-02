@@ -124,7 +124,7 @@ const css = `
 }
 .policy-tab {
   flex:1; padding:12px; border:none; background:none;
-  font-family:'Outfit',sans-serif; font-size:13px; font-weight:500;
+  font-family:'Inter',sans-serif; font-size:13px; font-weight:500;
   cursor:pointer; color:#6B7280; transition:all 0.15s;
   border-bottom:2px solid transparent;
 }
@@ -161,7 +161,7 @@ export function PolicyModal({ defaultTab = "privacy", onClose }) {
             <div>
               <div style={{
                 fontWeight: 700, fontSize: 16, color: "#F0F2F8",
-                fontFamily: "'Outfit',sans-serif",
+                fontFamily: "'Inter',sans-serif",
               }}>
                 {tab === "privacy" ? "Privacy Policy" : "Terms of Service"}
               </div>
@@ -200,7 +200,7 @@ export function PolicyModal({ defaultTab = "privacy", onClose }) {
                   <div key={i} style={{
                     fontWeight: 700, fontSize: 13,
                     color: "#F0F2F8", marginTop: 16, marginBottom: 6,
-                    fontFamily: "'Outfit',sans-serif",
+                    fontFamily: "'Inter',sans-serif",
                     letterSpacing: "0.3px",
                   }}>
                     {trimmed}
@@ -214,7 +214,7 @@ export function PolicyModal({ defaultTab = "privacy", onClose }) {
                   <div key={i} style={{
                     fontSize: 12, color: "#9CA3AF", lineHeight: 1.7,
                     paddingLeft: 12, marginBottom: 2,
-                    fontFamily: "'Outfit',sans-serif",
+                    fontFamily: "'Inter',sans-serif",
                   }}>
                     {trimmed}
                   </div>
@@ -224,7 +224,7 @@ export function PolicyModal({ defaultTab = "privacy", onClose }) {
               return (
                 <div key={i} style={{
                   fontSize: 12, color: "#6B7280", lineHeight: 1.8,
-                  marginBottom: 4, fontFamily: "'Outfit',sans-serif",
+                  marginBottom: 4, fontFamily: "'Inter',sans-serif",
                 }}>
                   {trimmed}
                 </div>
@@ -244,7 +244,7 @@ export function PolicyModal({ defaultTab = "privacy", onClose }) {
               style={{
                 background: "#2563EB", color: "#fff", border: "none",
                 borderRadius: 8, padding: "9px 24px",
-                fontFamily: "'Outfit',sans-serif", fontSize: 13,
+                fontFamily: "'Inter',sans-serif", fontSize: 13,
                 fontWeight: 600, cursor: "pointer",
               }}
             >
@@ -293,7 +293,7 @@ export function ConsentModal({ onAccept }) {
           {/* Header */}
           <div className="policy-header">
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#F0F2F8", fontFamily: "'Outfit',sans-serif" }}>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#F0F2F8", fontFamily: "'Inter',sans-serif" }}>
                 Before you play
               </div>
               <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
@@ -305,7 +305,7 @@ export function ConsentModal({ onAccept }) {
 
           {/* Body */}
           <div className="policy-body" style={{ padding: "24px" }}>
-            <div style={{ fontSize: 12, color: "#9CA3AF", lineHeight: 1.8, marginBottom: 24, fontFamily: "'Outfit',sans-serif" }}>
+            <div style={{ fontSize: 12, color: "#9CA3AF", lineHeight: 1.8, marginBottom: 24, fontFamily: "'Inter',sans-serif" }}>
               BaseCast is a decentralised, provably fair on-chain casino running on the Base blockchain.
               All bets are irreversible blockchain transactions. Only play with funds you can afford to lose.
               You must be 18 years old or older (or the legal gambling age in your jurisdiction).
@@ -319,11 +319,11 @@ export function ConsentModal({ onAccept }) {
                 onChange={e => setAgreedTerms(e.target.checked)}
                 style={{ width: 16, height: 16, marginTop: 2, accentColor: "#2563EB", flexShrink: 0, cursor: "pointer" }}
               />
-              <span style={{ fontSize: 13, color: "#D1D5DB", lineHeight: 1.6, fontFamily: "'Outfit',sans-serif" }}>
+              <span style={{ fontSize: 13, color: "#D1D5DB", lineHeight: 1.6, fontFamily: "'Inter',sans-serif" }}>
                 I have read and agree to the{" "}
                 <button
                   onClick={() => setReading("terms")}
-                  style={{ background: "none", border: "none", color: "#60A5FA", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "'Outfit',sans-serif" }}
+                  style={{ background: "none", border: "none", color: "#60A5FA", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "'Inter',sans-serif" }}
                 >
                   Terms of Service
                 </button>
@@ -338,11 +338,11 @@ export function ConsentModal({ onAccept }) {
                 onChange={e => setAgreedPrivacy(e.target.checked)}
                 style={{ width: 16, height: 16, marginTop: 2, accentColor: "#2563EB", flexShrink: 0, cursor: "pointer" }}
               />
-              <span style={{ fontSize: 13, color: "#D1D5DB", lineHeight: 1.6, fontFamily: "'Outfit',sans-serif" }}>
+              <span style={{ fontSize: 13, color: "#D1D5DB", lineHeight: 1.6, fontFamily: "'Inter',sans-serif" }}>
                 I have read and agree to the{" "}
                 <button
                   onClick={() => setReading("privacy")}
-                  style={{ background: "none", border: "none", color: "#60A5FA", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "'Outfit',sans-serif" }}
+                  style={{ background: "none", border: "none", color: "#60A5FA", fontSize: 13, cursor: "pointer", textDecoration: "underline", padding: 0, fontFamily: "'Inter',sans-serif" }}
                 >
                   Privacy Policy
                 </button>
@@ -359,7 +359,7 @@ export function ConsentModal({ onAccept }) {
                 background: canContinue ? "#2563EB" : "#1E2130",
                 color: canContinue ? "#fff" : "#4B5563",
                 border: "none", borderRadius: 8, padding: "10px 28px",
-                fontFamily: "'Outfit',sans-serif", fontSize: 14,
+                fontFamily: "'Inter',sans-serif", fontSize: 14,
                 fontWeight: 600, cursor: canContinue ? "pointer" : "not-allowed",
                 transition: "all 0.2s",
               }}
@@ -498,7 +498,7 @@ export function AppFooter() {
       }}>
         <div style={{
           fontSize: 10, color: "#9094B0", lineHeight: 1.9,
-          fontFamily: "'Outfit',sans-serif",
+          fontFamily: "'Inter',sans-serif",
         }}>
           BaseCast · Pyth Network · Base
           <br />
@@ -511,7 +511,7 @@ export function AppFooter() {
                 background: "none", border: "none",
                 color: "#6B7280", fontSize: 11,
                 cursor: "pointer", textDecoration: "underline",
-                fontFamily: "'Outfit',sans-serif",
+                fontFamily: "'Inter',sans-serif",
                 padding: 0,
               }}
             >
@@ -524,7 +524,7 @@ export function AppFooter() {
                 background: "none", border: "none",
                 color: "#6B7280", fontSize: 11,
                 cursor: "pointer", textDecoration: "underline",
-                fontFamily: "'Outfit',sans-serif",
+                fontFamily: "'Inter',sans-serif",
                 padding: 0,
               }}
             >
