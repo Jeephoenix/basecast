@@ -656,7 +656,20 @@ export default function App() {
       await wc.writeContract(request);
       await fetchRefCount();
     } catch(e) {
-      setRefClaimErr(e?.shortMessage || "Transaction failed");
+      const raw = (e?.shortMessage || e?.message || "").toLowerCase();
+      let msg;
+      if (raw.includes("user rejected") || raw.includes("user denied")) {
+        msg = "Transaction cancelled.";
+      } else if (raw.includes("rewards pool empty") || raw.includes("pool empty")) {
+        msg = "The rewards pool is currently empty. Your rewards are safe — please try again later.";
+      } else if (raw.includes("nothing to claim") || raw.includes("no rewards")) {
+        msg = "No claimable rewards at this time.";
+      } else if (raw.includes("insufficient funds")) {
+        msg = "Insufficient funds to cover the transaction fee.";
+      } else {
+        msg = "Claim failed. Please try again or contact support if the issue persists.";
+      }
+      setRefClaimErr(msg);
     }
     setRefClaiming(false);
   };
