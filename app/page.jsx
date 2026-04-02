@@ -2,6 +2,7 @@
 // app/page.jsx — BaseCast v2
 
 import { AppFooter, ConsentModal, hasConsented } from "@/components/PolicyModal";
+import LiveBetTicker from "@/components/LiveBetTicker";
 import BingoGame from "@/components/BingoGame";
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -879,8 +880,9 @@ export default function App() {
 
       {showConsent && <ConsentModal onAccept={() => setShowConsent(false)} />}
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--nav-bg)",position:"sticky",top:0,zIndex:50}}>
+      {/* ── Header + Ticker (sticky together) ──────────────────────────── */}
+      <div style={{position:"sticky",top:0,zIndex:50}}>
+      <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--nav-bg)"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <img src="/logo.png" width={44} height={44} style={{borderRadius:10,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
           <span className="hdr-logo" style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.05em",textTransform:"uppercase"}}>
@@ -918,6 +920,9 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      <LiveBetTicker />
+      </div>
 
       {/* ── Network switcher dropdown ────────────────────────────────── */}
       {showNetworkMenu && (
