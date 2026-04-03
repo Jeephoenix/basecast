@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { rateLimit, getIp } from "@/lib/rateLimit";
 
 const SUPPORTED_TOKENS = ["eth", "usdc"];
-const RPC_URL = process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org";
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
+
+function getCdpRpcUrl() {
+  const rpc = process.env.BASE_SEPOLIA_RPC || "";
+  const isCdp = rpc.includes("api.developer.coinbase.com") || rpc.includes("coinbase.com/rpc");
+  return isCdp ? rpc : null;
+}
 
 export async function POST(req) {
   if (CHAIN_ID === 8453) {
@@ -28,6 +33,12 @@ export async function POST(req) {
     return NextResponse.json({ ok: false, error: "Invalid token. Must be 'eth' or 'usdc'" }, { status: 400 });
   }
 
+  const cdpUrl = getCdpRpcUrl();
+
+  if (!cdpUrl) {
+    return NextResponse.json({ ok: false, useExternal: true }, { status: 200 });
+  }
+
   const addrKey = address.toLowerCase();
 
   const ipCheck = rateLimit({ key: `faucet-ip:${ip}:${token}`, limit: 3, windowMs: 86_400_000 });
@@ -41,7 +52,7 @@ export async function POST(req) {
   }
 
   try {
-    const response = await fetch(RPC_URL, {
+    const response = await fetch(cdpUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -57,8 +68,8 @@ export async function POST(req) {
     if (data.error) {
       console.error("Faucet RPC error:", data.error);
       return NextResponse.json(
-        { ok: false, error: data.error.message || "Faucet request failed. Please try an external faucet." },
-        { status: 502 }
+        { ok: false, useExternal: true, error: data.error.message || "Faucet request failed." },
+        { status: 200 }
       );
     }
 
@@ -66,6 +77,6 @@ export async function POST(req) {
     return NextResponse.json({ ok: true, txHash });
   } catch (err) {
     console.error("Faucet error:", err);
-    return NextResponse.json({ ok: false, error: "Faucet service unavailable. Please try again later." }, { status: 503 });
+    return NextResponse.json({ ok: false, useExternal: true }, { status: 200 });
   }
 }
