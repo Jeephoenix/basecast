@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db";
+import { rateLimit, getIp } from "@/lib/rateLimit";
 
 function makeCode(address) {
   return address.slice(2, 10).toUpperCase();
 }
 
 export async function GET(req) {
+  const ip = getIp(req);
+  const { allowed } = rateLimit({ key: `referral-get:${ip}`, limit: 60, windowMs: 60_000 });
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const { searchParams } = new URL(req.url);
   const db = getPool();
 
@@ -33,6 +40,12 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  const ip = getIp(req);
+  const { allowed } = rateLimit({ key: `referral-post:${ip}`, limit: 10, windowMs: 60_000 });
+  if (!allowed) {
+    return NextResponse.json({ ok: false, error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     const { referrerCode, wallet } = await req.json();
     if (!referrerCode || !wallet) {
@@ -63,6 +76,12 @@ export async function POST(req) {
 }
 
 export async function PUT(req) {
+  const ip = getIp(req);
+  const { allowed } = rateLimit({ key: `referral-put:${ip}`, limit: 10, windowMs: 60_000 });
+  if (!allowed) {
+    return NextResponse.json({ ok: false, error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     const { address } = await req.json();
     if (!address) return NextResponse.json({ ok: false }, { status: 400 });
