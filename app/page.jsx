@@ -161,6 +161,7 @@ function playLose() {
 
 // ── Session auth helpers ──────────────────────────────────────────────────────
 const SESSION_KEY = "bc_session";
+const REF_RECORDED_KEY = `bc_ref_recorded_${CHAIN_ID}`;
 function getSession(addr) {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY)||"{}");
@@ -566,7 +567,7 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (!ref) return;
-    const already = localStorage.getItem("bc_ref_recorded");
+    const already = localStorage.getItem(REF_RECORDED_KEY);
     if (already) return;
     localStorage.setItem("bc_ref_source", ref.toUpperCase());
   },[]);
@@ -574,7 +575,7 @@ export default function App() {
   useEffect(()=>{
     if (!address || !authed || !wc || !pub) return;
     const refSource = localStorage.getItem("bc_ref_source");
-    const already   = localStorage.getItem("bc_ref_recorded");
+    const already   = localStorage.getItem(REF_RECORDED_KEY);
     if (!refSource || already) return;
     if (refSource === refCode(address)) return;
 
@@ -585,7 +586,7 @@ export default function App() {
           try {
             const res = await fetch(`/api/referral?resolve=${refSource}`);
             const json = await res.json();
-            if (!json.address) { localStorage.setItem("bc_ref_recorded","1"); return; }
+            if (!json.address) { localStorage.setItem(REF_RECORDED_KEY,"1"); return; }
             referrerAddress = json.address;
           } catch { return; }
         }
@@ -596,7 +597,7 @@ export default function App() {
             functionName: "referrerOf", args: [address],
           });
           if (alreadyRegistered && alreadyRegistered !== "0x0000000000000000000000000000000000000000") {
-            localStorage.setItem("bc_ref_recorded","1");
+            localStorage.setItem(REF_RECORDED_KEY,"1");
             return;
           }
           const { request } = await pub.simulateContract({
@@ -611,7 +612,7 @@ export default function App() {
           headers:{"Content-Type":"application/json"},
           body: JSON.stringify({ referrerCode: refSource, wallet: address }),
         }).catch(()=>{});
-        localStorage.setItem("bc_ref_recorded","1");
+        localStorage.setItem(REF_RECORDED_KEY,"1");
       } catch {}
     };
     register();
