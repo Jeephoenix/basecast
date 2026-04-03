@@ -621,8 +621,22 @@ export function FeedbackButton() {
 }
 
 // ── Footer component — drop this at the bottom of page.jsx ───────────────────
+const IcoX = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622Zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+  </svg>
+);
+
+const IcoGlobe = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </svg>
+);
+
 export function AppFooter() {
-  const [modal, setModal] = useState(null); // null | "privacy" | "terms"
+  const [modal, setModal] = useState(null);
+  const year = new Date().getFullYear();
 
   return (
     <>
@@ -631,44 +645,82 @@ export function AppFooter() {
       )}
       <FeedbackButton />
       <footer style={{
-        textAlign: "center", padding: "24px 20px 90px",
-        borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: 20,
+        textAlign: "center", padding: "28px 20px 96px",
+        borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: 24,
       }}>
-        <div style={{
-          fontSize: 10, color: "#9094B0", lineHeight: 1.9,
-          fontFamily: "'Inter',sans-serif",
-        }}>
-          Gambling involves risk. 18+ only. Play responsibly.
-          <br />
-          <span style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 8 }}>
+        <div style={{ fontFamily: "'Inter',sans-serif" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 16 }}>
+            <a
+              href="https://x.com/basecast_"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Follow on X"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 34, height: 34, borderRadius: 9,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#9094B0", textDecoration: "none",
+                transition: "all .15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(108,99,255,0.5)"; e.currentTarget.style.color = "#F0F2FF"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#9094B0"; }}
+            >
+              <IcoX />
+            </a>
+            <a
+              href="https://www.basecast.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Website"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 34, height: 34, borderRadius: 9,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#9094B0", textDecoration: "none",
+                transition: "all .15s",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(108,99,255,0.5)"; e.currentTarget.style.color = "#F0F2FF"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#9094B0"; }}
+            >
+              <IcoGlobe />
+            </a>
+          </div>
+
+          <div style={{ fontSize: 10, color: "#6B7280", marginBottom: 10 }}>
+            Gambling involves risk. 18+ only. Play responsibly.
+          </div>
+
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", alignItems: "center", marginBottom: 12 }}>
             <button
               onClick={() => setModal("privacy")}
               style={{
                 background: "none", border: "none",
                 color: "#6B7280", fontSize: 11,
                 cursor: "pointer", textDecoration: "underline",
-                fontFamily: "'Inter',sans-serif",
-                padding: 0,
+                fontFamily: "'Inter',sans-serif", padding: 0,
               }}
             >
               Privacy Policy
             </button>
-            <span style={{ color: "#6B7280" }}>·</span>
+            <span style={{ color: "#3D4060" }}>·</span>
             <button
               onClick={() => setModal("terms")}
               style={{
                 background: "none", border: "none",
                 color: "#6B7280", fontSize: 11,
                 cursor: "pointer", textDecoration: "underline",
-                fontFamily: "'Inter',sans-serif",
-                padding: 0,
+                fontFamily: "'Inter',sans-serif", padding: 0,
               }}
             >
               Terms of Service
             </button>
-          </span>
-          <br />
-          © 2026 Basecast. All rights reserved.
+          </div>
+
+          <div style={{ fontSize: 10, color: "#3D4060" }}>
+            © {year} BaseCast. All rights reserved.
+          </div>
         </div>
       </footer>
     </>
