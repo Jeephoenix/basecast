@@ -182,7 +182,6 @@ const DOTS = {
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@900&family=Courgette&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#07050f;--s1:rgba(255,255,255,0.04);--s2:rgba(255,255,255,0.07);--bd:rgba(255,255,255,0.1);
@@ -889,7 +888,9 @@ export default function App() {
             <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
             <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
           </span>
-          <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px",position:"relative",top:"-6px",marginLeft:"-4px"}}>Testnet</span>
+          {CHAIN_ID !== 8453 && (
+            <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px",position:"relative",top:"-6px",marginLeft:"-4px"}}>Testnet</span>
+          )}
         </div>
         <div className="hdr-right" style={{display:"flex",alignItems:"center",gap:8}}>
           {isConnected && authed && (
