@@ -4,7 +4,7 @@ import "@rainbow-me/rainbowkit/styles.css";
 
 export const metadata = {
   title:       "BaseCast — Provably Fair Casino on Base",
-  description: "On-chain casino powered by Pyth Entropy v2. CoinFlip, Dice Roll, and Bingo on Base blockchain.",
+  description: "Provably fair, non-custodial casino on Base. Powered by Pyth Entropy v2 — every result is verifiable on-chain. Play Coin Flip, Dice Roll & Bingo with instant USDC payouts.",
   metadataBase: new URL("https://www.basecast.org/"),
   keywords:    ["BaseCast", "crypto casino", "on-chain casino", "Base blockchain", "provably fair", "USDC casino", "CoinFlip", "DiceRoll", "Bingo", "Pyth Entropy"],
   authors:     [{ name: "BaseCast", url: "https://www.basecast.org" }],
@@ -13,7 +13,7 @@ export const metadata = {
   },
   openGraph: {
     title:       "BaseCast — Provably Fair Casino on Base",
-    description: "On-chain casino powered by Pyth Entropy v2. CoinFlip, Dice Roll, and Bingo on Base blockchain.",
+    description: "Provably fair, non-custodial casino on Base. Powered by Pyth Entropy v2 — every result is verifiable on-chain. Play Coin Flip, Dice Roll & Bingo with instant USDC payouts.",
     url:         "https://www.basecast.org",
     siteName:    "BaseCast",
     images:      [{ url: "/og-image.png", width: 1200, height: 630, alt: "BaseCast — Provably Fair Casino on Base" }],
@@ -25,7 +25,7 @@ export const metadata = {
     site:        "@basecast_",
     creator:     "@basecast_",
     title:       "BaseCast — Provably Fair Casino on Base",
-    description: "On-chain casino powered by Pyth Entropy v2. CoinFlip, Dice Roll, and Bingo on Base blockchain.",
+    description: "Provably fair, non-custodial casino on Base. Powered by Pyth Entropy v2 — every result is verifiable on-chain. Play Coin Flip, Dice Roll & Bingo with instant USDC payouts.",
     images:      ["/og-image.png"],
   },
   robots: {
