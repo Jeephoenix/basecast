@@ -374,9 +374,154 @@ export function ConsentModal({ onAccept }) {
   );
 }
 
+// ── Feedback modal ────────────────────────────────────────────────────────────
+function FeedbackModal({ onClose }) {
+  const [type,    setType]    = useState("feedback");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [contact, setContact] = useState("");
+  const [status,  setStatus]  = useState("idle"); // idle | sending | sent | error
+
+  async function submit() {
+    if (!subject.trim() || !message.trim()) return;
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, subject: subject.trim(), message: message.trim(), contact: contact.trim() }),
+      });
+      const json = await res.json();
+      setStatus(json.ok ? "sent" : "error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  const types = [
+    { id: "bug",        label: "🐛 Bug Report"  },
+    { id: "feedback",   label: "💬 Feedback"     },
+    { id: "suggestion", label: "💡 Suggestion"   },
+  ];
+
+  return (
+    <>
+      <style>{css}</style>
+      <div className="policy-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+        <div className="policy-card" style={{ maxWidth: 480 }}>
+
+          <div className="policy-header">
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#F0F2F8", fontFamily: "'Inter',sans-serif" }}>
+                Bugs &amp; Feedback
+              </div>
+              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
+                We read every submission
+              </div>
+            </div>
+            <button className="policy-close" onClick={onClose}>✕</button>
+          </div>
+
+          <div className="policy-body" style={{ padding: "20px 24px" }}>
+            {status === "sent" ? (
+              <div style={{ textAlign: "center", padding: "32px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(0,245,160,0.12)", border: "1.5px solid rgba(0,245,160,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00F5A0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#F0F2F8", fontFamily: "'Inter',sans-serif" }}>Thanks for your feedback!</div>
+                <div style={{ fontSize: 13, color: "#6B7280", fontFamily: "'Inter',sans-serif" }}>We'll look into it and get back to you if needed.</div>
+                <button onClick={onClose} style={{ marginTop: 8, background: "#2563EB", color: "#fff", border: "none", borderRadius: 8, padding: "10px 28px", fontFamily: "'Inter',sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Close</button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 8, fontFamily: "'Inter',sans-serif", fontWeight: 600, letterSpacing: "0.5px" }}>TYPE</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {types.map(t => (
+                      <button key={t.id} onClick={() => setType(t.id)} style={{
+                        flex: 1, padding: "8px 4px", borderRadius: 8, border: `1.5px solid ${type === t.id ? "#2563EB" : "#1E2130"}`,
+                        background: type === t.id ? "rgba(37,99,235,0.15)" : "#080B12",
+                        color: type === t.id ? "#F0F2F8" : "#6B7280",
+                        fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
+                      }}>{t.label}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6, fontFamily: "'Inter',sans-serif", fontWeight: 600, letterSpacing: "0.5px" }}>SUBJECT</div>
+                  <input
+                    value={subject} onChange={e => setSubject(e.target.value)}
+                    placeholder="Brief summary..."
+                    style={{ width: "100%", background: "#080B12", border: "1.5px solid #1E2130", borderRadius: 8, color: "#F0F2F8", fontFamily: "'Inter',sans-serif", fontSize: 13, padding: "10px 12px", outline: "none", boxSizing: "border-box" }}
+                    onFocus={e => e.target.style.borderColor = "#2563EB"}
+                    onBlur={e => e.target.style.borderColor = "#1E2130"}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6, fontFamily: "'Inter',sans-serif", fontWeight: 600, letterSpacing: "0.5px" }}>MESSAGE</div>
+                  <textarea
+                    value={message} onChange={e => setMessage(e.target.value)}
+                    placeholder="Describe the issue or your feedback in detail..."
+                    rows={5}
+                    style={{ width: "100%", background: "#080B12", border: "1.5px solid #1E2130", borderRadius: 8, color: "#F0F2F8", fontFamily: "'Inter',sans-serif", fontSize: 13, padding: "10px 12px", outline: "none", resize: "vertical", boxSizing: "border-box" }}
+                    onFocus={e => e.target.style.borderColor = "#2563EB"}
+                    onBlur={e => e.target.style.borderColor = "#1E2130"}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6, fontFamily: "'Inter',sans-serif", fontWeight: 600, letterSpacing: "0.5px" }}>CONTACT <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional — email or Telegram)</span></div>
+                  <input
+                    value={contact} onChange={e => setContact(e.target.value)}
+                    placeholder="So we can follow up if needed"
+                    style={{ width: "100%", background: "#080B12", border: "1.5px solid #1E2130", borderRadius: 8, color: "#F0F2F8", fontFamily: "'Inter',sans-serif", fontSize: 13, padding: "10px 12px", outline: "none", boxSizing: "border-box" }}
+                    onFocus={e => e.target.style.borderColor = "#2563EB"}
+                    onBlur={e => e.target.style.borderColor = "#1E2130"}
+                  />
+                </div>
+
+                {status === "error" && (
+                  <div style={{ fontSize: 12, color: "#EF4444", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "10px 14px", fontFamily: "'Inter',sans-serif" }}>
+                    Something went wrong. Please try again.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {status !== "sent" && (
+            <div style={{ padding: "14px 24px", borderTop: "1px solid #1E2130", display: "flex", justifyContent: "flex-end", gap: 10, flexShrink: 0 }}>
+              <button onClick={onClose} style={{ background: "none", border: "1px solid #1E2130", color: "#6B7280", borderRadius: 8, padding: "9px 20px", fontFamily: "'Inter',sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button
+                onClick={submit}
+                disabled={status === "sending" || !subject.trim() || !message.trim()}
+                style={{
+                  background: status === "sending" || !subject.trim() || !message.trim() ? "#1E2130" : "#2563EB",
+                  color: status === "sending" || !subject.trim() || !message.trim() ? "#4B5563" : "#fff",
+                  border: "none", borderRadius: 8, padding: "9px 24px",
+                  fontFamily: "'Inter',sans-serif", fontSize: 13, fontWeight: 600,
+                  cursor: status === "sending" || !subject.trim() || !message.trim() ? "not-allowed" : "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                {status === "sending" ? "Sending..." : "Send Feedback"}
+              </button>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Floating feedback button — always visible above mobile nav ────────────────
 export function FeedbackButton() {
   const [hovered, setHovered] = useState(false);
+  const [open,    setOpen]    = useState(false);
+
   return (
     <>
       <style>{`
@@ -389,7 +534,6 @@ export function FeedbackButton() {
           align-items: center;
           gap: 0;
           cursor: pointer;
-          text-decoration: none;
           border-radius: 28px;
           background: linear-gradient(135deg, #3a3d4a, #2a2d38);
           border: 1px solid rgba(255,255,255,0.12);
@@ -407,77 +551,38 @@ export function FeedbackButton() {
           border-color: rgba(255,255,255,0.22);
         }
         .feedback-fab-icon {
-          width: 44px;
-          height: 44px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 44px; height: 44px;
+          display: flex; align-items: center; justify-content: center;
           flex-shrink: 0;
         }
         .feedback-fab-label {
-          font-family: 'Outfit', sans-serif;
-          font-size: 13px;
-          font-weight: 600;
-          color: #fff;
-          padding-right: 14px;
-          opacity: 0;
+          font-family: 'Inter', sans-serif;
+          font-size: 13px; font-weight: 600; color: #fff;
+          padding-right: 14px; opacity: 0;
           transition: opacity 0.2s 0.1s;
         }
         .feedback-fab:hover .feedback-fab-label,
-        .feedback-fab.hovered .feedback-fab-label {
-          opacity: 1;
-        }
-        @media (max-width: 520px) {
-          .feedback-fab {
-            bottom: 74px;
-            right: 14px;
-          }
-        }
-        @media (min-width: 521px) {
-          .feedback-fab {
-            bottom: 32px;
-          }
-        }
+        .feedback-fab.hovered .feedback-fab-label { opacity: 1; }
+        @media (max-width: 520px) { .feedback-fab { bottom: 74px; right: 14px; } }
+        @media (min-width: 521px) { .feedback-fab { bottom: 32px; } }
       `}</style>
-      <a
-        href="https://t.me/Jeephoenix"
-        target="_blank"
-        rel="noopener noreferrer"
+
+      {open && <FeedbackModal onClose={() => setOpen(false)} />}
+
+      <button
         className={`feedback-fab${hovered ? " hovered" : ""}`}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onClick={() => setOpen(true)}
         title="Feedback & Bug Reports"
       >
         <span className="feedback-fab-icon">
-          <svg width="23" height="23" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* body */}
-            <ellipse cx="50" cy="57" rx="26" ry="30" fill="#b0b4c1"/>
-            {/* head */}
-            <ellipse cx="50" cy="26" rx="14" ry="13" fill="#b0b4c1"/>
-            {/* wing split */}
-            <line x1="50" y1="28" x2="50" y2="86" stroke="#2a2d38" strokeWidth="3.5" strokeLinecap="round"/>
-            {/* antennae */}
-            <line x1="43" y1="14" x2="30" y2="3" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
-            <line x1="57" y1="14" x2="70" y2="3" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
-            {/* legs left */}
-            <line x1="24" y1="50" x2="7"  y2="44" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
-            <line x1="24" y1="60" x2="6"  y2="62" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
-            <line x1="25" y1="72" x2="10" y2="80" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
-            {/* legs right */}
-            <line x1="76" y1="50" x2="93" y2="44" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
-            <line x1="76" y1="60" x2="94" y2="62" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
-            <line x1="75" y1="72" x2="90" y2="80" stroke="#b0b4c1" strokeWidth="4" strokeLinecap="round"/>
-            {/* circuit dots */}
-            <circle cx="40" cy="52" r="4" fill="#2a2d38"/>
-            <circle cx="40" cy="66" r="4" fill="#2a2d38"/>
-            <circle cx="57" cy="59" r="4" fill="#2a2d38"/>
-            {/* circuit lines */}
-            <polyline points="40,52 34,58 40,66" stroke="#2a2d38" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="40" y1="59" x2="57" y2="59" stroke="#2a2d38" strokeWidth="2.5" strokeLinecap="round"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b0b4c1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
         </span>
         <span className="feedback-fab-label">Feedback &amp; Bugs</span>
-      </a>
+      </button>
     </>
   );
 }
