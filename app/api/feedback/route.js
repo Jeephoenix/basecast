@@ -1,15 +1,27 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { rateLimit, getIp } from "@/lib/rateLimit";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const TO_EMAIL = process.env.FEEDBACK_EMAIL || "Jeephoenix1@gmail.com";
+const TO_EMAIL = process.env.FEEDBACK_EMAIL;
 
 export async function POST(req) {
+  const ip = getIp(req);
+  const { allowed } = rateLimit({ key: `feedback:${ip}`, limit: 5, windowMs: 60_000 });
+  if (!allowed) {
+    return NextResponse.json({ ok: false, error: "Too many requests. Please wait a minute." }, { status: 429 });
+  }
+
   try {
     const { type, subject, message, contact, wallet } = await req.json();
 
     if (!type || !subject || !message) {
       return NextResponse.json({ ok: false, error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (!TO_EMAIL) {
+      console.error("FEEDBACK_EMAIL env var is not set");
+      return NextResponse.json({ ok: false, error: "Feedback not configured" }, { status: 500 });
     }
 
     const typeLabel = { bug: "🐛 Bug Report", feedback: "💬 Feedback", suggestion: "💡 Suggestion" }[type] || type;
