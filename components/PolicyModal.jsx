@@ -399,9 +399,35 @@ function FeedbackModal({ onClose }) {
   }
 
   const types = [
-    { id: "bug",        label: "🐛 Bug Report"  },
-    { id: "feedback",   label: "💬 Feedback"     },
-    { id: "suggestion", label: "💡 Suggestion"   },
+    {
+      id: "bug", label: "Bug Report",
+      icon: (active) => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={active ? "#F0F2F8" : "#6B7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22c-4.97 0-9-3.58-9-8v-1l2-4h14l2 4v1c0 4.42-4.03 8-9 8z"/>
+          <path d="M12 14v4M9 10V7a3 3 0 0 1 6 0v3"/>
+          <path d="M3 13h3M18 13h3M5 7l2 2M17 7l2-2"/>
+        </svg>
+      ),
+    },
+    {
+      id: "feedback", label: "Feedback",
+      icon: (active) => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={active ? "#F0F2F8" : "#6B7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      ),
+    },
+    {
+      id: "suggestion", label: "Suggestion",
+      icon: (active) => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={active ? "#F0F2F8" : "#6B7280"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+          <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -437,14 +463,21 @@ function FeedbackModal({ onClose }) {
                 <div>
                   <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 8, fontFamily: "'Inter',sans-serif", fontWeight: 600, letterSpacing: "0.5px" }}>TYPE</div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    {types.map(t => (
-                      <button key={t.id} onClick={() => setType(t.id)} style={{
-                        flex: 1, padding: "8px 4px", borderRadius: 8, border: `1.5px solid ${type === t.id ? "#2563EB" : "#1E2130"}`,
-                        background: type === t.id ? "rgba(37,99,235,0.15)" : "#080B12",
-                        color: type === t.id ? "#F0F2F8" : "#6B7280",
-                        fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
-                      }}>{t.label}</button>
-                    ))}
+                    {types.map(t => {
+                      const active = type === t.id;
+                      return (
+                        <button key={t.id} onClick={() => setType(t.id)} style={{
+                          flex: 1, padding: "8px 6px", borderRadius: 8, border: `1.5px solid ${active ? "#2563EB" : "#1E2130"}`,
+                          background: active ? "rgba(37,99,235,0.15)" : "#080B12",
+                          color: active ? "#F0F2F8" : "#6B7280",
+                          fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 0.15s",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                        }}>
+                          {t.icon(active)}
+                          {t.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
