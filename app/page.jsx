@@ -352,6 +352,9 @@ export default function App() {
   const [signErr, setSignErr] = useState(null);
   const [navSection, setNavSection] = useState("home");
   const [tab, setTab] = useState("coinflip");
+  const [faucetEthState,  setFaucetEthState]  = useState({ loading: false, result: null, error: null });
+  const [faucetUsdcState, setFaucetUsdcState] = useState({ loading: false, result: null, error: null });
+  const [ethBalance, setEthBalance] = useState(null);
   const [gamesOpen, setGamesOpen] = useState(false);
   const [verifySeq,     setVerifySeq]     = useState("");
   const [verifyResult,  setVerifyResult]  = useState(null);
@@ -646,6 +649,37 @@ export default function App() {
 
   useEffect(()=>{ if(navSection==="profile" && authed) fetchRefCount(); },[navSection,authed,fetchRefCount]);
 
+  useEffect(()=>{
+    if (navSection==="faucet" && pub && address) {
+      pub.getBalance({ address }).then(v => setEthBalance(v)).catch(()=>{});
+    }
+  },[navSection, pub, address]);
+
+  const claimFaucet = async (token) => {
+    const setState = token==="eth" ? setFaucetEthState : setFaucetUsdcState;
+    setState({ loading: true, result: null, error: null });
+    try {
+      const res = await fetch("/api/faucet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, token }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setState({ loading: false, result: data.txHash, error: null });
+        if (token==="eth") {
+          setTimeout(()=>{ pub?.getBalance({ address }).then(v=>setEthBalance(v)).catch(()=>{}); }, 5000);
+        } else {
+          setTimeout(()=>{ pub?.readContract({address:USDC,abi:USDC_ABI,functionName:"balanceOf",args:[address]}).then(v=>setBal(v)).catch(()=>{}); }, 5000);
+        }
+      } else {
+        setState({ loading: false, result: null, error: data.error || "Claim failed" });
+      }
+    } catch {
+      setState({ loading: false, result: null, error: "Network error. Please try again." });
+    }
+  };
+
   const claimReferralRewards = async () => {
     if (!wc || !pub || !REFERRAL) return;
     setRefClaiming(true); setRefClaimErr(null);
@@ -868,6 +902,7 @@ export default function App() {
   const IcoChevron = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
   const IcoRefresh = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>;
   const IcoSignOut = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+  const IcoFaucet  = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6m0 0c0 0-4 2-4 6a4 4 0 0 0 8 0c0-4-4-6-4-6z"/><path d="M8 8H5a2 2 0 0 0-2 2v1"/><path d="M16 8h3a2 2 0 0 1 2 2v1"/></svg>;
   const IcoCopy    = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
   const IcoCheck   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
   const IcoTxCoin  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg>;
@@ -1106,6 +1141,7 @@ export default function App() {
         {[
           {id:"home",    label:"Home",    Icon:IcoHome},
           {id:"games",   label:"Games",   Icon:IcoGames},
+          {id:"faucet",  label:"Faucet",  Icon:IcoFaucet},
           {id:"profile", label:"Profile", Icon:IcoProfile},
         ].map(({id,label,Icon})=>(
           <button
@@ -1323,7 +1359,7 @@ export default function App() {
                 {q:"What is the house edge?",
                  a:"BaseCast charges a flat 3% house edge on all games. This is encoded immutably in the smart contracts — it cannot be changed secretly. For example, a fair 50/50 coin flip would pay 2×, but with the 3% edge it pays 1.94×."},
                 {q:"How do I get testnet USDC and ETH?",
-                 a:"You can obtain Base Sepolia ETH from the Coinbase or Alchemy faucet (search 'Base Sepolia faucet'). Testnet USDC is available from the Circle developer faucet at faucet.circle.com."},
+                 a:"Use the built-in Faucet tab to claim free testnet ETH and USDC directly in the app — no external site required. Limits reset every 24 hours. You can also use Coinbase, Alchemy, or Circle (faucet.circle.com) as external alternatives."},
                 {q:"Do I need to approve USDC every time?",
                  a:"No. On your first bet you approve the vault to spend USDC on your behalf. After that, the approval is valid for all future bets with no further confirmation needed — unless you revoke it manually."},
                 {q:"What happens if my transaction fails?",
@@ -1513,7 +1549,109 @@ export default function App() {
           </div>
         )}
 
-        {/* ══ PROFILE ════════════════════════════════════════════════════ */}
+        {/* ══ FAUCET ═══════════════════════════════════════════════════════ */}
+        {navSection==="faucet" && (
+          <div className="fi" style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div style={{fontWeight:700,fontSize:18,color:"var(--tx)"}}>Testnet Faucet</div>
+            <div style={{fontSize:13,color:"var(--sub)",lineHeight:1.6}}>
+              Claim free testnet tokens to try out BaseCast on Base Sepolia. Limits reset every 24 hours.
+            </div>
+
+            {/* Balances */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div className="card" style={{padding:"14px 16px",border:"1px solid var(--bd)"}}>
+                <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:6}}>ETH BALANCE</div>
+                <div style={{fontSize:16,fontWeight:700,color:"var(--tx)",fontFamily:"'JetBrains Mono',monospace"}}>
+                  {ethBalance !== null ? `${parseFloat(formatUnits(ethBalance, 18)).toFixed(4)} ETH` : "—"}
+                </div>
+              </div>
+              <div className="card" style={{padding:"14px 16px",border:"1px solid var(--bd)"}}>
+                <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:6}}>USDC BALANCE</div>
+                <div style={{fontSize:16,fontWeight:700,color:"var(--tx)",fontFamily:"'JetBrains Mono',monospace"}}>
+                  {bal > 0n ? `${parseFloat(formatUnits(bal, 6)).toFixed(2)} USDC` : "—"}
+                </div>
+              </div>
+            </div>
+
+            {/* ETH Faucet Card */}
+            <div className="card" style={{border:"1px solid var(--bd)",padding:"20px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+                <div style={{width:44,height:44,borderRadius:12,background:"rgba(108,99,255,.15)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--blue)",flexShrink:0,fontSize:22}}>⟠</div>
+                <div>
+                  <div style={{fontWeight:700,fontSize:15,color:"var(--tx)"}}>Base Sepolia ETH</div>
+                  <div style={{fontSize:12,color:"var(--sub)",marginTop:2}}>0.01 ETH · once per 24 hours</div>
+                </div>
+              </div>
+              {faucetEthState.result ? (
+                <div style={{padding:"10px 14px",background:"rgba(0,245,160,.08)",border:"1px solid rgba(0,245,160,.25)",borderRadius:10,fontSize:12}}>
+                  <div style={{color:"var(--green)",fontWeight:600,marginBottom:4}}>✓ ETH sent!</div>
+                  <a href={`${EXPLORER}/tx/${faucetEthState.result}`} target="_blank" rel="noreferrer" style={{color:"var(--blue)",fontFamily:"'JetBrains Mono',monospace",fontSize:11,wordBreak:"break-all"}}>
+                    {faucetEthState.result}
+                  </a>
+                </div>
+              ) : faucetEthState.error ? (
+                <div style={{padding:"10px 14px",background:"rgba(255,77,109,.08)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,fontSize:12,color:"var(--red)"}}>
+                  {faucetEthState.error}
+                </div>
+              ) : null}
+              {!faucetEthState.result && (
+                <button
+                  className="btn"
+                  disabled={faucetEthState.loading}
+                  onClick={() => claimFaucet("eth")}
+                  style={{width:"100%",marginTop:faucetEthState.error?10:0,background:"linear-gradient(135deg,#6C63FF,#4F46E5)",color:"#fff",padding:"12px 16px",borderRadius:10,fontSize:14,fontWeight:600,opacity:faucetEthState.loading?0.7:1}}
+                >
+                  {faucetEthState.loading ? "Requesting…" : "Claim ETH"}
+                </button>
+              )}
+            </div>
+
+            {/* USDC Faucet Card */}
+            <div className="card" style={{border:"1px solid var(--bd)",padding:"20px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+                <div style={{width:44,height:44,borderRadius:12,background:"rgba(0,245,160,.12)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--green)",flexShrink:0,fontWeight:700,fontSize:14}}>USDC</div>
+                <div>
+                  <div style={{fontWeight:700,fontSize:15,color:"var(--tx)"}}>Test USDC</div>
+                  <div style={{fontSize:12,color:"var(--sub)",marginTop:2}}>10 USDC · once per 24 hours</div>
+                </div>
+              </div>
+              {faucetUsdcState.result ? (
+                <div style={{padding:"10px 14px",background:"rgba(0,245,160,.08)",border:"1px solid rgba(0,245,160,.25)",borderRadius:10,fontSize:12}}>
+                  <div style={{color:"var(--green)",fontWeight:600,marginBottom:4}}>✓ USDC sent!</div>
+                  <a href={`${EXPLORER}/tx/${faucetUsdcState.result}`} target="_blank" rel="noreferrer" style={{color:"var(--blue)",fontFamily:"'JetBrains Mono',monospace",fontSize:11,wordBreak:"break-all"}}>
+                    {faucetUsdcState.result}
+                  </a>
+                </div>
+              ) : faucetUsdcState.error ? (
+                <div style={{padding:"10px 14px",background:"rgba(255,77,109,.08)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,fontSize:12,color:"var(--red)"}}>
+                  {faucetUsdcState.error}
+                </div>
+              ) : null}
+              {!faucetUsdcState.result && (
+                <button
+                  className="btn"
+                  disabled={faucetUsdcState.loading}
+                  onClick={() => claimFaucet("usdc")}
+                  style={{width:"100%",marginTop:faucetUsdcState.error?10:0,background:"linear-gradient(135deg,#00C896,#00A87A)",color:"#fff",padding:"12px 16px",borderRadius:10,fontSize:14,fontWeight:600,opacity:faucetUsdcState.loading?0.7:1}}
+                >
+                  {faucetUsdcState.loading ? "Requesting…" : "Claim USDC"}
+                </button>
+              )}
+            </div>
+
+            {/* External faucets note */}
+            <div style={{padding:"14px 16px",background:"var(--s1)",border:"1px solid var(--bd)",borderRadius:12,fontSize:12,color:"var(--sub)",lineHeight:1.7}}>
+              <div style={{fontWeight:600,color:"var(--tx)",marginBottom:6}}>External Faucets</div>
+              If the in-app faucet is unavailable, you can also claim from:{" "}
+              <a href="https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet" target="_blank" rel="noreferrer" style={{color:"var(--blue)"}}>Coinbase</a>
+              {", "}
+              <a href="https://www.alchemy.com/faucets/base-sepolia" target="_blank" rel="noreferrer" style={{color:"var(--blue)"}}>Alchemy</a>
+              {", or "}
+              <a href="https://faucet.circle.com" target="_blank" rel="noreferrer" style={{color:"var(--blue)"}}>Circle (USDC)</a>.
+            </div>
+          </div>
+        )}
+
         {navSection==="profile" && (
           <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
             {!isConnected ? (
