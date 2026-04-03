@@ -22,7 +22,7 @@ const BET_RESOLVED_EVENT = {
 const IcoCoin = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFD166" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10"/>
-    <path d="M12 6v2m0 8v2M9 9.5C9 8.12 10.34 7 12 7s3 1.12 3 2.5c0 1.5-1.5 2-3 2.5-1.5.5-3 1-3 2.5C9 15.88 10.34 17 12 17s3-1.12 3-2.5"/>
+    <path d="M12 7v10M9 9.5a3 2.5 0 0 1 6 0M15 14.5a3 2.5 0 0 1-6 0"/>
   </svg>
 );
 
