@@ -105,9 +105,12 @@ function TickerItem({ game, player, wager, won, payout }) {
 
 export default function LiveBetTicker() {
   const pub = usePublicClient();
-  const [bets, setBets]     = useState([]);
-  const [paused, setPaused] = useState(false);
+  const [bets, setBets]       = useState([]);
+  const [paused, setPaused]   = useState(false);
+  const [mounted, setMounted] = useState(false);
   const unwatchers = useRef([]);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!pub) return;
@@ -178,16 +181,20 @@ export default function LiveBetTicker() {
     };
   }, [pub]);
 
+  if (!mounted) return (
+    <div style={{ height: 36, background: "rgba(0,0,0,0.28)", borderBottom: "1px solid rgba(255,255,255,0.07)" }} />
+  );
+
   const items = bets.length > 0 ? bets : DEMO;
   const doubled = [...items, ...items];
+
+  const duration = Math.max(items.length * 3, 18);
 
   return (
     <>
       <style>{`
         @keyframes liveDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
-        @keyframes tickerMove { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
-        .ticker-track { animation: tickerMove ${Math.max(items.length * 5, 30)}s linear infinite; }
-        .ticker-track.paused { animation-play-state: paused; }
+        @keyframes tickerMove { from{transform:translateX(0)} to{transform:translateX(-50%)} }
       `}</style>
 
       <div
@@ -219,8 +226,11 @@ export default function LiveBetTicker() {
 
         <div style={{ flex: 1, overflow: "hidden", position: "relative", height: "100%" }}>
           <div
-            className={`ticker-track${paused ? " paused" : ""}`}
-            style={{ display: "inline-flex", alignItems: "center", height: "100%", willChange: "transform" }}
+            style={{
+              display: "inline-flex", alignItems: "center", height: "100%", willChange: "transform",
+              animation: `tickerMove ${duration}s linear infinite`,
+              animationPlayState: paused ? "paused" : "running",
+            }}
           >
             {doubled.map((bet, i) => (
               <TickerItem key={`${bet.id}-${i}`} {...bet} />
