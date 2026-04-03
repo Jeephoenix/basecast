@@ -655,9 +655,14 @@ export default function App() {
     }
   },[navSection, pub, address]);
 
+  const EXTERNAL_FAUCETS = {
+    eth:  "https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet",
+    usdc: "https://faucet.circle.com",
+  };
+
   const claimFaucet = async (token) => {
     const setState = token==="eth" ? setFaucetEthState : setFaucetUsdcState;
-    setState({ loading: true, result: null, error: null });
+    setState({ loading: true, result: null, error: null, external: false });
     try {
       const res = await fetch("/api/faucet", {
         method: "POST",
@@ -666,17 +671,23 @@ export default function App() {
       });
       const data = await res.json();
       if (data.ok) {
-        setState({ loading: false, result: data.txHash, error: null });
+        setState({ loading: false, result: data.txHash, error: null, external: false });
         if (token==="eth") {
           setTimeout(()=>{ pub?.getBalance({ address }).then(v=>setEthBalance(v)).catch(()=>{}); }, 5000);
         } else {
           setTimeout(()=>{ pub?.readContract({address:USDC,abi:USDC_ABI,functionName:"balanceOf",args:[address]}).then(v=>setBal(v)).catch(()=>{}); }, 5000);
         }
+      } else if (data.useExternal) {
+        try { await navigator.clipboard.writeText(address); } catch {}
+        window.open(EXTERNAL_FAUCETS[token], "_blank", "noopener,noreferrer");
+        setState({ loading: false, result: null, error: null, external: true });
       } else {
-        setState({ loading: false, result: null, error: data.error || "Claim failed" });
+        setState({ loading: false, result: null, error: data.error || "Claim failed", external: false });
       }
     } catch {
-      setState({ loading: false, result: null, error: "Network error. Please try again." });
+      try { await navigator.clipboard.writeText(address); } catch {}
+      window.open(EXTERNAL_FAUCETS[token], "_blank", "noopener,noreferrer");
+      setState({ loading: false, result: null, error: null, external: true });
     }
   };
 
@@ -1589,19 +1600,24 @@ export default function App() {
                     {faucetEthState.result}
                   </a>
                 </div>
+              ) : faucetEthState.external ? (
+                <div style={{padding:"10px 14px",background:"rgba(108,99,255,.08)",border:"1px solid rgba(108,99,255,.25)",borderRadius:10,fontSize:12}}>
+                  <div style={{color:"var(--blue)",fontWeight:600,marginBottom:4}}>↗ Faucet opened in new tab</div>
+                  <div style={{color:"var(--sub)"}}>Your address was copied to clipboard — paste it into the faucet to claim ETH.</div>
+                </div>
               ) : faucetEthState.error ? (
                 <div style={{padding:"10px 14px",background:"rgba(255,77,109,.08)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,fontSize:12,color:"var(--red)"}}>
                   {faucetEthState.error}
                 </div>
               ) : null}
-              {!faucetEthState.result && (
+              {!faucetEthState.result && !faucetEthState.external && (
                 <button
                   className="btn"
                   disabled={faucetEthState.loading}
                   onClick={() => claimFaucet("eth")}
                   style={{width:"100%",marginTop:faucetEthState.error?10:0,background:"linear-gradient(135deg,#6C63FF,#4F46E5)",color:"#fff",padding:"12px 16px",borderRadius:10,fontSize:14,fontWeight:600,opacity:faucetEthState.loading?0.7:1}}
                 >
-                  {faucetEthState.loading ? "Requesting…" : "Claim ETH"}
+                  {faucetEthState.loading ? "Opening faucet…" : "Claim ETH"}
                 </button>
               )}
             </div>
@@ -1622,19 +1638,24 @@ export default function App() {
                     {faucetUsdcState.result}
                   </a>
                 </div>
+              ) : faucetUsdcState.external ? (
+                <div style={{padding:"10px 14px",background:"rgba(0,200,150,.08)",border:"1px solid rgba(0,200,150,.25)",borderRadius:10,fontSize:12}}>
+                  <div style={{color:"var(--green)",fontWeight:600,marginBottom:4}}>↗ Faucet opened in new tab</div>
+                  <div style={{color:"var(--sub)"}}>Your address was copied to clipboard — paste it into the faucet to claim USDC.</div>
+                </div>
               ) : faucetUsdcState.error ? (
                 <div style={{padding:"10px 14px",background:"rgba(255,77,109,.08)",border:"1px solid rgba(255,77,109,.25)",borderRadius:10,fontSize:12,color:"var(--red)"}}>
                   {faucetUsdcState.error}
                 </div>
               ) : null}
-              {!faucetUsdcState.result && (
+              {!faucetUsdcState.result && !faucetUsdcState.external && (
                 <button
                   className="btn"
                   disabled={faucetUsdcState.loading}
                   onClick={() => claimFaucet("usdc")}
                   style={{width:"100%",marginTop:faucetUsdcState.error?10:0,background:"linear-gradient(135deg,#00C896,#00A87A)",color:"#fff",padding:"12px 16px",borderRadius:10,fontSize:14,fontWeight:600,opacity:faucetUsdcState.loading?0.7:1}}
                 >
-                  {faucetUsdcState.loading ? "Requesting…" : "Claim USDC"}
+                  {faucetUsdcState.loading ? "Opening faucet…" : "Claim USDC"}
                 </button>
               )}
             </div>
