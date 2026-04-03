@@ -15,7 +15,7 @@ export async function POST(req) {
     const typeLabel = { bug: "🐛 Bug Report", feedback: "💬 Feedback", suggestion: "💡 Suggestion" }[type] || type;
 
     await resend.emails.send({
-      from: "BaseCast Feedback <onboarding@resend.dev>",
+      from: "BaseCast Feedback <feedback@basecast.org>",
       to: TO_EMAIL,
       subject: `[BaseCast ${typeLabel}] ${subject}`,
       html: `
