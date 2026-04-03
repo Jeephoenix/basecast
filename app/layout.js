@@ -4,22 +4,34 @@ import "@rainbow-me/rainbowkit/styles.css";
 
 export const metadata = {
   title:       "BaseCast — Provably Fair Casino on Base",
-  description: "On-chain casino powered by Pyth Entropy v2. CoinFlip + Dice + Bingo on Base.",
+  description: "On-chain casino powered by Pyth Entropy v2. CoinFlip, Dice Roll, and Bingo on Base blockchain.",
   metadataBase: new URL("https://www.basecast.org/"),
+  keywords:    ["BaseCast", "crypto casino", "on-chain casino", "Base blockchain", "provably fair", "USDC casino", "CoinFlip", "DiceRoll", "Bingo", "Pyth Entropy"],
+  authors:     [{ name: "BaseCast", url: "https://www.basecast.org" }],
   other: {
     "base:app_id": "69cd4bf319afd75ffc3d3b31",
   },
   openGraph: {
-    title:       "BaseCast",
-    description: "Provably Fair On-Chain Casino on Base",
-    images:      ["/og-image.png"],
+    title:       "BaseCast — Provably Fair Casino on Base",
+    description: "On-chain casino powered by Pyth Entropy v2. CoinFlip, Dice Roll, and Bingo on Base blockchain.",
+    url:         "https://www.basecast.org",
+    siteName:    "BaseCast",
+    images:      [{ url: "/og-image.png", width: 1200, height: 630, alt: "BaseCast — Provably Fair Casino on Base" }],
     type:        "website",
+    locale:      "en_US",
   },
   twitter: {
     card:        "summary_large_image",
-    title:       "BaseCast",
-    description: "Provably Fair On-Chain Casino on Base",
+    site:        "@basecast_",
+    creator:     "@basecast_",
+    title:       "BaseCast — Provably Fair Casino on Base",
+    description: "On-chain casino powered by Pyth Entropy v2. CoinFlip, Dice Roll, and Bingo on Base blockchain.",
     images:      ["/og-image.png"],
+  },
+  robots: {
+    index:  true,
+    follow: true,
+    googleBot: { index: true, follow: true },
   },
 };
 
@@ -28,7 +40,9 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="icon" href="/favicon.ico"/>
+        <link rel="manifest" href="/site.webmanifest"/>
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <meta name="theme-color" content="#6C63FF"/>
       </head>
       <body style={{ margin: 0, background: "#08090D" }}>
         <Providers>{children}</Providers>
