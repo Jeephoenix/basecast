@@ -50,7 +50,6 @@ export default function Loading() {
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap');
         @keyframes bc-spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
