@@ -1305,7 +1305,7 @@ export default function App() {
                   <span style={{fontSize:12,color:"var(--tx)",fontWeight:500}}>{w}</span>
                 </div>
               ))}
-              <div style={{fontSize:11,color:"var(--sub)",width:"100%",marginTop:2}}>Any other WalletConnect v2 compatible wallet also works.</div>
+              <div style={{fontSize:11,color:"var(--sub)",width:"100%",marginTop:2}}>Any other EVM compatible wallet also works.</div>
             </div>
 
             {/* ── FAQ ────────────────────────────────────────────────────── */}
