@@ -1,0 +1,22 @@
+{
+  "name": "BaseCast",
+  "short_name": "BaseCast",
+  "description": "Provably Fair On-Chain Casino on Base",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08090D",
+  "theme_color": "#6C63FF",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
