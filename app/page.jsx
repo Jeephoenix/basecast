@@ -543,7 +543,7 @@ export default function App() {
     setLbLd(false);
   },[pub]);
 
-  useEffect(()=>{ if(navSection==="profile") fetchLb(); },[navSection,fetchLb]);
+  useEffect(()=>{ if(navSection==="leaderboard"||navSection==="home") fetchLb(); },[navSection,fetchLb]);
 
   useEffect(()=>{
     if (!address) { setUsername(""); setProfilePic(null); return; }
@@ -868,7 +868,8 @@ export default function App() {
   const IcoShield  = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
   const IcoChevron = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
   const IcoRefresh = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>;
-  const IcoSignOut = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+  const IcoSignOut   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+  const IcoTrophy    = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4a2 2 0 0 1-2-2V5h4"/><path d="M18 9h2a2 2 0 0 0 2-2V5h-4"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M6 5h12v7a6 6 0 0 1-12 0z"/></svg>;
 
   const IcoCopy    = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
   const IcoCheck   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -1103,12 +1104,13 @@ export default function App() {
       {/* ── App UI (connected) ────────────────────────────────────────────── */}
       {isConnected && (<>
 
-      {/* ── 3-item Navigation ─────────────────────────────────────────── */}
+      {/* ── Navigation ────────────────────────────────────────────────── */}
       <nav className="nav-bar">
         {[
-          {id:"home",    label:"Home",    Icon:IcoHome},
-          {id:"games",   label:"Games",   Icon:IcoGames},
-          {id:"profile", label:"Profile", Icon:IcoProfile},
+          {id:"home",        label:"Home",        Icon:IcoHome},
+          {id:"games",       label:"Games",       Icon:IcoGames},
+          {id:"leaderboard", label:"Ranks",       Icon:IcoTrophy},
+          {id:"profile",     label:"Profile",     Icon:IcoProfile},
         ].map(({id,label,Icon})=>(
           <button
             key={id}
@@ -1217,6 +1219,48 @@ export default function App() {
                   <div style={{fontSize:12,color:"var(--sub)",marginTop:3}}>New games &amp; features ahead</div>
                 </div>
               </div>
+            </div>
+
+            {/* ── Leaderboard Preview ─────────────────────────────────────── */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 4px"}}>
+              <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px"}}>TOP PLAYERS</div>
+              <button onClick={()=>setNavSection("leaderboard")} style={{background:"none",border:"none",color:"var(--blue)",fontSize:12,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:4,fontFamily:"'Inter',sans-serif",padding:0}}>View Full Leaderboard <IcoChevron/></button>
+            </div>
+            <div className="card" style={{padding:0,overflow:"hidden"}}>
+              {lbLd?(
+                <div style={{display:"flex",justifyContent:"center",padding:32}}><Spin size={22}/></div>
+              ):sortedLb.length===0?(
+                <div style={{textAlign:"center",padding:"28px 24px"}}>
+                  <div style={{fontSize:28,marginBottom:8}}>🏆</div>
+                  <div style={{fontSize:13,color:"var(--sub)",marginBottom:12}}>No players ranked yet — be the first!</div>
+                  <button onClick={()=>setNavSection("games")} style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",border:"none",color:"#fff",padding:"10px 22px",borderRadius:10,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Start Playing</button>
+                </div>
+              ):(
+                <>
+                  {sortedLb.slice(0,3).map((p,i)=>{
+                    const medal=["🥇","🥈","🥉"][i];
+                    const borderColor=["var(--gold)","#9CA3AF","#D97706"][i];
+                    const serverName=lbNames[p.address.toLowerCase()];
+                    const name=serverName||getLbName(p.address);
+                    const hasUname=!!serverName||name!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;
+                    return(
+                      <div key={p.address} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",borderBottom:i<2?"1px solid var(--bd)":"none",borderLeft:`3px solid ${borderColor}`}}>
+                        <div style={{fontSize:20,width:28,textAlign:"center",flexShrink:0}}>{medal}</div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:600,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUname?"'Inter',sans-serif":"'JetBrains Mono',monospace"}}>
+                            {name}{p.address===address&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.1)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
+                          </div>
+                          <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>Vol: {usd(p.volume)}</div>
+                        </div>
+                        <div style={{fontSize:13,fontWeight:700,color:p.pnl>=0n?"var(--green)":"var(--red)",flexShrink:0}}>{pnl(p.pnl)}</div>
+                      </div>
+                    );
+                  })}
+                  <button onClick={()=>setNavSection("leaderboard")} style={{width:"100%",padding:"12px",background:"var(--s2)",border:"none",borderTop:"1px solid var(--bd)",color:"var(--blue)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                    View All Rankings <IcoChevron/>
+                  </button>
+                </>
+              )}
             </div>
 
             {/* How it works */}
@@ -1511,6 +1555,128 @@ export default function App() {
             {/* ── Bingo ── */}
             {tab==="bingo" && isConnected && authed && (
               <div className="fi"><BingoGame balance={bal} refetchBalance={fetchStats} vaultMax={vault.max} vaultMin={vault.min}/></div>
+            )}
+          </div>
+        )}
+
+        {/* ══ LEADERBOARD ═══════════════════════════════════════════════ */}
+        {navSection==="leaderboard" && (
+          <div className="fi" style={{display:"flex",flexDirection:"column",gap:16}}>
+
+            {/* Header */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 4px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:36,height:36,borderRadius:12,background:"linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.05))",border:"1px solid rgba(245,158,11,.3)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--gold)"}}>
+                  <IcoTrophy/>
+                </div>
+                <div>
+                  <div style={{fontWeight:700,fontSize:17,color:"var(--tx)",fontFamily:"'Inter',sans-serif"}}>Leaderboard</div>
+                  <div style={{fontSize:11,color:"var(--sub)",marginTop:1}}>{lb.length} ranked player{lb.length!==1?"s":""}</div>
+                </div>
+              </div>
+              <button onClick={fetchLb} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"8px 12px",borderRadius:10,cursor:"pointer",display:"flex",alignItems:"center",gap:6,fontSize:12,fontFamily:"'Inter',sans-serif"}}>
+                <IcoRefresh/> Refresh
+              </button>
+            </div>
+
+            {/* Sort tabs */}
+            <div style={{display:"flex",gap:8,background:"var(--s2)",borderRadius:12,padding:4,border:"1px solid var(--bd)"}}>
+              {[{k:"volume",label:"By Volume"},{k:"pnl",label:"By PnL"}].map(({k,label})=>(
+                <button key={k} onClick={()=>setLbSrt(k)} style={{flex:1,padding:"9px 0",borderRadius:9,border:"none",background:lbSrt===k?"linear-gradient(135deg,#6C63FF,#4F46E5)":"transparent",color:lbSrt===k?"#fff":"var(--sub)",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"'Inter',sans-serif",transition:"all .15s"}}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {lbLd?(
+              <div style={{display:"flex",justifyContent:"center",padding:64}}><Spin size={32}/></div>
+            ):sortedLb.length===0?(
+              <div className="card" style={{textAlign:"center",padding:"56px 24px"}}>
+                <div style={{fontSize:48,marginBottom:12}}>🏆</div>
+                <div style={{fontSize:15,fontWeight:600,color:"var(--tx)",marginBottom:8}}>No players ranked yet</div>
+                <div style={{fontSize:13,color:"var(--sub)",marginBottom:20}}>Play a game to appear on the leaderboard!</div>
+                <button onClick={()=>{setTab("coinflip");setNavSection("games");}} style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",border:"none",color:"#fff",padding:"12px 28px",borderRadius:12,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+                  Start Playing
+                </button>
+              </div>
+            ):(
+              <>
+                {/* Podium for top 3 */}
+                {sortedLb.length>=3&&(
+                  <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:12,padding:"8px 0 0"}}>
+                    {/* 2nd place */}
+                    {(()=>{const p=sortedLb[1];const sn=lbNames[p.address.toLowerCase()];const n=sn||getLbName(p.address);const hu=!!sn||n!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;return(
+                      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                        <div style={{fontSize:11,fontWeight:600,color:"#9CA3AF",fontFamily:"'Inter',sans-serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace"}}>{n}</div>
+                        <div style={{width:"100%",background:"linear-gradient(180deg,rgba(156,163,175,.15) 0%,rgba(156,163,175,.05) 100%)",border:"1px solid rgba(156,163,175,.3)",borderBottom:"none",borderRadius:"10px 10px 0 0",padding:"16px 8px 10px",textAlign:"center",minHeight:90,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
+                          <div style={{fontSize:28}}>🥈</div>
+                          <div style={{fontSize:11,color:"var(--sub)",fontWeight:600}}>{lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}</div>
+                        </div>
+                      </div>
+                    );})()}
+                    {/* 1st place */}
+                    {(()=>{const p=sortedLb[0];const sn=lbNames[p.address.toLowerCase()];const n=sn||getLbName(p.address);const hu=!!sn||n!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;return(
+                      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                        <div style={{fontSize:11,fontWeight:600,color:"var(--gold)",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center"}}>{n}</div>
+                        <div style={{width:"100%",background:"linear-gradient(180deg,rgba(245,158,11,.2) 0%,rgba(245,158,11,.05) 100%)",border:"1px solid rgba(245,158,11,.4)",borderBottom:"none",borderRadius:"10px 10px 0 0",padding:"20px 8px 10px",textAlign:"center",minHeight:118,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
+                          <div style={{fontSize:36}}>🥇</div>
+                          <div style={{fontSize:12,color:"var(--gold)",fontWeight:700}}>{lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}</div>
+                        </div>
+                      </div>
+                    );})()}
+                    {/* 3rd place */}
+                    {(()=>{const p=sortedLb[2];const sn=lbNames[p.address.toLowerCase()];const n=sn||getLbName(p.address);const hu=!!sn||n!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;return(
+                      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                        <div style={{fontSize:11,fontWeight:600,color:"#D97706",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center"}}>{n}</div>
+                        <div style={{width:"100%",background:"linear-gradient(180deg,rgba(217,119,6,.12) 0%,rgba(217,119,6,.04) 100%)",border:"1px solid rgba(217,119,6,.3)",borderBottom:"none",borderRadius:"10px 10px 0 0",padding:"12px 8px 10px",textAlign:"center",minHeight:76,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
+                          <div style={{fontSize:24}}>🥉</div>
+                          <div style={{fontSize:11,color:"#D97706",fontWeight:600}}>{lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}</div>
+                        </div>
+                      </div>
+                    );})()}
+                  </div>
+                )}
+
+                {/* Full ranked list */}
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {sortedLb.map((p,i)=>{
+                    const sn=lbNames[p.address.toLowerCase()];
+                    const name=sn||getLbName(p.address);
+                    const hasUname=!!sn||name!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;
+                    const isMe=p.address===address;
+                    const rankColor=i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--sub)";
+                    const borderColor=i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--bd)";
+                    return(
+                      <div key={p.address} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:isMe?"rgba(37,99,235,.06)":"var(--s2)",border:`1px solid ${isMe?"rgba(37,99,235,.3)":borderColor}`,borderLeft:`3px solid ${borderColor}`,borderRadius:12,transition:"background .15s"}}>
+                        <div style={{width:30,height:30,borderRadius:"50%",background:i<3?`rgba(${i===0?"245,158,11":i===1?"156,163,175":"217,119,6"},.12)`:"rgba(255,255,255,.04)",border:`1px solid ${rankColor}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:rankColor,flexShrink:0}}>
+                          {i+1}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:hasUname?600:400,color:isMe?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUname?"'Inter',sans-serif":"'JetBrains Mono',monospace"}}>
+                            {name}
+                            {isMe&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.12)",borderRadius:4,padding:"1px 5px",fontFamily:"'Inter',sans-serif"}}>YOU</span>}
+                          </div>
+                          <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>
+                            Vol: {usd(p.volume)} &middot; PnL: <span style={{color:p.pnl>=0n?"var(--green)":"var(--red)"}}>{pnl(p.pnl)}</span>
+                          </div>
+                        </div>
+                        <div style={{textAlign:"right",flexShrink:0}}>
+                          <div style={{fontSize:13,fontWeight:700,color:lbSrt==="volume"?"var(--tx)":p.pnl>=0n?"var(--green)":"var(--red)"}}>
+                            {lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}
+                          </div>
+                          <div style={{fontSize:10,color:"var(--sub)",marginTop:2}}>{lbSrt==="volume"?"wagered":"net profit"}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Legend */}
+                <div style={{display:"flex",justifyContent:"space-between",padding:"0 4px",fontSize:10,color:"var(--dim)"}}>
+                  <span>Top {sortedLb.length} players</span>
+                  <span>Volume = total wagered &middot; PnL = net profit/loss</span>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -1812,47 +1978,6 @@ export default function App() {
                     </div>
                   </div>
                 )}
-
-                {/* Leaderboard */}
-                <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"4px 4px 0"}}>LEADERBOARD</div>
-                <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                  {["volume","pnl"].map(s=>(
-                    <button key={s} className="btn" style={{background:lbSrt===s?"var(--blue)":"var(--s2)",border:`1px solid ${lbSrt===s?"var(--blue)":"var(--bd)"}`,color:lbSrt===s?"#fff":"var(--sub)",padding:"7px 14px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>setLbSrt(s)}>{s==="volume"?"By Volume":"By PnL"}</button>
-                  ))}
-                  <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"8px 10px",borderRadius:8,width:"auto"}} onClick={fetchLb}><IcoRefresh/></button>
-                </div>
-                {lbLd?(
-                  <div style={{display:"flex",justifyContent:"center",padding:48}}><Spin size={28}/></div>
-                ):sortedLb.length===0?(
-                  <div className="card" style={{textAlign:"center",padding:48,color:"var(--sub)",fontSize:13}}>No players yet — be the first!</div>
-                ):(
-                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                    {sortedLb.map((p,i)=>{
-                      const serverName = lbNames[p.address.toLowerCase()];
-                      const lbName = serverName || getLbName(p.address);
-                      const hasUsername = !!serverName || lbName !== `${p.address.slice(0,8)}...${p.address.slice(-6)}`;
-                      return (
-                      <div key={p.address} className="card" style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderLeft:`3px solid ${i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--bd)"}`}}>
-                        <div style={{width:28,height:28,borderRadius:"50%",background:i===0?"rgba(245,158,11,.15)":"var(--s2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--sub)",flexShrink:0}}>{i+1}</div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUsername?"'Inter',sans-serif":"'JetBrains Mono',monospace",fontWeight:hasUsername?600:400}}>
-                            {lbName}
-                            {p.address===address&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.1)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
-                          </div>
-                        </div>
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          <div style={{fontSize:12,color:"var(--tx)",fontWeight:600}}>{usd(p.volume)}</div>
-                          <div style={{fontSize:11,marginTop:2,color:p.pnl>=0n?"var(--green)":"var(--red)"}}>{pnl(p.pnl)}</div>
-                        </div>
-                      </div>
-                      );
-                    })}
-                  </div>
-                )}
-                <div style={{display:"flex",justifyContent:"space-between",padding:"0 4px",fontSize:10,color:"var(--dim)"}}>
-                  <span>Top 10 &middot; {lb.length} players</span>
-                  <span>Vol = total wagered &middot; PnL = net profit</span>
-                </div>
 
                 {/* Sign out */}
                 <button
