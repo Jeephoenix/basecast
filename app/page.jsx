@@ -1251,15 +1251,11 @@ export default function App() {
                           <div style={{fontSize:13,fontWeight:600,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUname?"'Inter',sans-serif":"'JetBrains Mono',monospace"}}>
                             {name}{p.address===address&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.1)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
                           </div>
-                          <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>Vol: {usd(p.volume)}</div>
                         </div>
                         <div style={{fontSize:13,fontWeight:700,color:p.pnl>=0n?"var(--green)":"var(--red)",flexShrink:0}}>{pnl(p.pnl)}</div>
                       </div>
                     );
                   })}
-                  <button onClick={()=>setNavSection("leaderboard")} style={{width:"100%",padding:"12px",background:"var(--s2)",border:"none",borderTop:"1px solid var(--bd)",color:"var(--blue)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                    View All Rankings <IcoChevron/>
-                  </button>
                 </>
               )}
             </div>
