@@ -377,6 +377,9 @@ export default function App() {
   const [dErr,   setDErr]   = useState(null);
   const [lb,    setLb]    = useState([]);
   const [lbSrt, setLbSrt] = useState("volume");
+  const [profileTab,      setProfileTab]      = useState("overview");
+  const [ethBalance,      setEthBalance]      = useState(null);
+  const [ethPrice,        setEthPrice]        = useState(null);
   const [profilePic,      setProfilePic]      = useState(null);
   const [username,        setUsername]        = useState("");
   const [editingProfile,  setEditingProfile]  = useState(false);
@@ -476,6 +479,17 @@ export default function App() {
   }, [pub, address]);
 
   useEffect(() => { if (navSection==="profile" && authed) fetchTxHistory(); }, [navSection, authed, fetchTxHistory]);
+
+  useEffect(() => {
+    if (profileTab !== "wallet" || !address) return;
+    const rpc = process.env.NEXT_PUBLIC_BASE_RPC || process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC || "https://mainnet.base.org";
+    fetch(rpc, {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_getBalance",params:[address,"latest"]}),
+    }).then(r=>r.json()).then(d=>{ if (d.result) setEthBalance(BigInt(d.result)); }).catch(()=>{});
+    fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
+      .then(r=>r.json()).then(d=>setEthPrice(d?.ethereum?.usd ?? null)).catch(()=>{});
+  }, [profileTab, address]);
 
   function shortAddr(addr) {
     if (!addr) return "";
@@ -1119,7 +1133,7 @@ export default function App() {
             className={`nav-item${navSection===id?" active":""}`}
             onClick={()=>{
               if(id==="games"){setGamesOpen(true);}
-              else{setNavSection(id);}
+              else{setNavSection(id); if(id!=="profile") setProfileTab("overview");}
             }}
           >
             <span className="nav-icon-pill"><Icon/></span>
@@ -1685,6 +1699,78 @@ export default function App() {
               </div>
             ) : !authed ? (
               <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
+            ) : profileTab === "wallet" ? (
+              /* ── Wallet screen ─────────────────────────────────────── */
+              <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
+                <button onClick={() => setProfileTab("overview")}
+                  style={{background:"none",border:"none",color:"var(--blue)",cursor:"pointer",
+                          display:"flex",alignItems:"center",gap:6,fontFamily:"'Inter',sans-serif",
+                          fontSize:13,fontWeight:600,padding:0}}>
+                  ← Back
+                </button>
+
+                {/* Total value */}
+                <div className="card" style={{padding:"24px 20px"}}>
+                  <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:8}}>TOTAL WALLET VALUE</div>
+                  <div style={{fontSize:28,fontWeight:800,color:"var(--tx)"}}>
+                    {(() => {
+                      const usdcVal = Number(bal) / 1e6;
+                      const ethVal  = ethBalance !== null ? Number(ethBalance) / 1e18 : 0;
+                      const ethUsd  = ethPrice   !== null ? ethVal * ethPrice : 0;
+                      return `~$${(usdcVal + ethUsd).toFixed(2)} USD`;
+                    })()}
+                  </div>
+                </div>
+
+                {/* USDC — trading tokens */}
+                <div className="card" style={{padding:"16px 18px",display:"flex",flexDirection:"column",gap:12}}>
+                  <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>TRADING TOKENS</div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(0,245,160,.12)",
+                                   display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>💵</div>
+                      <div>
+                        <div style={{fontWeight:600,fontSize:13,color:"var(--tx)"}}>USDC</div>
+                        <div style={{fontSize:11,color:"var(--sub)"}}>$1.00</div>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"var(--green)"}}>{usd(bal)}</div>
+                      <div style={{fontSize:11,color:"var(--sub)"}}>{(Number(bal)/1e6).toFixed(4)} USDC</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ETH — holding tokens */}
+                <div className="card" style={{padding:"16px 18px",display:"flex",flexDirection:"column",gap:12}}>
+                  <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>HOLDING TOKENS</div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(108,99,255,.12)",
+                                   display:"flex",alignItems:"center",justifyContent:"center",
+                                   fontSize:18,fontWeight:700,color:"#9F93FF",fontFamily:"monospace"}}>Ξ</div>
+                      <div>
+                        <div style={{fontWeight:600,fontSize:13,color:"var(--tx)"}}>ETH</div>
+                        <div style={{fontSize:11,color:"var(--sub)"}}>
+                          {ethPrice !== null ? `$${ethPrice.toLocaleString()}` : "Loading…"}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"var(--tx)"}}>
+                        {ethBalance !== null && ethPrice !== null
+                          ? `$${(Number(ethBalance)/1e18 * ethPrice).toFixed(2)}`
+                          : "—"}
+                      </div>
+                      <div style={{fontSize:11,color:"var(--sub)"}}>
+                        {ethBalance !== null
+                          ? `${(Number(ethBalance)/1e18).toFixed(4)} ETH`
+                          : "Loading…"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <>
                 {/* Profile header card */}
@@ -1771,6 +1857,16 @@ export default function App() {
                       }
                     </div>
                   </div>
+
+                  {/* Wallet link */}
+                  <button
+                    onClick={() => setProfileTab("wallet")}
+                    style={{width:"100%",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:10,
+                            padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",
+                            cursor:"pointer",fontFamily:"'Inter',sans-serif",color:"var(--tx)"}}>
+                    <span style={{fontSize:13,fontWeight:600}}>Wallet</span>
+                    <span style={{fontSize:16,color:"var(--sub)"}}>›</span>
+                  </button>
                 </div>
 
                 {/* Referral card */}
