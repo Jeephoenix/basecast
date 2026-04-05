@@ -18,7 +18,6 @@ const VAULT    = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
 const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
 const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
 const BINGO    = process.env.NEXT_PUBLIC_BINGO_ADDRESS;
-const BINGO_MP = process.env.NEXT_PUBLIC_BINGO_MULTIPLAYER_ADDRESS;
 const REFERRAL = process.env.NEXT_PUBLIC_REFERRAL_ADDRESS;
 const USDC     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
@@ -402,6 +401,12 @@ export default function App() {
   const [txExpanded, setTxExpanded] = useState(false);
   const [faqOpen,    setFaqOpen]    = useState(null);
 
+  // ── Wallet tab state ──────────────────────────────────────────────────────
+  const [profileTab,  setProfileTab]  = useState("overview");
+  const [ethBalance,  setEthBalance]  = useState(null);
+  const [ethPrice,    setEthPrice]    = useState(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+
   useEffect(() => {
     if (address && getSession(address)) setAuthed(true);
     else setAuthed(false);
@@ -476,6 +481,30 @@ export default function App() {
   }, [pub, address]);
 
   useEffect(() => { if (navSection==="profile" && authed) fetchTxHistory(); }, [navSection, authed, fetchTxHistory]);
+
+  // ── Fetch ETH balance + price when Wallet tab is open ─────────────────────
+  useEffect(() => {
+    if (navSection !== "profile" || profileTab !== "wallet" || !address || !pub) return;
+    let cancelled = false;
+    async function loadWallet() {
+      setWalletLoading(true);
+      try {
+        const [ethBal, priceRes] = await Promise.all([
+          pub.getBalance({ address }),
+          fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
+            .then(r => r.json())
+            .catch(() => null),
+        ]);
+        if (!cancelled) {
+          setEthBalance(ethBal);
+          setEthPrice(priceRes?.ethereum?.usd ?? null);
+        }
+      } catch {}
+      if (!cancelled) setWalletLoading(false);
+    }
+    loadWallet();
+    return () => { cancelled = true; };
+  }, [navSection, profileTab, address, pub]);
 
   function shortAddr(addr) {
     if (!addr) return "";
@@ -857,7 +886,6 @@ export default function App() {
   };
 
   const sortedLb = [...lb].sort((a,b)=>lbSrt==="volume"?Number(b.volume-a.volume):Number(b.pnl-a.pnl)).slice(0,10);
-  const topByPnl = [...lb].sort((a,b)=>Number(b.pnl-a.pnl)).slice(0,3);
   const wrongNet = isConnected && chainId !== CHAIN_ID;
 
   // ── Icon helpers ─────────────────────────────────────────────────────────────
@@ -877,229 +905,149 @@ export default function App() {
   const IcoCheck   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
   const IcoTxCoin  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg>;
   const IcoTxDice  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg>;
-  const IcoTxBingo = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>;
+  const IcoTxBingo = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>;
+
+  // ── Wallet tab computed values ────────────────────────────────────────────
+  const usdcAmt   = parseFloat(formatUnits(bal || 0n, 6));
+  const ethAmt    = ethBalance != null ? parseFloat(formatUnits(ethBalance, 18)) : 0;
+  const ethUsdVal = ethPrice != null ? ethAmt * ethPrice : 0;
+  const totalUsd  = (usdcAmt + ethUsdVal).toFixed(2);
 
   return (
-    <div className={light?"light":""} style={{minHeight:"100vh",background:light?"#ffffff":"transparent",transition:"background 0.4s ease"}}>
+    <div className={light?"light":""} style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
       <style>{CSS}</style>
+      {showConsent && <ConsentModal onAccept={()=>setShowConsent(false)} onDecline={()=>setShowConsent(false)}/>}
 
-      {showConsent && <ConsentModal onAccept={() => setShowConsent(false)} />}
+      {/* ── Landing (not connected) ────────────────────────────────────── */}
+      {!isConnected && (
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-start",padding:"32px 16px 80px",maxWidth:520,margin:"0 auto",width:"100%"}}>
 
-      {/* ── Header + Ticker (sticky together) ──────────────────────────── */}
-      <div style={{position:"sticky",top:0,zIndex:50}}>
-      <header className="hdr" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 20px",borderBottom:"1px solid var(--bd)",background:"var(--nav-bg)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <img src="/logo.png" width={44} height={44} style={{borderRadius:10,objectFit:"cover"}} onError={e=>e.target.style.display="none"}/>
-          <span className="hdr-logo" style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:16,letterSpacing:"0.05em",textTransform:"uppercase"}}>
-            <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>BASE</span>
-            <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>CAST</span>
-          </span>
-          {CHAIN_ID !== 8453 && (
-            <span style={{background:"rgba(37,99,235,.15)",border:"1px solid rgba(37,99,235,.3)",borderRadius:6,padding:"2px 8px",fontSize:10,color:"var(--blue)",letterSpacing:"1px",position:"relative",top:"-6px",marginLeft:"-4px"}}>Testnet</span>
-          )}
-        </div>
-        <div className="hdr-right" style={{display:"flex",alignItems:"center",gap:8}}>
-          {isConnected && authed && (
-            <div style={{textAlign:"right",lineHeight:1.2}}>
-              <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>BALANCE</div>
-              <div style={{fontSize:13,color:"var(--green)",fontWeight:600}}>{usd(bal)}</div>
+          {/* Logo/header */}
+          <div style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:28}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <img src="/logo.png" width={36} height={36} style={{borderRadius:10}} onError={e=>e.target.style.display="none"}/>
+              <span style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:15,letterSpacing:"0.04em"}}>
+                <span style={{color:"#60C8FF"}}>BASE</span><span style={{color:"#FFD84D"}}>CAST</span>
+              </span>
             </div>
-          )}
-          <ConnectButton.Custom>
-            {({account,chain,openChainModal,openConnectModal,mounted}) => {
-              if (!mounted) return null;
-              if (!account) return (
-                <button onClick={openConnectModal} className="btn" style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:12,width:"auto"}}>Connect</button>
-              );
-              return (
-                <button onClick={() => setShowNetworkMenu(v=>!v)} className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"6px 10px",borderRadius:8,fontSize:12,width:"auto",gap:5}}>
-                  {chain?.hasIcon && chain.iconUrl && <img src={chain.iconUrl} width={14} height={14} alt={chain.name} style={{borderRadius:"50%"}}/>}
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0}}><path d="M7 10l5 5 5-5z"/></svg>
+            <ConnectButton/>
+          </div>
+
+          {/* Hero */}
+          <div style={{width:"100%",textAlign:"center",padding:"48px 24px 40px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:24,marginBottom:24,position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 50% -20%,rgba(108,99,255,.12),transparent 65%)",pointerEvents:"none"}}/>
+            <div style={{fontFamily:"'Inter',sans-serif",fontWeight:600,fontSize:11,letterSpacing:"0.3em",textTransform:"uppercase",color:"var(--sub)",marginBottom:10}}>PROVABLY FAIR · ON-CHAIN</div>
+            <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:"clamp(32px,8vw,52px)",letterSpacing:"0.02em",lineHeight:1,textTransform:"uppercase",marginBottom:20}}>
+              <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(96,200,255,0.45))"}}>BASE</span>
+              <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#E08C00 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 18px rgba(255,216,77,0.45))"}}>CAST</span>
+            </div>
+            <div style={{fontSize:13,color:"var(--sub)",marginBottom:32,lineHeight:1.7}}>
+              On-chain casino games on Base.<br/>Every outcome generated by Pyth Entropy v2 — verifiable by anyone.
+            </div>
+            <ConnectButton.Custom>
+              {({openConnectModal})=>(
+                <button
+                  onClick={openConnectModal}
+                  style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",border:"none",borderRadius:14,color:"#fff",padding:"16px 32px",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 28px rgba(108,99,255,0.45)",display:"flex",alignItems:"center",gap:10,margin:"0 auto",transition:"all .15s"}}
+                  onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 36px rgba(108,99,255,0.6)";}}
+                  onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 28px rgba(108,99,255,0.45)";}}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+                  Connect Wallet to Play
                 </button>
-              );
-            }}
-          </ConnectButton.Custom>
-          <button className="btn" onClick={()=>setLight(l=>!l)} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 10px",borderRadius:8,width:"auto"}}>
-            {light
-              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            }
-          </button>
-        </div>
-      </header>
+              )}
+            </ConnectButton.Custom>
+            <div style={{display:"flex",gap:8,marginTop:18,flexWrap:"wrap",justifyContent:"center"}}>
+              {["No KYC","100% On-Chain","Instant Payouts","Non-Custodial"].map(t=>(
+                <span key={t} className="stat-pill">{t}</span>
+              ))}
+            </div>
+          </div>
 
-      <LiveBetTicker />
-      </div>
-
-      {/* ── Network switcher dropdown ────────────────────────────────── */}
-      {showNetworkMenu && (
-        <>
-          <div style={{position:"fixed",inset:0,zIndex:99}} onClick={()=>setShowNetworkMenu(false)}/>
-          <div style={{position:"fixed",top:62,right:12,zIndex:100,background:"var(--nav-bg)",border:"1px solid var(--bd)",borderRadius:10,padding:"6px 4px",minWidth:160,boxShadow:"0 4px 16px rgba(0,0,0,0.5)"}}>
-            <div style={{fontSize:9,color:"var(--sub)",padding:"2px 8px 6px",letterSpacing:"1.5px",fontWeight:600}}>SWITCH NETWORKS</div>
-            {[
-              {id:8453,  name:"Base"},
-              {id:84532, name:"Base Sepolia"},
-            ].map(net => (
-              <button key={net.id} onClick={()=>{switchChain({chainId:net.id});setShowNetworkMenu(false);}}
-                style={{display:"flex",alignItems:"center",gap:7,width:"100%",padding:"7px 8px",borderRadius:7,border:"none",cursor:"pointer",
-                  background:chainId===net.id?"rgba(108,99,255,0.2)":"transparent",
-                  color:"var(--tx)",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:chainId===net.id?600:400,transition:"background .15s"}}>
-                <svg width="20" height="20" viewBox="0 0 2500 2500" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0,borderRadius:"50%"}}>
-                  <circle cx="1250" cy="1250" r="1250" fill="#0052FF"/>
-                  <path d="M1251.4 2083.3c460.2 0 833.2-373 833.2-833.3 0-460.2-373-833.3-833.2-833.3-438.5 0-798.3 339-831.6 768.8h1097.4v129h-1097.1c33.7 429.5 393.4 768.8 831.3 768.8z" fill="#fff"/>
-                </svg>
-                <span style={{flex:1,textAlign:"left"}}>{net.name}</span>
-                {chainId===net.id && (
-                  <span style={{width:6,height:6,borderRadius:"50%",background:"var(--green)",display:"inline-block",flexShrink:0}}/>
-                )}
-              </button>
+          {/* Platform stats bar */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:14,overflow:"hidden",margin:"20px 0"}}>
+            {[{l:"LIVE GAMES",v:"3"},{l:"BLOCKCHAIN",v:"Base"},{l:"CURRENCY",v:"USDC"}].map(({l,v},i)=>(
+              <div key={i} style={{padding:"14px 10px",borderRight:i<2?"1px solid var(--bd)":"none",textAlign:"center"}}>
+                <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>{l}</div>
+                <div style={{fontSize:15,fontWeight:700,color:"var(--tx)"}}>{v}</div>
+              </div>
             ))}
           </div>
-        </>
-      )}
 
-      {wrongNet && (
-        <div style={{background:"rgba(239,68,68,.1)",borderBottom:"1px solid rgba(239,68,68,.3)",padding:"10px 20px",display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
-          <span style={{fontSize:12,color:"var(--red)"}}>Wrong network</span>
-          <button className="btn primary" style={{padding:"6px 14px",width:"auto",fontSize:12}} onClick={()=>switchChain({chainId:CHAIN_ID})}>Switch to Base Sepolia</button>
-        </div>
-      )}
-
-      {/* ── Landing page for newcomers ────────────────────────────────── */}
-      {!isConnected && (
-        <div style={{minHeight:"calc(100vh - 73px)",display:"flex",flexDirection:"column",alignItems:"center",padding:"0 0 60px"}}>
-          <div style={{width:"100%",maxWidth:520,padding:"0 20px"}}>
-
-            {/* Hero */}
-            <div style={{position:"relative",textAlign:"center",padding:"52px 20px 40px",overflow:"hidden"}}>
-              <div style={{position:"absolute",top:-30,left:"5%",width:220,height:220,borderRadius:"50%",background:"radial-gradient(circle,rgba(108,99,255,0.2),transparent 70%)",pointerEvents:"none",animation:"glowPulse 4s ease infinite"}}/>
-              <div style={{position:"absolute",top:20,right:"5%",width:180,height:180,borderRadius:"50%",background:"radial-gradient(circle,rgba(0,245,160,0.12),transparent 70%)",pointerEvents:"none",animation:"glowPulse 4s ease infinite 2s"}}/>
-              <div style={{position:"absolute",bottom:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(108,99,255,0.35),rgba(0,245,160,0.2),transparent)"}}/>
-              <div style={{position:"relative",zIndex:1}}>
-                <div style={{fontFamily:"'Inter',sans-serif",fontWeight:600,fontSize:11,color:"var(--sub)",letterSpacing:"0.3em",textTransform:"uppercase",marginBottom:10}}>WELCOME TO</div>
-                <div style={{fontFamily:"'Orbitron',sans-serif",fontWeight:900,fontSize:"clamp(30px,8vw,52px)",letterSpacing:"0.01em",textTransform:"uppercase",lineHeight:1,userSelect:"none",marginBottom:14}}>
-                  <span style={{background:"linear-gradient(180deg,#60C8FF 0%,#1A7FD4 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 24px rgba(96,200,255,0.5))"}}>BASE</span>
-                  <span style={{background:"linear-gradient(180deg,#FFD84D 0%,#C87000 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",filter:"drop-shadow(0 0 24px rgba(255,216,77,0.5))"}}>CAST</span>
-                </div>
-                <div style={{fontSize:13,color:"var(--sub)",marginBottom:28,lineHeight:1.7}}>
-                  Provably fair on-chain game hub &middot; <span style={{color:"#60C8FF",fontWeight:500}}>Base chain</span>
-                </div>
-                <ConnectButton.Custom>
-                  {({openConnectModal,mounted}) => mounted && (
-                    <button
-                      onClick={openConnectModal}
-                      style={{
-                        display:"inline-flex",alignItems:"center",justifyContent:"center",gap:10,
-                        padding:"15px 36px",
-                        background:"linear-gradient(135deg,#6C63FF 0%,#2563EB 100%)",
-                        border:"none",borderRadius:12,cursor:"pointer",
-                        fontFamily:"'Inter',sans-serif",fontWeight:700,fontSize:16,
-                        color:"#fff",
-                        boxShadow:"0 4px 28px rgba(108,99,255,0.45)",
-                        transition:"all .15s",
-                      }}
-                      onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 36px rgba(108,99,255,0.6)";}}
-                      onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 28px rgba(108,99,255,0.45)";}}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
-                      Connect Wallet to Play
-                    </button>
-                  )}
-                </ConnectButton.Custom>
-                <div style={{display:"flex",gap:8,marginTop:18,flexWrap:"wrap",justifyContent:"center"}}>
-                  {["No KYC","100% On-Chain","Instant Payouts","Non-Custodial"].map(t=>(
-                    <span key={t} className="stat-pill">{t}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Platform stats bar */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:14,overflow:"hidden",margin:"20px 0"}}>
-              {[{l:"LIVE GAMES",v:"3"},{l:"BLOCKCHAIN",v:"Base"},{l:"CURRENCY",v:"USDC"}].map(({l,v},i)=>(
-                <div key={i} style={{padding:"14px 10px",borderRight:i<2?"1px solid var(--bd)":"none",textAlign:"center"}}>
-                  <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.5px",marginBottom:4}}>{l}</div>
-                  <div style={{fontSize:15,fontWeight:700,color:"var(--tx)"}}>{v}</div>
+          {/* Available games */}
+          <div style={{marginBottom:20,width:"100%"}}>
+            <div style={{fontWeight:700,fontSize:11,color:"var(--sub)",letterSpacing:"2px",marginBottom:12,padding:"0 2px"}}>AVAILABLE GAMES</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[
+                {label:"Coin Flip",  mult:"1.94×", desc:"Pick heads or tails",       color:"#6C63FF",bg:"rgba(108,99,255,0.12)",icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>},
+                {label:"Dice Roll",  mult:"5.82×", desc:"Range or exact number",     color:"#00F5A0",bg:"rgba(0,245,160,0.1)",  icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>},
+                {label:"Bingo",      mult:"20×",   desc:"Match a winning pattern",   color:"#FFD166",bg:"rgba(255,209,102,0.1)",icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>},
+                {label:"More Coming",mult:null,    desc:"New games &amp; features",  color:"var(--sub)",bg:"rgba(255,255,255,0.06)", isAlpha:true,icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>},
+              ].map(({label,mult,desc,color,bg,icon,isAlpha})=>(
+                <div key={label} className="card glow-card" style={{display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",background:isAlpha?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.03)",padding:"16px",opacity:isAlpha?0.6:1}}>
+                  <div style={{width:42,height:42,borderRadius:12,background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,flexShrink:0}}>{icon}</div>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14,color:"var(--tx)",marginBottom:2}}>{label}</div>
+                    <div style={{fontSize:12,color:"var(--sub)"}} dangerouslySetInnerHTML={{__html:desc}}/>
+                  </div>
+                  {!isAlpha && <div style={{fontSize:12,fontWeight:700,color:"var(--gold)"}}>Up to {mult}</div>}
                 </div>
               ))}
             </div>
-
-            {/* Available games */}
-            <div style={{marginBottom:20}}>
-              <div style={{fontWeight:700,fontSize:11,color:"var(--sub)",letterSpacing:"2px",marginBottom:12,padding:"0 2px"}}>AVAILABLE GAMES</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                {[
-                  {label:"Coin Flip",  mult:"1.94×", desc:"Pick heads or tails",       color:"#6C63FF",bg:"rgba(108,99,255,0.12)",icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>},
-                  {label:"Dice Roll",  mult:"5.82×", desc:"Range or exact number",     color:"#00F5A0",bg:"rgba(0,245,160,0.1)",  icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>},
-                  {label:"Bingo",      mult:"20×",   desc:"Match a winning pattern",   color:"#FFD166",bg:"rgba(255,209,102,0.1)",icon:<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>},
-                  {label:"More Coming",mult:null,    desc:"New games &amp; features",  color:"var(--sub)",bg:"rgba(255,255,255,0.06)", isAlpha:true,icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>},
-                ].map(({label,mult,desc,color,bg,icon,isAlpha})=>(
-                  <div key={label} className="card glow-card" style={{display:"flex",flexDirection:"column",gap:10,alignItems:"flex-start",border:"1px solid var(--bd)",background:isAlpha?"rgba(255,255,255,0.04)":"rgba(255,255,255,0.03)",padding:"16px",opacity:isAlpha?0.6:1}}>
-                    <div style={{width:42,height:42,borderRadius:12,background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,flexShrink:0}}>{icon}</div>
-                    <div>
-                      <div style={{fontWeight:700,fontSize:14,color:"var(--tx)",marginBottom:2}}>{label}</div>
-                      <div style={{fontSize:12,color:"var(--sub)"}} dangerouslySetInnerHTML={{__html:desc}}/>
-                    </div>
-                    {!isAlpha && <div style={{fontSize:12,fontWeight:700,color:"var(--gold)"}}>Up to {mult}</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Why BaseCast */}
-            <div style={{marginBottom:20}}>
-              <div style={{fontWeight:700,fontSize:11,color:"var(--sub)",letterSpacing:"2px",marginBottom:12,padding:"0 2px"}}>WHY BASECAST</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {[
-                  {color:"#6C63FF",bg:"rgba(108,99,255,0.12)",title:"Provably Fair",body:"Every outcome generated on-chain via Pyth Entropy v2. Nobody — not even us — can predict or manipulate results.",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>},
-                  {color:"#00F5A0",bg:"rgba(0,245,160,0.1)",title:"Non-Custodial",body:"Your funds stay in your wallet until you bet. Smart contracts handle everything — no deposits, no trust required.",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><circle cx="12" cy="14" r="1.5"/></svg>},
-                  {color:"#FFD166",bg:"rgba(255,209,102,0.1)",title:"Instant Settlement",body:"Bet results settle on Base in seconds. Winnings are sent directly to your wallet, every single time.",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>},
-                ].map(({color,bg,title,body,icon},i)=>(
-                  <div key={i} style={{display:"flex",gap:14,padding:"14px 16px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12,alignItems:"flex-start"}}>
-                    <div style={{width:38,height:38,borderRadius:10,background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,flexShrink:0}}>{icon}</div>
-                    <div>
-                      <div style={{fontWeight:600,fontSize:13,color:"var(--tx)",marginBottom:3}}>{title}</div>
-                      <div style={{fontSize:12,color:"var(--sub)",lineHeight:1.6}}>{body}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Powered by */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,padding:"14px 20px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12,marginBottom:16,flexWrap:"wrap"}}>
-              <span style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px",fontWeight:600}}>POWERED BY</span>
-              <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>Pyth Entropy v2</span>
-              <span style={{width:3,height:3,borderRadius:"50%",background:"var(--bd)",display:"inline-block"}}/>
-              <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>Base Chain</span>
-              <span style={{width:3,height:3,borderRadius:"50%",background:"var(--bd)",display:"inline-block"}}/>
-              <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>USDC</span>
-            </div>
-
-            {/* Community */}
-            <div style={{padding:"18px 20px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-              <div>
-                <div style={{fontWeight:700,fontSize:13,color:"var(--tx)",marginBottom:4}}>Join the Community</div>
-                <div style={{fontSize:11,color:"var(--sub)"}}>Stay updated on new games and features</div>
-              </div>
-              <div style={{display:"flex",gap:8}}>
-                <a href="https://x.com/basecast_" target="_blank" rel="noopener noreferrer" className="social-link" title="Twitter / X">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.736l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                </a>
-                <a href="https://t.me/basecastorg" target="_blank" rel="noopener noreferrer" className="social-link" title="Telegram">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-                </a>
-                <a href="https://discord.gg/EKT5QF3s8" target="_blank" rel="noopener noreferrer" className="social-link" title="Discord">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.032.057a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-                </a>
-                <a href="https://github.com/Jeephoenix/basecast" target="_blank" rel="noopener noreferrer" className="social-link" title="GitHub">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
-                </a>
-              </div>
-            </div>
-
           </div>
+
+          {/* Why BaseCast */}
+          <div style={{marginBottom:20,width:"100%"}}>
+            <div style={{fontWeight:700,fontSize:11,color:"var(--sub)",letterSpacing:"2px",marginBottom:12,padding:"0 2px"}}>WHY BASECAST</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {[
+                {color:"#6C63FF",bg:"rgba(108,99,255,0.12)",title:"Provably Fair",body:"Every outcome generated on-chain via Pyth Entropy v2. Nobody — not even us — can predict or manipulate results.",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>},
+                {color:"#00F5A0",bg:"rgba(0,245,160,0.1)",title:"Non-Custodial",body:"Your funds stay in your wallet until you bet. Smart contracts handle everything — no deposits, no trust required.",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><circle cx="12" cy="14" r="1.5"/></svg>},
+                {color:"#FFD166",bg:"rgba(255,209,102,0.1)",title:"Instant Settlement",body:"Bet results settle on Base in seconds. Winnings are sent directly to your wallet, every single time.",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>},
+              ].map(({color,bg,title,body,icon},i)=>(
+                <div key={i} style={{display:"flex",gap:14,padding:"14px 16px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12,alignItems:"flex-start"}}>
+                  <div style={{width:38,height:38,borderRadius:10,background:bg,display:"flex",alignItems:"center",justifyContent:"center",color,flexShrink:0}}>{icon}</div>
+                  <div>
+                    <div style={{fontWeight:600,fontSize:13,color:"var(--tx)",marginBottom:3}}>{title}</div>
+                    <div style={{fontSize:12,color:"var(--sub)",lineHeight:1.6}}>{body}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Powered by */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,padding:"14px 20px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:12,marginBottom:16,flexWrap:"wrap",width:"100%"}}>
+            <span style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px",fontWeight:600}}>POWERED BY</span>
+            <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>Pyth Entropy v2</span>
+            <span style={{width:3,height:3,borderRadius:"50%",background:"var(--bd)",display:"inline-block"}}/>
+            <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>Base Chain</span>
+            <span style={{width:3,height:3,borderRadius:"50%",background:"var(--bd)",display:"inline-block"}}/>
+            <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>USDC</span>
+          </div>
+
+          {/* Community */}
+          <div style={{padding:"18px 20px",background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap",width:"100%"}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:13,color:"var(--tx)",marginBottom:4}}>Join the Community</div>
+              <div style={{fontSize:11,color:"var(--sub)"}}>Stay updated on new games and features</div>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <a href="https://x.com/basecast_" target="_blank" rel="noopener noreferrer" className="social-link" title="Twitter / X">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.736l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </a>
+              <a href="https://t.me/basecastorg" target="_blank" rel="noopener noreferrer" className="social-link" title="Telegram">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              </a>
+              <a href="https://discord.gg/EKT5QF3s8" target="_blank" rel="noopener noreferrer" className="social-link" title="Discord">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.032.057a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+              </a>
+              <a href="https://github.com/Jeephoenix/basecast" target="_blank" rel="noopener noreferrer" className="social-link" title="GitHub">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+              </a>
+            </div>
+          </div>
+
         </div>
       )}
 
@@ -1231,7 +1179,7 @@ export default function App() {
             <div className="card" style={{padding:0,overflow:"hidden"}}>
               {lbLd?(
                 <div style={{display:"flex",justifyContent:"center",padding:32}}><Spin size={22}/></div>
-              ):topByPnl.length===0?(
+              ):sortedLb.length===0?(
                 <div style={{textAlign:"center",padding:"28px 24px"}}>
                   <div style={{fontSize:28,marginBottom:8}}>🏆</div>
                   <div style={{fontSize:13,color:"var(--sub)",marginBottom:12}}>No players ranked yet — be the first!</div>
@@ -1239,7 +1187,7 @@ export default function App() {
                 </div>
               ):(
                 <>
-                  {topByPnl.map((p,i)=>{
+                  {sortedLb.slice(0,3).map((p,i)=>{
                     const medal=["🥇","🥈","🥉"][i];
                     const borderColor=["var(--gold)","#9CA3AF","#D97706"][i];
                     const serverName=lbNames[p.address.toLowerCase()];
@@ -1252,11 +1200,15 @@ export default function App() {
                           <div style={{fontSize:13,fontWeight:600,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUname?"'Inter',sans-serif":"'JetBrains Mono',monospace"}}>
                             {name}{p.address===address&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.1)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
                           </div>
+                          <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>Vol: {usd(p.volume)}</div>
                         </div>
                         <div style={{fontSize:13,fontWeight:700,color:p.pnl>=0n?"var(--green)":"var(--red)",flexShrink:0}}>{pnl(p.pnl)}</div>
                       </div>
                     );
                   })}
+                  <button onClick={()=>setNavSection("leaderboard")} style={{width:"100%",padding:"12px",background:"var(--s2)",border:"none",borderTop:"1px solid var(--bd)",color:"var(--blue)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                    View All Rankings <IcoChevron/>
+                  </button>
                 </>
               )}
             </div>
@@ -1270,7 +1222,7 @@ export default function App() {
                 {Icon:IcoShield, title:"Verify Anytime",  body:"Use the Verify Bet tool to audit any past result directly from the blockchain using its sequence number."},
               ].map(({Icon,title,body},i)=>(
                 <div key={i} style={{display:"flex",gap:12}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:"rgba(108,99,255,.1)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--blue)",flexShrink:0}}><Icon/></div>
+                  <div style={{width:36,height:36,borderRadius:10,background:"rgba(108,99,255,.12)",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--blue)",flexShrink:0}}><Icon/></div>
                   <div>
                     <div style={{fontWeight:600,fontSize:13,color:"var(--tx)",marginBottom:3}}>{title}</div>
                     <div style={{fontSize:12,color:"var(--sub)",lineHeight:1.6}}>{body}</div>
@@ -1552,7 +1504,7 @@ export default function App() {
 
             {/* ── Bingo ── */}
             {tab==="bingo" && isConnected && authed && (
-              <div className="fi"><BingoGame balance={bal} refetchBalance={fetchStats} vaultMax={vault.max} vaultMin={vault.min} mpAddress={BINGO_MP} usdcAddress={USDC} explorer={EXPLORER}/></div>
+              <div className="fi"><BingoGame balance={bal} refetchBalance={fetchStats} vaultMax={vault.max} vaultMin={vault.min}/></div>
             )}
           </div>
         )}
@@ -1580,39 +1532,32 @@ export default function App() {
             {/* Sort tabs */}
             <div style={{display:"flex",gap:8,background:"var(--s2)",borderRadius:12,padding:4,border:"1px solid var(--bd)"}}>
               {[{k:"volume",label:"By Volume"},{k:"pnl",label:"By PnL"}].map(({k,label})=>(
-                <button key={k} onClick={()=>setLbSrt(k)} style={{flex:1,padding:"9px 0",borderRadius:9,border:"none",background:lbSrt===k?"linear-gradient(135deg,#6C63FF,#4F46E5)":"transparent",color:lbSrt===k?"#fff":"var(--sub)",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"'Inter',sans-serif",transition:"all .15s"}}>
-                  {label}
-                </button>
+                <button key={k} onClick={()=>setLbSrt(k)} style={{flex:1,padding:"9px",borderRadius:9,border:"none",background:lbSrt===k?"var(--blue)":"transparent",color:lbSrt===k?"#fff":"var(--sub)",fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"'Inter',sans-serif",transition:"all .15s"}}>{label}</button>
               ))}
             </div>
 
-            {lbLd?(
-              <div style={{display:"flex",justifyContent:"center",padding:64}}><Spin size={32}/></div>
-            ):sortedLb.length===0?(
-              <div className="card" style={{textAlign:"center",padding:"56px 24px"}}>
-                <div style={{fontSize:48,marginBottom:12}}>🏆</div>
-                <div style={{fontSize:15,fontWeight:600,color:"var(--tx)",marginBottom:8}}>No players ranked yet</div>
-                <div style={{fontSize:13,color:"var(--sub)",marginBottom:20}}>Play a game to appear on the leaderboard!</div>
-                <button onClick={()=>{setTab("coinflip");setNavSection("games");}} style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",border:"none",color:"#fff",padding:"12px 28px",borderRadius:12,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
-                  Start Playing
-                </button>
+            {lbLd ? (
+              <div style={{display:"flex",justifyContent:"center",padding:40}}><Spin size={28}/></div>
+            ) : sortedLb.length === 0 ? (
+              <div className="card" style={{textAlign:"center",padding:"48px 24px"}}>
+                <div style={{fontSize:36,marginBottom:12}}>🏆</div>
+                <div style={{fontSize:14,color:"var(--sub)",marginBottom:16}}>No players ranked yet</div>
+                <div style={{fontSize:12,color:"var(--dim)"}}>Be the first to place a bet and claim the top spot!</div>
               </div>
-            ):(
+            ) : (
               <>
-                {/* Podium for top 3 */}
-                {sortedLb.length>=3&&(
-                  <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:12,padding:"8px 0 0"}}>
-                    {/* 2nd place */}
+                {/* Podium */}
+                {sortedLb.length >= 3 && (
+                  <div style={{display:"flex",alignItems:"flex-end",gap:8,height:160}}>
                     {(()=>{const p=sortedLb[1];const sn=lbNames[p.address.toLowerCase()];const n=sn||getLbName(p.address);const hu=!!sn||n!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;return(
                       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                        <div style={{fontSize:11,fontWeight:600,color:"#9CA3AF",fontFamily:"'Inter',sans-serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace"}}>{n}</div>
-                        <div style={{width:"100%",background:"linear-gradient(180deg,rgba(156,163,175,.15) 0%,rgba(156,163,175,.05) 100%)",border:"1px solid rgba(156,163,175,.3)",borderBottom:"none",borderRadius:"10px 10px 0 0",padding:"16px 8px 10px",textAlign:"center",minHeight:90,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
+                        <div style={{fontSize:11,fontWeight:600,color:"#9CA3AF",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center"}}>{n}</div>
+                        <div style={{width:"100%",background:"linear-gradient(180deg,rgba(156,163,175,.15) 0%,rgba(156,163,175,.05) 100%)",border:"1px solid rgba(156,163,175,.3)",borderBottom:"none",borderRadius:"10px 10px 0 0",padding:"12px 8px 10px",textAlign:"center",minHeight:96,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
                           <div style={{fontSize:28}}>🥈</div>
-                          <div style={{fontSize:11,color:"var(--sub)",fontWeight:600}}>{lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}</div>
+                          <div style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>{lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}</div>
                         </div>
                       </div>
                     );})()}
-                    {/* 1st place */}
                     {(()=>{const p=sortedLb[0];const sn=lbNames[p.address.toLowerCase()];const n=sn||getLbName(p.address);const hu=!!sn||n!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;return(
                       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
                         <div style={{fontSize:11,fontWeight:600,color:"var(--gold)",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center"}}>{n}</div>
@@ -1622,7 +1567,6 @@ export default function App() {
                         </div>
                       </div>
                     );})()}
-                    {/* 3rd place */}
                     {(()=>{const p=sortedLb[2];const sn=lbNames[p.address.toLowerCase()];const n=sn||getLbName(p.address);const hu=!!sn||n!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;return(
                       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
                         <div style={{fontSize:11,fontWeight:600,color:"#D97706",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center"}}>{n}</div>
@@ -1654,6 +1598,9 @@ export default function App() {
                             {name}
                             {isMe&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.12)",borderRadius:4,padding:"1px 5px",fontFamily:"'Inter',sans-serif"}}>YOU</span>}
                           </div>
+                          <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>
+                            Vol: {usd(p.volume)} &middot; PnL: <span style={{color:p.pnl>=0n?"var(--green)":"var(--red)"}}>{pnl(p.pnl)}</span>
+                          </div>
                         </div>
                         <div style={{textAlign:"right",flexShrink:0}}>
                           <div style={{fontSize:13,fontWeight:700,color:lbSrt==="volume"?"var(--tx)":p.pnl>=0n?"var(--green)":"var(--red)"}}>
@@ -1676,6 +1623,7 @@ export default function App() {
           </div>
         )}
 
+        {/* ══ PROFILE ════════════════════════════════════════════════════ */}
         {navSection==="profile" && (
           <div className="fi" style={{display:"flex",flexDirection:"column",gap:14}}>
             {!isConnected ? (
@@ -1687,7 +1635,7 @@ export default function App() {
               <SignScreen isSigning={signing} error={signErr} onSign={doSign}/>
             ) : (
               <>
-                {/* Profile header card */}
+                {/* ── Profile header card ── */}
                 <div className="card" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,padding:"28px 20px"}}>
                   {/* Avatar */}
                   <div style={{position:"relative"}}>
@@ -1773,208 +1721,318 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Referral card */}
-                <div className="card" style={{display:"flex",flexDirection:"column",gap:14}}>
-                  <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>REFERRAL PROGRAM</div>
-
-                  {/* Stats row */}
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
-                    <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
-                      <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>REFERRED</div>
-                      <div style={{fontSize:17,fontWeight:700,color:"var(--tx)",fontFamily:"'Inter',sans-serif"}}>{refCount===null?"…":refCount}</div>
-                    </div>
-                    <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
-                      <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>CLAIMABLE</div>
-                      <div style={{fontSize:17,fontWeight:700,color:"var(--green)",fontFamily:"'Inter',sans-serif"}}>
-                        {refPending===null?"…":usd(refPending)}
-                      </div>
-                    </div>
-                    <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
-                      <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>LIFETIME</div>
-                      <div style={{fontSize:17,fontWeight:700,color:"var(--sub)",fontFamily:"'Inter',sans-serif"}}>
-                        {refEarned===null?"…":usd(refEarned)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Claim button */}
-                  {REFERRAL && (
+                {/* ── Profile tab selector ── */}
+                <div style={{display:"flex",gap:0,background:"var(--s2)",borderRadius:12,padding:4,border:"1px solid var(--bd)"}}>
+                  {[
+                    {k:"overview", label:"Overview"},
+                    {k:"wallet",   label:"Wallet"},
+                  ].map(({k,label})=>(
                     <button
-                      onClick={claimReferralRewards}
-                      disabled={refClaiming || !refPending || refPending===0n}
-                      style={{width:"100%",padding:"11px",background:(refPending && refPending>0n)?"var(--green)":"var(--s2)",border:"none",borderRadius:10,color:(refPending && refPending>0n)?"#000":"var(--dim)",fontSize:13,fontWeight:700,cursor:(refPending && refPending>0n)?"pointer":"default",fontFamily:"'Inter',sans-serif",transition:"opacity .2s",opacity:refClaiming?0.6:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                      {refClaiming
-                        ? <><Spin size={14}/> Claiming…</>
-                        : (refPending && refPending>0n)
-                          ? <>Claim {usd(refPending)} USDC</>
-                          : "No rewards to claim yet"
-                      }
-                    </button>
-                  )}
-                  {refClaimErr && <div style={{fontSize:11,color:"var(--red)",textAlign:"center"}}>{refClaimErr}</div>}
-
-                  {/* Referral link */}
-                  <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>Your referral link — share it to earn <span style={{color:"#8B82FF",fontWeight:700}}>1% of every bet</span> your referrals place.</div>
-                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                    <div style={{flex:1,background:"var(--s2)",borderRadius:10,padding:"10px 14px",fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:"var(--sub)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",userSelect:"all"}}>
-                      {typeof window!=="undefined"?`${window.location.origin}?ref=${refCode(address)}`:"Loading…"}
-                    </div>
-                    <button
-                      onClick={()=>{
-                        const link = `${window.location.origin}?ref=${refCode(address)}`;
-                        navigator.clipboard.writeText(link).then(()=>{ setCopiedRef(true); setTimeout(()=>setCopiedRef(false),2000); });
+                      key={k}
+                      onClick={()=>setProfileTab(k)}
+                      style={{
+                        flex:1,padding:"10px",borderRadius:9,border:"none",
+                        background:profileTab===k?"var(--blue)":"transparent",
+                        color:profileTab===k?"#fff":"var(--sub)",
+                        fontWeight:600,fontSize:13,cursor:"pointer",
+                        fontFamily:"'Inter',sans-serif",transition:"all .15s",
                       }}
-                      style={{flexShrink:0,background:"var(--blue)",border:"none",borderRadius:10,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,fontFamily:"'Inter',sans-serif",transition:"opacity .2s",opacity:copiedRef?0.7:1,whiteSpace:"nowrap"}}>
-                      {copiedRef?<><IcoCheck/> Copied!</>:<><IcoCopy/> Copy</>}
-                    </button>
-                  </div>
-                  {typeof navigator!=="undefined" && navigator.share && (
-                    <button
-                      onClick={()=>{ navigator.share({ title:"Join Basecast", text:"Play provably fair on-chain casino games on Base.", url:`${window.location.origin}?ref=${refCode(address)}` }).catch(()=>{}); }}
-                      style={{background:"none",border:"1px solid var(--bd)",borderRadius:10,padding:"9px",color:"var(--sub)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                      Share via…
-                    </button>
-                  )}
+                    >{label}</button>
+                  ))}
                 </div>
 
-                {/* Transaction history */}
-                <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>TRANSACTION HISTORY</div>
-                {txLoading ? (
-                  <div style={{display:"flex",justifyContent:"center",padding:32}}><Spin size={24}/></div>
-                ) : txHistory.length===0 ? (
-                  <div className="card" style={{textAlign:"center",padding:32,color:"var(--sub)",fontSize:13}}>No transactions yet</div>
-                ) : (
-                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    {groupByDate(txExpanded ? txHistory : txHistory.slice(0,5)).map(([date,txs])=>(
-                      <div key={date}>
-                        <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"0.8px",padding:"6px 4px",marginBottom:4}}>{date}</div>
-                        {txs.map(tx=>(
-                          <div key={tx.id} className="card" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",marginBottom:6}}>
-                            <div style={{display:"flex",alignItems:"center",gap:10}}>
-                              <div style={{width:32,height:32,borderRadius:8,background:tx.won?"rgba(0,245,160,.1)":"rgba(255,77,109,.1)",display:"flex",alignItems:"center",justifyContent:"center",color:tx.won?"var(--green)":"var(--red)",flexShrink:0}}>
-                                {tx.type==="coinflip"?<IcoTxCoin/>:tx.type==="bingo"?<IcoTxBingo/>:<IcoTxDice/>}
-                              </div>
-                              <div>
-                                <div style={{fontSize:12,color:"var(--tx)",fontWeight:500}}>{tx.type==="coinflip"?"Coin Flip":tx.type==="bingo"?`Bingo · ${tx.subLabel}`:"Dice Roll"}</div>
-                                <div style={{fontSize:10,color:"var(--sub)",marginTop:2}}>{new Date(tx.timestamp*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</div>
-                              </div>
+                {/* ══ WALLET TAB ══ */}
+                {profileTab==="wallet" && (
+                  <div className="fi" style={{display:"flex",flexDirection:"column",gap:12}}>
+
+                    {walletLoading ? (
+                      <div style={{display:"flex",justifyContent:"center",padding:40}}><Spin size={24}/></div>
+                    ) : (
+                      <>
+                        {/* Total value */}
+                        <div style={{
+                          background:"linear-gradient(135deg,rgba(108,99,255,0.15),rgba(0,245,160,0.08))",
+                          border:"1px solid rgba(108,99,255,0.3)",
+                          borderRadius:16,padding:"24px 20px",textAlign:"center",
+                        }}>
+                          <div style={{fontSize:11,color:"var(--sub)",letterSpacing:"2px",marginBottom:8}}>TOTAL WALLET VALUE</div>
+                          <div style={{fontSize:36,fontWeight:800,color:"var(--tx)",letterSpacing:"-0.5px"}}>
+                            ~${totalUsd}
+                          </div>
+                          <div style={{fontSize:11,color:"var(--sub)",marginTop:6,fontFamily:"'JetBrains Mono',monospace"}}>
+                            {address ? `${address.slice(0,6)}...${address.slice(-4)}` : ""}
+                          </div>
+                          <div style={{fontSize:10,color:"var(--dim)",marginTop:2}}>
+                            {CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"}
+                          </div>
+                        </div>
+
+                        {/* Trading tokens section */}
+                        <div style={{fontSize:10,fontWeight:700,color:"var(--sub)",letterSpacing:"2px",padding:"4px 2px"}}>TRADING TOKENS</div>
+                        <div style={{
+                          background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:14,
+                          padding:"16px",display:"flex",justifyContent:"space-between",alignItems:"center",
+                        }}>
+                          <div style={{display:"flex",alignItems:"center",gap:12}}>
+                            <div style={{
+                              width:42,height:42,borderRadius:"50%",flexShrink:0,
+                              background:"linear-gradient(135deg,#2775CA,#6C63FF)",
+                              display:"flex",alignItems:"center",justifyContent:"center",
+                              fontWeight:800,fontSize:16,color:"#fff",
+                            }}>$</div>
+                            <div>
+                              <div style={{fontWeight:700,fontSize:15,color:"var(--tx)"}}>USDC</div>
+                              <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>USD Coin · $1.00</div>
                             </div>
-                            <div style={{textAlign:"right"}}>
-                              <div style={{fontSize:12,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
-                              {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none"}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
-                              <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:4,marginTop:2}}>
-                                <span
-                                  onClick={()=>{navigator.clipboard.writeText(tx.seqNum);setCopiedSeq(tx.seqNum);setTimeout(()=>setCopiedSeq(null),2000);}}
-                                  title="Tap to copy"
-                                  style={{fontSize:9,color:copiedSeq===tx.seqNum?"var(--green)":"var(--sub)",cursor:"pointer",transition:"color .2s",userSelect:"none"}}
-                                >
-                                  {copiedSeq===tx.seqNum?"copied!":"seq: "+tx.seqNum}
-                                </span>
-                                <button onClick={()=>{setVerifySeq(tx.seqNum);setVerifyResult(null);setVerifyErr(null);document.getElementById("verify-section")?.scrollIntoView({behavior:"smooth",block:"start"});}} style={{fontSize:9,color:"var(--blue)",background:"rgba(108,99,255,0.1)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:3,padding:"1px 6px",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:600}}>Verify ↗</button>
+                          </div>
+                          <div style={{textAlign:"right"}}>
+                            <div style={{fontWeight:700,fontSize:15,color:"var(--tx)"}}>${usdcAmt.toFixed(4)}</div>
+                            <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>{usdcAmt.toFixed(4)} USDC</div>
+                          </div>
+                        </div>
+
+                        {/* Holding tokens section */}
+                        <div style={{fontSize:10,fontWeight:700,color:"var(--sub)",letterSpacing:"2px",padding:"4px 2px"}}>HOLDING TOKENS</div>
+                        <div style={{
+                          background:"var(--s2)",border:"1px solid var(--bd)",borderRadius:14,
+                          padding:"16px",display:"flex",justifyContent:"space-between",alignItems:"center",
+                        }}>
+                          <div style={{display:"flex",alignItems:"center",gap:12}}>
+                            <div style={{
+                              width:42,height:42,borderRadius:"50%",flexShrink:0,
+                              background:"linear-gradient(135deg,#627EEA,#8FA8F8)",
+                              display:"flex",alignItems:"center",justifyContent:"center",
+                              fontWeight:800,fontSize:16,color:"#fff",
+                            }}>Ξ</div>
+                            <div>
+                              <div style={{fontWeight:700,fontSize:15,color:"var(--tx)"}}>ETH</div>
+                              <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>
+                                Ethereum · {ethPrice != null ? `$${ethPrice.toLocaleString()}` : "—"}
                               </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ))}
-                    {txHistory.length > 5 && (
-                      <button
-                        onClick={() => setTxExpanded(e => !e)}
-                        style={{
-                          width:"100%",padding:"11px",marginTop:2,
-                          background:"var(--s2)",border:"1px solid var(--bd)",
-                          borderRadius:10,cursor:"pointer",
-                          fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,
-                          color:"var(--blue)",display:"flex",alignItems:"center",
-                          justifyContent:"center",gap:6,transition:"background .15s",
-                        }}
-                        onMouseEnter={e=>e.currentTarget.style.background="rgba(108,99,255,.12)"}
-                        onMouseLeave={e=>e.currentTarget.style.background="var(--s2)"}
-                      >
-                        {txExpanded ? (
-                          <>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-                            See less
-                          </>
-                        ) : (
-                          <>
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                            See more ({txHistory.length - 5} more)
-                          </>
-                        )}
-                      </button>
+                          <div style={{textAlign:"right"}}>
+                            <div style={{fontWeight:700,fontSize:15,color:"var(--tx)"}}>${ethUsdVal.toFixed(4)}</div>
+                            <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>{ethAmt.toFixed(6)} ETH</div>
+                          </div>
+                        </div>
+
+                        {/* Price source note */}
+                        <div style={{fontSize:10,color:"var(--dim)",textAlign:"center",padding:"0 4px"}}>
+                          ETH price via CoinGecko · Balances read live from Base chain
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
 
-                {/* ── Verify a Bet ── */}
-                <div id="verify-section" style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"4px 4px 0",display:"flex",alignItems:"center",gap:8}}>
-                  <IcoShield/> VERIFY A BET
-                </div>
-                <div className="card" style={{display:"flex",flexDirection:"column",gap:12}}>
-                  <div style={{fontSize:11,color:"var(--sub)",lineHeight:1.6}}>Paste or tap "Verify ↗" on any transaction above to audit its outcome directly from the blockchain.</div>
-                  <div style={{display:"flex",gap:8}}>
-                    <input className="inp" placeholder="Sequence number (e.g. 73911)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
-                    <button className="btn primary" style={{width:"auto",padding:"0 20px",fontSize:13,flexShrink:0}} onClick={doVerify} disabled={verifyLoading||!verifySeq.trim()}>{verifyLoading?<Spin/>:"Verify"}</button>
-                  </div>
-                  {verifyErr && <div style={{fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{verifyErr}</div>}
-                </div>
-                {verifyResult && (
-                  <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>
-                        {verifyResult.gameType==="coinflip"?"Coin Flip":verifyResult.gameType==="bingo"?"Bingo":"Dice Roll"} &mdash; Seq #{verifyResult.seq}
+                {/* ══ OVERVIEW TAB ══ */}
+                {profileTab==="overview" && (
+                  <>
+                    {/* Referral card */}
+                    <div className="card" style={{display:"flex",flexDirection:"column",gap:14}}>
+                      <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>REFERRAL PROGRAM</div>
+
+                      {/* Stats row */}
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                        <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
+                          <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>REFERRED</div>
+                          <div style={{fontSize:17,fontWeight:700,color:"var(--tx)",fontFamily:"'Inter',sans-serif"}}>{refCount===null?"…":refCount}</div>
+                        </div>
+                        <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
+                          <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>CLAIMABLE</div>
+                          <div style={{fontSize:17,fontWeight:700,color:"var(--green)",fontFamily:"'Inter',sans-serif"}}>
+                            {refPending===null?"…":usd(refPending)}
+                          </div>
+                        </div>
+                        <div style={{background:"var(--s2)",borderRadius:10,padding:"10px 12px",textAlign:"center"}}>
+                          <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1.2px",marginBottom:3}}>LIFETIME</div>
+                          <div style={{fontSize:17,fontWeight:700,color:"var(--sub)",fontFamily:"'Inter',sans-serif"}}>
+                            {refEarned===null?"…":usd(refEarned)}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:verifyResult.status===0?"rgba(245,158,11,.15)":verifyResult.status===1?"rgba(16,185,129,.15)":"rgba(239,68,68,.15)",color:verifyResult.status===0?"var(--gold)":verifyResult.status===1?"var(--green)":"var(--red)"}}>
-                        {verifyResult.status===0?"PENDING":verifyResult.status===1?"WON":"LOST"}
+
+                      {/* Claim button */}
+                      {REFERRAL && (
+                        <button
+                          onClick={claimReferralRewards}
+                          disabled={refClaiming || !refPending || refPending===0n}
+                          style={{width:"100%",padding:"11px",background:(refPending && refPending>0n)?"var(--green)":"var(--s2)",border:"none",borderRadius:10,color:(refPending && refPending>0n)?"#000":"var(--dim)",fontSize:13,fontWeight:700,cursor:(refPending && refPending>0n)?"pointer":"default",fontFamily:"'Inter',sans-serif",transition:"opacity .2s",opacity:refClaiming?0.6:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                          {refClaiming
+                            ? <><Spin size={14}/> Claiming…</>
+                            : (refPending && refPending>0n)
+                              ? <>Claim {usd(refPending)} USDC</>
+                              : "No rewards to claim yet"
+                          }
+                        </button>
+                      )}
+                      {refClaimErr && <div style={{fontSize:11,color:"var(--red)",textAlign:"center"}}>{refClaimErr}</div>}
+
+                      {/* Referral link */}
+                      <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>Your referral link — share it to earn <span style={{color:"#8B82FF",fontWeight:700}}>1% of every bet</span> your referrals place.</div>
+                      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                        <div style={{flex:1,background:"var(--s2)",borderRadius:10,padding:"10px 14px",fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:"var(--sub)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",userSelect:"all"}}>
+                          {typeof window!=="undefined"?`${window.location.origin}?ref=${refCode(address)}`:"Loading…"}
+                        </div>
+                        <button
+                          onClick={()=>{
+                            const link = `${window.location.origin}?ref=${refCode(address)}`;
+                            navigator.clipboard.writeText(link).then(()=>{ setCopiedRef(true); setTimeout(()=>setCopiedRef(false),2000); });
+                          }}
+                          style={{flexShrink:0,background:"var(--blue)",border:"none",borderRadius:10,padding:"10px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6,fontFamily:"'Inter',sans-serif",transition:"opacity .2s",opacity:copiedRef?0.7:1,whiteSpace:"nowrap"}}>
+                          {copiedRef?<><IcoCheck/> Copied!</>:<><IcoCopy/> Copy</>}
+                        </button>
                       </div>
+                      {typeof navigator!=="undefined" && navigator.share && (
+                        <button
+                          onClick={()=>{ navigator.share({ title:"Join Basecast", text:"Play provably fair on-chain casino games on Base.", url:`${window.location.origin}?ref=${refCode(address)}` }).catch(()=>{}); }}
+                          style={{background:"none",border:"1px solid var(--bd)",borderRadius:10,padding:"9px",color:"var(--sub)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                          Share via…
+                        </button>
+                      )}
                     </div>
-                    {[
-                      {label:"Chain",      value:CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"},
-                      {label:"Sequence #", value:`#${verifyResult.seq}`},
-                      {label:"Player",     value:`${verifyResult.player.slice(0,10)}...${verifyResult.player.slice(-8)}`},
-                      {label:"Wager",      value:usd(verifyResult.wager)},
-                      {label:"Payout",     value:verifyResult.status===1?usd(verifyResult.payout):"—"},
-                      {label:"Timestamp",  value:verifyResult.timestamp>0?new Date(verifyResult.timestamp*1000).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}):"—"},
-                    ].map(({label,value})=>(
-                      <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>{label}</span>
-                        <span style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
+
+                    {/* Transaction history */}
+                    <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>TRANSACTION HISTORY</div>
+                    {txLoading ? (
+                      <div style={{display:"flex",justifyContent:"center",padding:32}}><Spin size={24}/></div>
+                    ) : txHistory.length===0 ? (
+                      <div className="card" style={{textAlign:"center",padding:32,color:"var(--sub)",fontSize:13}}>No transactions yet</div>
+                    ) : (
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {groupByDate(txExpanded ? txHistory : txHistory.slice(0,5)).map(([date,txs])=>(
+                          <div key={date}>
+                            <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"0.8px",padding:"6px 4px",marginBottom:4}}>{date}</div>
+                            {txs.map(tx=>(
+                              <div key={tx.id} className="card" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",marginBottom:6}}>
+                                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                                  <div style={{width:32,height:32,borderRadius:8,background:tx.won?"rgba(0,245,160,.1)":"rgba(255,77,109,.1)",display:"flex",alignItems:"center",justifyContent:"center",color:tx.won?"var(--green)":"var(--red)",flexShrink:0}}>
+                                    {tx.type==="coinflip"?<IcoTxCoin/>:tx.type==="bingo"?<IcoTxBingo/>:<IcoTxDice/>}
+                                  </div>
+                                  <div>
+                                    <div style={{fontSize:12,color:"var(--tx)",fontWeight:500}}>{tx.type==="coinflip"?"Coin Flip":tx.type==="bingo"?`Bingo · ${tx.subLabel}`:"Dice Roll"}</div>
+                                    <div style={{fontSize:10,color:"var(--sub)",marginTop:2}}>{new Date(tx.timestamp*1000).toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})}</div>
+                                  </div>
+                                </div>
+                                <div style={{textAlign:"right"}}>
+                                  <div style={{fontSize:12,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
+                                  {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none"}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
+                                  <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:4,marginTop:2}}>
+                                    <span
+                                      onClick={()=>{navigator.clipboard.writeText(tx.seqNum);setCopiedSeq(tx.seqNum);setTimeout(()=>setCopiedSeq(null),2000);}}
+                                      title="Tap to copy"
+                                      style={{fontSize:9,color:copiedSeq===tx.seqNum?"var(--green)":"var(--sub)",cursor:"pointer",transition:"color .2s",userSelect:"none"}}
+                                    >
+                                      {copiedSeq===tx.seqNum?"copied!":"seq: "+tx.seqNum}
+                                    </span>
+                                    <button onClick={()=>{setVerifySeq(tx.seqNum);setVerifyResult(null);setVerifyErr(null);document.getElementById("verify-section")?.scrollIntoView({behavior:"smooth",block:"start"});}} style={{fontSize:9,color:"var(--blue)",background:"rgba(108,99,255,0.1)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:3,padding:"1px 6px",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:600}}>Verify ↗</button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                        {txHistory.length > 5 && (
+                          <button
+                            onClick={() => setTxExpanded(e => !e)}
+                            style={{
+                              width:"100%",padding:"11px",marginTop:2,
+                              background:"var(--s2)",border:"1px solid var(--bd)",
+                              borderRadius:10,cursor:"pointer",
+                              fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,
+                              color:"var(--blue)",display:"flex",alignItems:"center",
+                              justifyContent:"center",gap:6,transition:"background .15s",
+                            }}
+                            onMouseEnter={e=>e.currentTarget.style.background="rgba(108,99,255,.12)"}
+                            onMouseLeave={e=>e.currentTarget.style.background="var(--s2)"}
+                          >
+                            {txExpanded ? (
+                              <>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+                                See less
+                              </>
+                            ) : (
+                              <>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                See more ({txHistory.length - 5} more)
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
-                    ))}
-                    <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>Randomness (seed)</span>
-                        <button onClick={()=>navigator.clipboard.writeText(verifyResult.randomSeed)} title="Copy" className="mono" style={{fontSize:9,color:"var(--sub)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"2px 6px",cursor:"pointer"}}>{verifyResult.randomSeed.slice(0,10)}...{verifyResult.randomSeed.slice(-8)}</button>
-                      </div>
+                    )}
+
+                    {/* ── Verify a Bet ── */}
+                    <div id="verify-section" style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"4px 4px 0",display:"flex",alignItems:"center",gap:8}}>
+                      <IcoShield/> VERIFY A BET
                     </div>
-                    <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>Request Tx</span>
-                        {verifyResult.reqTx
-                          ? <a href={`${EXPLORER}/tx/${verifyResult.reqTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.reqTx.slice(0,10)}...{verifyResult.reqTx.slice(-8)} ↗</a>
-                          : <span style={{fontSize:11,color:"var(--dim)"}}>Not stored locally</span>}
+                    <div className="card" style={{display:"flex",flexDirection:"column",gap:12}}>
+                      <div style={{fontSize:11,color:"var(--sub)",lineHeight:1.6}}>Paste or tap "Verify ↗" on any transaction above to audit its outcome directly from the blockchain.</div>
+                      <div style={{display:"flex",gap:8}}>
+                        <input className="inp" placeholder="Sequence number (e.g. 73911)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
+                        <button className="btn primary" style={{width:"auto",padding:"0 20px",fontSize:13,flexShrink:0}} onClick={doVerify} disabled={verifyLoading||!verifySeq.trim()}>{verifyLoading?<Spin/>:"Verify"}</button>
                       </div>
+                      {verifyErr && <div style={{fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{verifyErr}</div>}
                     </div>
-                    <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>Callback Tx</span>
-                        {verifyResult.callbackTx
-                          ? <a href={`${EXPLORER}/tx/${verifyResult.callbackTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.callbackTx.slice(0,10)}...{verifyResult.callbackTx.slice(-8)} ↗</a>
-                          : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not in recent blocks"}</span>}
+                    {verifyResult && (
+                      <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                          <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>
+                            {verifyResult.gameType==="coinflip"?"Coin Flip":verifyResult.gameType==="bingo"?"Bingo":"Dice Roll"} &mdash; Seq #{verifyResult.seq}
+                          </div>
+                          <div style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:verifyResult.status===0?"rgba(245,158,11,.15)":verifyResult.status===1?"rgba(16,185,129,.15)":"rgba(239,68,68,.15)",color:verifyResult.status===0?"var(--gold)":verifyResult.status===1?"var(--green)":"var(--red)"}}>
+                            {verifyResult.status===0?"PENDING":verifyResult.status===1?"WON":"LOST"}
+                          </div>
+                        </div>
+                        {[
+                          {label:"Chain",      value:CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"},
+                          {label:"Sequence #", value:`#${verifyResult.seq}`},
+                          {label:"Player",     value:`${verifyResult.player.slice(0,10)}...${verifyResult.player.slice(-8)}`},
+                          {label:"Wager",      value:usd(verifyResult.wager)},
+                          {label:"Payout",     value:verifyResult.status===1?usd(verifyResult.payout):"—"},
+                          {label:"Timestamp",  value:verifyResult.timestamp>0?new Date(verifyResult.timestamp*1000).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}):"—"},
+                        ].map(({label,value})=>(
+                          <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                            <span style={{fontSize:11,color:"var(--sub)"}}>{label}</span>
+                            <span style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
+                          </div>
+                        ))}
+                        <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:11,color:"var(--sub)"}}>Randomness (seed)</span>
+                            <button onClick={()=>navigator.clipboard.writeText(verifyResult.randomSeed)} title="Copy" className="mono" style={{fontSize:9,color:"var(--sub)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"2px 6px",cursor:"pointer"}}>{verifyResult.randomSeed.slice(0,10)}...{verifyResult.randomSeed.slice(-8)}</button>
+                          </div>
+                        </div>
+                        <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:11,color:"var(--sub)"}}>Request Tx</span>
+                            {verifyResult.reqTx
+                              ? <a href={`${EXPLORER}/tx/${verifyResult.reqTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.reqTx.slice(0,10)}...{verifyResult.reqTx.slice(-8)} ↗</a>
+                              : <span style={{fontSize:11,color:"var(--dim)"}}>Not stored locally</span>}
+                          </div>
+                        </div>
+                        <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:11,color:"var(--sub)"}}>Callback Tx</span>
+                            {verifyResult.callbackTx
+                              ? <a href={`${EXPLORER}/tx/${verifyResult.callbackTx}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>{verifyResult.callbackTx.slice(0,10)}...{verifyResult.callbackTx.slice(-8)} ↗</a>
+                              : <span style={{fontSize:11,color:"var(--dim)"}}>{verifyResult.status===0?"Pending...":"Not in recent blocks"}</span>}
+                          </div>
+                        </div>
+                        <div style={{padding:"9px 0"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:11,color:"var(--sub)"}}>Pyth Entropy</span>
+                            <a href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View randomness ↗</a>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div style={{padding:"9px 0"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                        <span style={{fontSize:11,color:"var(--sub)"}}>Pyth Entropy</span>
-                        <a href={`${PYTH_EXPLORER}&address=${verifyResult.contractAddr}&sequence=${verifyResult.seq}`} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View randomness ↗</a>
-                      </div>
-                    </div>
-                  </div>
+                    )}
+                  </>
                 )}
 
-                {/* Sign out */}
+                {/* Sign out — always visible */}
                 <button
                   onClick={()=>{localStorage.removeItem(SESSION_KEY);setAuthed(false);setNavSection("home");}}
                   style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",padding:"12px 16px",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:12,color:"#EF4444",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600}}
@@ -1994,6 +2052,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
