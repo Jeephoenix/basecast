@@ -4,6 +4,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePublicClient, useWalletClient, useAccount } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
+import BingoMultiplayer from "@/components/BingoMultiplayer";
 
 // ── ABI ───────────────────────────────────────────────────────────────────────
 const BINGO_ABI = [
@@ -66,7 +67,7 @@ const MODES = [
   { id:0, key:"TURBO",       label:"Turbo",       grid:3, desc:"3×3 · Fastest · Any line wins" },
   { id:1, key:"SPEED",       label:"Speed",       grid:5, desc:"5×5 · First line or full card"  },
   { id:2, key:"PATTERN",     label:"Pattern",     grid:5, desc:"5×5 · Choose your pattern"      },
-  { id:3, key:"MULTIPLAYER", label:"Multiplayer", grid:5, desc:"Coming soon...", disabled:true },
+  { id:3, key:"MULTIPLAYER", label:"Multiplayer", grid:5, desc:"Compete vs players" },
 ];
 
 const PATTERNS = [
@@ -320,7 +321,7 @@ function ModeIcon({ id, active }) {
 }
 
 // ── Main Component ────────────────────────────────────────────────────────────
-export default function BingoGame({ balance, refetchBalance, vaultMax, vaultMin }) {
+export default function BingoGame({ balance, refetchBalance, vaultMax, vaultMin, mpAddress, usdcAddress, explorer }) {
   const { address }  = useAccount();
   const pub          = usePublicClient();
   const { data: wc } = useWalletClient();
@@ -581,7 +582,17 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
         </div>
       )}
 
-      {mode !== 2 && phase==="idle" && (
+      {mode === 3 && (
+        <BingoMultiplayer
+          contractAddress={mpAddress}
+          usdcAddress={usdcAddress}
+          balance={balance}
+          refetchBalance={refetchBalance}
+          explorer={explorer}
+        />
+      )}
+
+      {mode !== 2 && mode !== 3 && phase==="idle" && (
         <div style={{display:"flex",gap:8}}>
           {MODE_PAYOUTS[mode].map((p,i)=>(
             <div key={i} style={{
@@ -598,7 +609,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
         </div>
       )}
 
-      <div style={{
+      {mode !== 3 && <div style={{
         background:"var(--bg)",border:"1px solid var(--bd)",
         borderRadius:14,padding:"24px 20px",
         minHeight:220,display:"flex",flexDirection:"column",
@@ -805,9 +816,9 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
             ⚠ {error}
           </div>
         )}
-      </div>
+      </div>}
 
-      {phase==="idle" && (
+      {phase==="idle" && mode !== 3 && (
         <>
           <div style={{
             background:"var(--bg)",border:"1px solid var(--bd)",
@@ -879,7 +890,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
         </>
       )}
 
-      {busy && (
+      {busy && mode !== 3 && (
         <button disabled style={{
           background:"#1D4ED8",color:"#fff",border:"none",borderRadius:10,
           padding:"15px",width:"100%",
