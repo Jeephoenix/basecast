@@ -1732,7 +1732,10 @@ export default function App() {
                   <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>TRADING TOKENS</div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <img src="/usdc-logo.png" width={36} height={36} alt="USDC" style={{borderRadius:"50%",objectFit:"cover"}}/>
+                      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="18" cy="18" r="18" fill="#2775CA"/>
+  <path d="M18 8.5v1.6c-2.8.4-4.7 2.2-4.7 4.7 0 2.9 1.8 4.1 5.3 4.6 2.4.4 3.2.9 3.2 2.4 0 1.4-1.1 2.3-3 2.3-2.1 0-2.9-.9-3.1-2.1-.1-.4-.4-.6-.7-.6h-1.4c-.4 0-.7.3-.7.7 0 2.1 1.5 3.7 4.4 4.1v1.6c0 .4.3.7.7.7h1.2c.4 0 .7-.3.7-.7v-1.6c2.8-.4 4.7-2.2 4.7-4.9 0-3-1.8-4.2-5.4-4.7-2.4-.4-3.1-1-3.1-2.2 0-1.2.9-2 2.5-2 1.6 0 2.5.6 2.9 1.8.1.3.4.6.7.6h1.3c.4 0 .7-.3.7-.7 0-1.9-1.3-3.4-4-3.8V8.5c0-.4-.3-.7-.7-.7h-1.2c-.4 0-.7.3-.7.7z" fill="white"/>
+</svg>
                       <div>
                         <div style={{fontWeight:600,fontSize:13,color:"var(--tx)"}}>USDC</div>
                         <div style={{fontSize:11,color:"var(--sub)"}}>$1.00</div>
@@ -1750,7 +1753,15 @@ export default function App() {
                   <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>HOLDING TOKENS</div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <img src="/eth-logo.png" width={36} height={36} alt="ETH" style={{borderRadius:"50%",objectFit:"cover"}}/>
+                      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="18" cy="18" r="18" fill="#627EEA"/>
+  <path d="M18 7L17.9 7.3V23.1L18 23.2L24.5 19.4L18 7Z" fill="white" fillOpacity="0.6"/>
+  <path d="M18 7L11.5 19.4L18 23.2V15.6V7Z" fill="white"/>
+  <path d="M18 24.5L17.9 24.6V29.4L18 29.7L24.5 20.7L18 24.5Z" fill="white" fillOpacity="0.6"/>
+  <path d="M18 29.7V24.5L11.5 20.7L18 29.7Z" fill="white"/>
+  <path d="M18 23.2L24.5 19.4L18 15.6V23.2Z" fill="white" fillOpacity="0.2"/>
+  <path d="M11.5 19.4L18 23.2V15.6L11.5 19.4Z" fill="white" fillOpacity="0.6"/>
+</svg>
                       <div>
                         <div style={{fontWeight:600,fontSize:13,color:"var(--tx)"}}>ETH</div>
                         <div style={{fontSize:11,color:"var(--sub)"}}>
