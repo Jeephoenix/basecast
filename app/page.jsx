@@ -916,7 +916,12 @@ export default function App() {
           {isConnected && authed && (
             <div style={{textAlign:"right",lineHeight:1.2}}>
               <div style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>BALANCE</div>
-              <div style={{fontSize:13,color:"var(--green)",fontWeight:600}}>{usd(bal)}</div>
+              <div style={{fontSize:13,color:"var(--green)",fontWeight:600}}>{(() => {
+                const usdcVal = Number(bal) / 1e6;
+                const ethVal  = ethBalance !== null ? Number(ethBalance) / 1e18 : 0;
+                const ethUsd  = ethPrice   !== null ? ethVal * ethPrice : 0;
+                return `$${(usdcVal + ethUsd).toFixed(2)}`;
+              })()}</div>
             </div>
           )}
           <ConnectButton.Custom>
@@ -1717,7 +1722,7 @@ export default function App() {
                       const usdcVal = Number(bal) / 1e6;
                       const ethVal  = ethBalance !== null ? Number(ethBalance) / 1e18 : 0;
                       const ethUsd  = ethPrice   !== null ? ethVal * ethPrice : 0;
-                      return `~$${(usdcVal + ethUsd).toFixed(2)} USD`;
+                      return `~${(usdcVal + ethUsd).toFixed(2)} USD`;
                     })()}
                   </div>
                 </div>
@@ -1727,8 +1732,7 @@ export default function App() {
                   <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>TRADING TOKENS</div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(0,245,160,.12)",
-                                   display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>💵</div>
+                      <img src="/usdc-logo.png" width={36} height={36} alt="USDC" style={{borderRadius:"50%",objectFit:"cover"}}/>
                       <div>
                         <div style={{fontWeight:600,fontSize:13,color:"var(--tx)"}}>USDC</div>
                         <div style={{fontSize:11,color:"var(--sub)"}}>$1.00</div>
@@ -1746,9 +1750,7 @@ export default function App() {
                   <div style={{fontSize:10,color:"var(--sub)",letterSpacing:"1.5px"}}>HOLDING TOKENS</div>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <div style={{width:36,height:36,borderRadius:"50%",background:"rgba(108,99,255,.12)",
-                                   display:"flex",alignItems:"center",justifyContent:"center",
-                                   fontSize:18,fontWeight:700,color:"#9F93FF",fontFamily:"monospace"}}>Ξ</div>
+                      <img src="/eth-logo.png" width={36} height={36} alt="ETH" style={{borderRadius:"50%",objectFit:"cover"}}/>
                       <div>
                         <div style={{fontWeight:600,fontSize:13,color:"var(--tx)"}}>ETH</div>
                         <div style={{fontSize:11,color:"var(--sub)"}}>
