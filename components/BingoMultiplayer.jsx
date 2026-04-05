@@ -150,7 +150,7 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
         if (r[6] === 0 && r[3] > 0n) {
           try { timeLeft = await read("timeUntilLock", [id]); } catch {}
         }
-        return { id, entryFee: r[0], maxPlayers: r[1], timerDuration: r[2], startTime: r[3], prizePool: r[4], mode: r[5], state: r[6], playerCount: r[7], winners: r[8], joined, timeLeft };
+        return { id, entryFee: r[0], maxPlayers: r[1], timerDuration: r[2], startTime: r[3], prizePool: r[4], mode: Number(r[5]), state: Number(r[6]), playerCount: r[7], winners: r[8], joined, timeLeft };
       }));
 
       setRounds(roundData.reverse());
@@ -160,13 +160,13 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
       setMyRounds(joined);
 
       await Promise.all(roundData.map(async (r) => {
-        if ((r.state === 1n || r.state === 2n) && r.joined && address) {
+        if ((r.state === 1 || r.state === 2) && r.joined && address) {
           try {
             const card = await read("getPlayerCard", [r.id, address]);
             setCards(p => ({ ...p, [r.id.toString()]: Array.from(card) }));
           } catch {}
         }
-        if (r.state === 2n) {
+        if (r.state === 2) {
           try {
             const drawn = await read("getDrawnNumbers", [r.id]);
             setDrawnNumbers(p => ({ ...p, [r.id.toString()]: Array.from(drawn) }));
@@ -238,9 +238,10 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
     );
   }
 
-  const openRounds    = rounds.filter(r => r.state === 0n);
-  const activeRounds  = rounds.filter(r => r.state === 1n);
-  const closedRounds  = rounds.filter(r => r.state === 2n || r.state === 3n).slice(0, 5);
+const openRounds    = rounds.filter(r => r.state === 0);
+const activeRounds  = rounds.filter(r => r.state === 1);
+const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0, 5);
+
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -389,7 +390,7 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
               <div style={{ fontSize: 10, fontWeight: 700, color: "var(--sub)", letterSpacing: "1.5px", padding: "4px 4px 0" }}>
                 RECENT ROUNDS
               </div>
-              {closedRounds.map((r) => {
+              const isFinished = r.state === 2;
                 const isFinished = r.state === 2n;
                 const isMine = !!myRounds[r.id.toString()];
                 const myCard = cards[r.id.toString()];
