@@ -73,6 +73,14 @@ async function main() {
   console.log(`   → ${bingoAddr}`);
   if (net !== "hardhat") await bingo.deploymentTransaction().wait(3);
 
+  // 4b. BingoMultiplayer
+  console.log("🎱 Deploying BingoMultiplayer...");
+  const bingoMP = await (await ethers.getContractFactory("BingoMultiplayer")).deploy(usdcAddr, vaultAddr, cfg.entropy);
+  await bingoMP.waitForDeployment();
+  const bingoMPAddr = await bingoMP.getAddress();
+  console.log(`   → ${bingoMPAddr}`);
+  if (net !== "hardhat") await bingoMP.deploymentTransaction().wait(3);
+
   // 5. ReferralRewards
   console.log("🎁 Deploying ReferralRewards...");
   const referral = await (await ethers.getContractFactory("ReferralRewards")).deploy(usdcAddr, vaultAddr);
@@ -86,7 +94,8 @@ async function main() {
   await (await vault.setGameAuthorized(coinflipAddr, true)).wait();
   await (await vault.setGameAuthorized(dicerollAddr, true)).wait();
   await (await vault.setGameAuthorized(bingoAddr, true)).wait();
-  console.log("   CoinFlip ✓  DiceRoll ✓  Bingo ✓");
+  await (await vault.setGameAuthorized(bingoMPAddr, true)).wait();
+  console.log("   CoinFlip ✓  DiceRoll ✓  Bingo ✓  BingoMultiplayer ✓");
 
   console.log("\n🔗 Linking ReferralRewards to GameVault...");
   await (await vault.setReferralContract(referralAddr)).wait();
@@ -101,6 +110,7 @@ async function main() {
   console.log(`  NEXT_PUBLIC_COINFLIP_ADDRESS=${coinflipAddr}`);
   console.log(`  NEXT_PUBLIC_DICEROLL_ADDRESS=${dicerollAddr}`);
   console.log(`  NEXT_PUBLIC_BINGO_ADDRESS=${bingoAddr}`);
+  console.log(`  NEXT_PUBLIC_BINGO_MULTIPLAYER_ADDRESS=${bingoMPAddr}`);
   console.log(`  NEXT_PUBLIC_REFERRAL_ADDRESS=${referralAddr}`);
   console.log(`  NEXT_PUBLIC_USDC_ADDRESS=${usdcAddr}`);
   console.log(`  NEXT_PUBLIC_CHAIN_ID=${cfg.chainId}`);
@@ -109,7 +119,7 @@ async function main() {
   console.log("\n  ⚠️  Post-deploy:");
   console.log("  1. Approve USDC + call vault.depositHouseFunds(amount)");
   console.log("  2. Approve USDC + call referral.depositRewards(amount) to seed the rewards pool");
-  console.log("  3. Send 0.05 ETH to CoinFlip, DiceRoll, and Bingo (for Pyth fees)");
+  console.log("  3. Send 0.05 ETH to CoinFlip, DiceRoll, Bingo, and BingoMultiplayer (for Pyth fees)");
 }
 
 main().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });
