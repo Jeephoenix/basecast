@@ -1,7 +1,33 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { usePublicClient, useWalletClient, useAccount } from "wagmi";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
+
+const BINGO_MP_ABI = [
+  {name:"joinRound",       type:"function", stateMutability:"nonpayable", inputs:[{name:"roundId",type:"uint256"}], outputs:[]},
+  {name:"lockRound",       type:"function", stateMutability:"nonpayable", inputs:[{name:"roundId",type:"uint256"}], outputs:[]},
+  {name:"roundCount",      type:"function", stateMutability:"view",       inputs:[], outputs:[{type:"uint256"}]},
+  {name:"hasJoined",       type:"function", stateMutability:"view",       inputs:[{name:"roundId",type:"uint256"},{name:"player",type:"address"}], outputs:[{type:"bool"}]},
+  {name:"getRound",        type:"function", stateMutability:"view",
+    inputs:[{name:"roundId",type:"uint256"}],
+    outputs:[
+      {name:"entryFee",     type:"uint256"},
+      {name:"maxPlayers",   type:"uint256"},
+      {name:"timerDuration",type:"uint256"},
+      {name:"startTime",    type:"uint256"},
+      {name:"prizePool",    type:"uint256"},
+      {name:"mode",         type:"uint8"},
+      {name:"state",        type:"uint8"},
+      {name:"playerCount",  type:"uint256"},
+      {name:"winners",      type:"address[]"},
+    ]},
+  {name:"getPlayers",      type:"function", stateMutability:"view", inputs:[{name:"roundId",type:"uint256"}], outputs:[{type:"address[]"}]},
+  {name:"getDrawnNumbers", type:"function", stateMutability:"view", inputs:[{name:"roundId",type:"uint256"}], outputs:[{type:"uint8[]"}]},
+  {name:"getPlayerCard",   type:"function", stateMutability:"view", inputs:[{name:"roundId",type:"uint256"},{name:"player",type:"address"}], outputs:[{type:"uint8[25]"}]},
+  {name:"getOpenRounds",   type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint256[]"}]},
+  {name:"timeUntilLock",   type:"function", stateMutability:"view", inputs:[{name:"roundId",type:"uint256"}], outputs:[{type:"uint256"}]},
+  {name:"getEntropyFee",   type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint256"}]},
+];
 
 const USDC_ABI = [
   { name: "allowance", type: "function", stateMutability: "view",       inputs: [{ name: "o", type: "address" }, { name: "s", type: "address" }], outputs: [{ type: "uint256" }] },
@@ -85,7 +111,8 @@ function RoundTimer({ startTime, timerDuration, state }) {
   );
 }
 
-export default function BingoMultiplayer({ contractAddress, usdcAddress, contractAbi, balance, refetchBalance, explorer }) {
+export default function BingoMultiplayer({ contractAddress, usdcAddress, balance, refetchBalance, explorer }) {
+  const contractAbi = BINGO_MP_ABI;
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
@@ -226,7 +253,7 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, contrac
         <div>
           <div style={{ fontWeight: 700, fontSize: 13, color: "var(--tx)", marginBottom: 4 }}>Multiplayer Bingo</div>
           <div style={{ fontSize: 12, color: "var(--sub)", lineHeight: 1.6 }}>
-            Join a round, get a unique provably-fair card, and compete against other players. Winners split 90% of the prize pool.
+            Join a round, get a unique provably-fair card, and compete against other players.
           </div>
         </div>
       </div>
