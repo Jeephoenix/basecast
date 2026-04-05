@@ -1657,9 +1657,6 @@ export default function App() {
                             {name}
                             {isMe&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.12)",borderRadius:4,padding:"1px 5px",fontFamily:"'Inter',sans-serif"}}>YOU</span>}
                           </div>
-                          <div style={{fontSize:11,color:"var(--sub)",marginTop:2}}>
-                            Vol: {usd(p.volume)} &middot; PnL: <span style={{color:p.pnl>=0n?"var(--green)":"var(--red)"}}>{pnl(p.pnl)}</span>
-                          </div>
                         </div>
                         <div style={{textAlign:"right",flexShrink:0}}>
                           <div style={{fontSize:13,fontWeight:700,color:lbSrt==="volume"?"var(--tx)":p.pnl>=0n?"var(--green)":"var(--red)"}}>
