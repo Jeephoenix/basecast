@@ -857,6 +857,7 @@ export default function App() {
   };
 
   const sortedLb = [...lb].sort((a,b)=>lbSrt==="volume"?Number(b.volume-a.volume):Number(b.pnl-a.pnl)).slice(0,10);
+  const topByPnl = [...lb].sort((a,b)=>Number(b.pnl-a.pnl)).slice(0,3);
   const wrongNet = isConnected && chainId !== CHAIN_ID;
 
   // ── Icon helpers ─────────────────────────────────────────────────────────────
@@ -1230,7 +1231,7 @@ export default function App() {
             <div className="card" style={{padding:0,overflow:"hidden"}}>
               {lbLd?(
                 <div style={{display:"flex",justifyContent:"center",padding:32}}><Spin size={22}/></div>
-              ):sortedLb.length===0?(
+              ):topByPnl.length===0?(
                 <div style={{textAlign:"center",padding:"28px 24px"}}>
                   <div style={{fontSize:28,marginBottom:8}}>🏆</div>
                   <div style={{fontSize:13,color:"var(--sub)",marginBottom:12}}>No players ranked yet — be the first!</div>
@@ -1238,7 +1239,7 @@ export default function App() {
                 </div>
               ):(
                 <>
-                  {sortedLb.slice(0,3).map((p,i)=>{
+                  {topByPnl.map((p,i)=>{
                     const medal=["🥇","🥈","🥉"][i];
                     const borderColor=["var(--gold)","#9CA3AF","#D97706"][i];
                     const serverName=lbNames[p.address.toLowerCase()];
