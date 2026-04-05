@@ -121,7 +121,6 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
   const [myRounds, setMyRounds] = useState({});
   const [cards, setCards] = useState({});
   const [drawnNumbers, setDrawnNumbers] = useState({});
-  const [timers, setTimers] = useState({});
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(null);
   const [locking, setLocking] = useState(null);
@@ -147,10 +146,23 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
         const r = await read("getRound", [id]);
         const joined = address ? await read("hasJoined", [id, address]) : false;
         let timeLeft = 0n;
-        if (r[6] === 0 && r[3] > 0n) {
+        if (Number(r[6]) === 0 && r[3] > 0n) {
           try { timeLeft = await read("timeUntilLock", [id]); } catch {}
         }
-        return { id, entryFee: r[0], maxPlayers: r[1], timerDuration: r[2], startTime: r[3], prizePool: r[4], mode: Number(r[5]), state: Number(r[6]), playerCount: r[7], winners: r[8], joined, timeLeft };
+        return {
+          id,
+          entryFee:     r[0],
+          maxPlayers:   r[1],
+          timerDuration:r[2],
+          startTime:    r[3],
+          prizePool:    r[4],
+          mode:         Number(r[5]),
+          state:        Number(r[6]),
+          playerCount:  r[7],
+          winners:      r[8],
+          joined,
+          timeLeft,
+        };
       }));
 
       setRounds(roundData.reverse());
@@ -238,10 +250,9 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
     );
   }
 
-const openRounds    = rounds.filter(r => r.state === 0);
-const activeRounds  = rounds.filter(r => r.state === 1);
-const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0, 5);
-
+  const openRounds   = rounds.filter(r => r.state === 0);
+  const activeRounds = rounds.filter(r => r.state === 1);
+  const closedRounds = rounds.filter(r => r.state === 2 || r.state === 3).slice(0, 5);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -280,10 +291,10 @@ const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0
             </div>
           ) : (
             openRounds.map((r) => {
-              const isJoined = !!myRounds[r.id.toString()];
-              const isFull   = r.playerCount >= r.maxPlayers;
+              const isJoined  = !!myRounds[r.id.toString()];
+              const isFull    = r.playerCount >= r.maxPlayers;
               const isJoining = joining === r.id.toString();
-              const canLock  = r.playerCount >= 2n && r.timeLeft === 0n && r.startTime > 0n;
+              const canLock   = r.playerCount >= 2n && r.timeLeft === 0n && r.startTime > 0n;
               const isLocking = locking === r.id.toString();
               const isSelected = selectedRound === r.id.toString();
 
@@ -294,11 +305,11 @@ const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0
                       <div style={{ fontWeight: 700, fontSize: 14, color: "var(--tx)", marginBottom: 3 }}>
                         Round #{r.id.toString()}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--sub)" }}>{MODE_NAMES[Number(r.mode)]}</div>
+                      <div style={{ fontSize: 11, color: "var(--sub)" }}>{MODE_NAMES[r.mode]}</div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                       <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(0,245,160,.12)", color: "var(--green)" }}>
-                        {STATE_NAMES[Number(r.state)]}
+                        {STATE_NAMES[r.state]}
                       </div>
                       {isJoined && (
                         <div style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "rgba(108,99,255,.2)", color: "#6C63FF" }}>
@@ -310,10 +321,10 @@ const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
                     {[
-                      { label: "Entry Fee",    value: usd(r.entryFee) },
-                      { label: "Prize Pool",   value: usd(r.prizePool) },
-                      { label: "Players",      value: `${r.playerCount.toString()} / ${r.maxPlayers.toString()}` },
-                      { label: "Timer",        value: `${Number(r.timerDuration) / 60}m` },
+                      { label: "Entry Fee",  value: usd(r.entryFee) },
+                      { label: "Prize Pool", value: usd(r.prizePool) },
+                      { label: "Players",    value: `${r.playerCount.toString()} / ${r.maxPlayers.toString()}` },
+                      { label: "Timer",      value: `${Number(r.timerDuration) / 60}m` },
                     ].map(({ label, value }) => (
                       <div key={label} style={{ background: "rgba(255,255,255,.04)", borderRadius: 8, padding: "8px 12px" }}>
                         <div style={{ fontSize: 10, color: "var(--sub)", marginBottom: 2 }}>{label}</div>
@@ -322,7 +333,7 @@ const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0
                     ))}
                   </div>
 
-                  <RoundTimer startTime={r.startTime} timerDuration={r.timerDuration} state={Number(r.state)} />
+                  <RoundTimer startTime={r.startTime} timerDuration={r.timerDuration} state={r.state} />
 
                   <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                     {!isJoined && !isFull && (
@@ -366,7 +377,7 @@ const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0
               {activeRounds.map((r) => (
                 <div key={r.id.toString()} className="card" style={{ border: "1px solid rgba(245,158,11,.25)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: "var(--tx)" }}>Round #{r.id.toString()} — {MODE_SHORT[Number(r.mode)]}</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: "var(--tx)" }}>Round #{r.id.toString()} — {MODE_SHORT[r.mode]}</div>
                     <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: "rgba(245,158,11,.12)", color: "var(--gold)" }}>Drawing…</div>
                   </div>
                   <div style={{ fontSize: 12, color: "var(--sub)", display: "flex", gap: 16 }}>
@@ -390,8 +401,8 @@ const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0
               <div style={{ fontSize: 10, fontWeight: 700, color: "var(--sub)", letterSpacing: "1.5px", padding: "4px 4px 0" }}>
                 RECENT ROUNDS
               </div>
-              const isFinished = r.state === 2;
-                const isFinished = r.state === 2n;
+              {closedRounds.map((r) => {
+                const isFinished = r.state === 2;
                 const isMine = !!myRounds[r.id.toString()];
                 const myCard = cards[r.id.toString()];
                 const drawn  = drawnNumbers[r.id.toString()] || [];
@@ -400,7 +411,7 @@ const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0
                 return (
                   <div key={r.id.toString()} className="card" style={{ border: iWon ? "1px solid rgba(0,245,160,.3)" : "1px solid var(--bd)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13, color: "var(--tx)" }}>Round #{r.id.toString()} — {MODE_SHORT[Number(r.mode)]}</div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: "var(--tx)" }}>Round #{r.id.toString()} — {MODE_SHORT[r.mode]}</div>
                       <div style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: isFinished ? "rgba(108,99,255,.12)" : "rgba(239,68,68,.1)", color: isFinished ? "var(--blue)" : "var(--red)" }}>
                         {isFinished ? "Finished" : "Cancelled"}
                       </div>
@@ -408,7 +419,7 @@ const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0
 
                     {iWon && (
                       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", background: "rgba(0,245,160,.08)", border: "1px solid rgba(0,245,160,.2)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, textAlign: "center" }}>
-                        🎉 You won {usd(r.prizePool * 9000n / 10000n / BigInt(r.winners.length))}
+                        You won {usd(r.prizePool * 9000n / 10000n / BigInt(r.winners.length))}
                       </div>
                     )}
 
@@ -449,7 +460,7 @@ const closedRounds  = rounds.filter(r => r.state === 2 || r.state === 3).slice(0
         </>
       )}
 
-      <div style={{ fontSize: 10, color: "var(--dim)", textAlign: "center" }}>Pyth Entropy v2 · Provably fair </div>
+      <div style={{ fontSize: 10, color: "var(--dim)", textAlign: "center" }}>Pyth Entropy v2 · Provably fair</div>
     </div>
   );
 }
