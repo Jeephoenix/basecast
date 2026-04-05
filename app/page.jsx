@@ -4,6 +4,7 @@
 import { AppFooter, ConsentModal, hasConsented } from "@/components/PolicyModal";
 import LiveBetTicker from "@/components/LiveBetTicker";
 import BingoGame from "@/components/BingoGame";
+import BingoMultiplayer from "@/components/BingoMultiplayer";
 import { useState, useEffect, useCallback } from "react";
 import {
   useAccount, useChainId, useSwitchChain,
@@ -18,6 +19,7 @@ const VAULT    = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
 const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
 const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
 const BINGO    = process.env.NEXT_PUBLIC_BINGO_ADDRESS;
+const BINGO_MP = process.env.NEXT_PUBLIC_BINGO_MULTIPLAYER_ADDRESS;
 const REFERRAL = process.env.NEXT_PUBLIC_REFERRAL_ADDRESS;
 const USDC     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
@@ -101,6 +103,32 @@ const BG_ABI = [
     ]}]},
   {name:"getPlayerBets", type:"function", stateMutability:"view",
     inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}]},
+];
+
+const BINGO_MP_ABI = [
+  {name:"joinRound",       type:"function", stateMutability:"nonpayable", inputs:[{name:"roundId",type:"uint256"}], outputs:[]},
+  {name:"lockRound",       type:"function", stateMutability:"nonpayable", inputs:[{name:"roundId",type:"uint256"}], outputs:[]},
+  {name:"roundCount",      type:"function", stateMutability:"view",       inputs:[], outputs:[{type:"uint256"}]},
+  {name:"hasJoined",       type:"function", stateMutability:"view",       inputs:[{name:"roundId",type:"uint256"},{name:"player",type:"address"}], outputs:[{type:"bool"}]},
+  {name:"getRound",        type:"function", stateMutability:"view",
+    inputs:[{name:"roundId",type:"uint256"}],
+    outputs:[
+      {name:"entryFee",     type:"uint256"},
+      {name:"maxPlayers",   type:"uint256"},
+      {name:"timerDuration",type:"uint256"},
+      {name:"startTime",    type:"uint256"},
+      {name:"prizePool",    type:"uint256"},
+      {name:"mode",         type:"uint8"},
+      {name:"state",        type:"uint8"},
+      {name:"playerCount",  type:"uint256"},
+      {name:"winners",      type:"address[]"},
+    ]},
+  {name:"getPlayers",      type:"function", stateMutability:"view", inputs:[{name:"roundId",type:"uint256"}], outputs:[{type:"address[]"}]},
+  {name:"getDrawnNumbers", type:"function", stateMutability:"view", inputs:[{name:"roundId",type:"uint256"}], outputs:[{type:"uint8[]"}]},
+  {name:"getPlayerCard",   type:"function", stateMutability:"view", inputs:[{name:"roundId",type:"uint256"},{name:"player",type:"address"}], outputs:[{type:"uint8[25]"}]},
+  {name:"getOpenRounds",   type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint256[]"}]},
+  {name:"timeUntilLock",   type:"function", stateMutability:"view", inputs:[{name:"roundId",type:"uint256"}], outputs:[{type:"uint256"}]},
+  {name:"getEntropyFee",   type:"function", stateMutability:"view", inputs:[], outputs:[{type:"uint256"}]},
 ];
 
 const BET_RESOLVED_EVENT = {name:"BetResolved",type:"event",inputs:[
@@ -1425,6 +1453,7 @@ export default function App() {
                 {id:"coinflip",Icon:IcoCoin,  label:"Coin Flip"},
                 {id:"dice",    Icon:IcoDice,  label:"Dice Roll"},
                 {id:"bingo",   Icon:IcoBingo, label:"Bingo"},
+                {id:"bingo-mp",Icon:IcoBingo, label:"Bingo Multi"},
               ].map(({id,Icon,label})=>(
                 <button key={id} className={`gametab${tab===id?" on":""}`} onClick={()=>setTab(id)} style={{display:"flex",alignItems:"center",gap:6}}>
                   <Icon/>{label}
@@ -1555,6 +1584,20 @@ export default function App() {
             {/* ── Bingo ── */}
             {tab==="bingo" && isConnected && authed && (
               <div className="fi"><BingoGame balance={bal} refetchBalance={fetchStats} vaultMax={vault.max} vaultMin={vault.min}/></div>
+            )}
+
+            {/* ── Bingo Multiplayer ── */}
+            {tab==="bingo-mp" && isConnected && authed && (
+              <div className="fi">
+                <BingoMultiplayer
+                  contractAddress={BINGO_MP}
+                  usdcAddress={USDC}
+                  contractAbi={BINGO_MP_ABI}
+                  balance={bal}
+                  refetchBalance={fetchStats}
+                  explorer={EXPLORER}
+                />
+              </div>
             )}
           </div>
         )}
