@@ -915,9 +915,6 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
         }
       `}</style>
 
-      <div style={{fontSize:10,color:"var(--sub)",textAlign:"center"}}>
-        Pyth Entropy v2 · Provably fair
-      </div>
     </div>
   );
           }
