@@ -131,28 +131,6 @@ function Badge({ label, color, bg }) {
   );
 }
 
-function PythVerifyChip({ seqNum }) {
-  if (!seqNum && seqNum !== 0n) return null;
-  const seq = seqNum.toString();
-  const href = `https://entropy-explorer.pyth.network/`;
-  const inner = (
-    <div style={{
-      display: "inline-flex", alignItems: "center", gap: 5,
-      fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 20,
-      background: "rgba(0,198,255,.08)", border: "1px solid rgba(0,198,255,.2)",
-      color: "#4fc3f7", cursor: href ? "pointer" : "default",
-      textDecoration: "none",
-    }}>
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-      </svg>
-      Pyth Seq #{seq}
-    </div>
-  );
-  if (href) return <a href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>{inner}</a>;
-  return inner;
-}
-
 function BingoCard({ card, drawnNumbers, justRevealedNum }) {
   const drawn = new Set((drawnNumbers || []).map(Number));
   const cols  = ["B", "I", "N", "G", "O"];
@@ -592,13 +570,6 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
 
                     {needsFinalize && (
                       <>
-                        {/* Pyth entropy verification chip */}
-                        {r.entropySeqNum != null && r.entropySeqNum !== 0n && (
-                          <div style={{ marginBottom: 10 }}>
-                            <PythVerifyChip seqNum={r.entropySeqNum} />
-                          </div>
-                        )}
-
                         {/* Preview drawn numbers — computed from the public Pyth seed */}
                         <div style={{ marginBottom: 12 }}>
                           <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 6 }}>
@@ -685,11 +656,6 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
                         {iWon && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--green)", background: "rgba(0,245,160,.1)", border: "1px solid rgba(0,245,160,.25)", borderRadius: 20, padding: "2px 8px", whiteSpace: "nowrap", flexShrink: 0 }}>You won</span>}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                        {r.entropySeqNum != null && r.entropySeqNum !== 0n && (
-                          <span onClick={e => e.stopPropagation()}>
-                            <PythVerifyChip seqNum={r.entropySeqNum} />
-                          </span>
-                        )}
                         <Badge
                           label={isFinished ? "Finished" : "Cancelled"}
                           color={isFinished ? "var(--blue)" : "var(--red)"}
