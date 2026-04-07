@@ -104,6 +104,26 @@ const BG_ABI = [
     inputs:[{name:"player",type:"address"}], outputs:[{type:"uint64[]"}]},
 ];
 
+const BMP_ABI = [
+  {name:"getPlayerRounds", type:"function", stateMutability:"view",
+    inputs:[{name:"player",type:"address"}], outputs:[{type:"uint256[]"}]},
+  {name:"getRound", type:"function", stateMutability:"view",
+    inputs:[{name:"roundId",type:"uint256"}],
+    outputs:[
+      {name:"entryFee",      type:"uint256"},
+      {name:"maxPlayers",    type:"uint256"},
+      {name:"timerDuration", type:"uint256"},
+      {name:"startTime",     type:"uint256"},
+      {name:"prizePool",     type:"uint256"},
+      {name:"mode",          type:"uint8"},
+      {name:"state",         type:"uint8"},
+      {name:"playerCount",   type:"uint256"},
+      {name:"winners",       type:"address[]"},
+      {name:"seeded",        type:"bool"},
+      {name:"entropySeqNum", type:"uint64"},
+    ]},
+];
+
 const BET_RESOLVED_EVENT = {name:"BetResolved",type:"event",inputs:[
   {name:"seqNum",type:"uint64",indexed:true},
   {name:"player",type:"address",indexed:true},
@@ -445,6 +465,39 @@ export default function App() {
         BINGO ? Promise.all(bgLast.map(seq => pub.readContract({address:BINGO, abi:BG_ABI, functionName:"getBet", args:[seq]}))) : Promise.resolve([]),
       ]);
 
+      // Fetch BingoMultiplayer rounds
+      let bmpEntries = [];
+      if (BINGO_MP) {
+        try {
+          const roundIds = await pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getPlayerRounds", args:[address]});
+          const bmpLast = [...roundIds].slice(-15);
+          const bmpRounds = await Promise.all(
+            bmpLast.map(id => pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getRound", args:[id]}))
+          );
+          bmpEntries = bmpRounds.map((r, i) => {
+            const roundId  = bmpLast[i];
+            const state    = Number(r.state);
+            if (state !== 2) return null; // only FINISHED rounds
+            const winners    = r.winners;
+            const isWinner   = winners.some(w => w.toLowerCase() === address.toLowerCase());
+            const winnerCount = winners.length;
+            const prizePool   = r.prizePool;
+            const payout      = isWinner && winnerCount > 0
+              ? (prizePool * 9000n / 10000n / BigInt(winnerCount))
+              : 0n;
+            return {
+              id:`bmp-${roundId}`, type:"bingo", subLabel:"Multiplayer",
+              wager:r.entryFee, payout,
+              status: isWinner ? 1 : 2,
+              timestamp: Number(r.startTime),
+              won: isWinner,
+              txHash: localStorage.getItem(`txhash:bmp-${roundId}`) || undefined,
+              seqNum: r.entropySeqNum.toString(),
+            };
+          }).filter(Boolean);
+        } catch {}
+      }
+
       const all = [
         ...cfBets.map((bet,i) => ({
           id:`cf-${cfLast[i]}`, type:"coinflip",
@@ -471,6 +524,7 @@ export default function App() {
           txHash: localStorage.getItem(`txhash:bg-${bgLast[i]}`) || undefined,
           seqNum: bgLast[i].toString(),
         })),
+        ...bmpEntries,
       ].filter(tx=>tx.status!==0).sort((a,b)=>b.timestamp-a.timestamp).slice(0,30);
 
       setTxHistory(all);
