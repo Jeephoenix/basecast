@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { usePublicClient, useWalletClient, useAccount } from "wagmi";
 import { formatUnits, keccak256, encodeAbiParameters } from "viem";
 
