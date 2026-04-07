@@ -381,14 +381,11 @@ export default function App() {
   const [tab, setTab] = useState("coinflip");
 
   const [gamesOpen, setGamesOpen] = useState(false);
-  const [verifySeq,     setVerifySeq]     = useState("");
-  const [verifyResult,  setVerifyResult]  = useState(null);
-  const [verifyLoading, setVerifyLoading] = useState(false);
-  const [verifyErr,     setVerifyErr]     = useState(null);
-  const [mpRoundId,     setMpRoundId]     = useState("");
-  const [mpVerifyResult,setMpVerifyResult]= useState(null);
-  const [mpVerifyLoading,setMpVerifyLoading]=useState(false);
-  const [mpVerifyErr,   setMpVerifyErr]   = useState(null);
+  const [verifySeq,       setVerifySeq]       = useState("");
+  const [verifyBmpRoundId,setVerifyBmpRoundId] = useState(null);
+  const [verifyResult,    setVerifyResult]     = useState(null);
+  const [verifyLoading,   setVerifyLoading]    = useState(false);
+  const [verifyErr,       setVerifyErr]        = useState(null);
   const [bal,   setBal]   = useState(0n);
   const [vault, setVault] = useState({b:0n,max:0n,min:0n});
   const [cfChoice,setCfChoice] = useState("HEADS");
@@ -907,6 +904,33 @@ export default function App() {
     if (!pub || !verifySeq.trim()) return;
     setVerifyLoading(true); setVerifyResult(null); setVerifyErr(null);
     try {
+      // ── Multiplayer Bingo round lookup ────────────────────────────────────
+      if (verifyBmpRoundId !== null && BINGO_MP) {
+        const rid = BigInt(verifyBmpRoundId);
+        const r = await pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getRound", args:[rid]});
+        const state  = Number(r[6]);
+        const seeded = r[9];
+        let seed = null, chainDrawn = [], computedDrawn = [], drawsMatch = null;
+        if (seeded) {
+          try { seed = await pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getRandomSeed", args:[rid]}); } catch {}
+          try { chainDrawn = await pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getDrawnNumbers", args:[rid]}); } catch {}
+          if (seed) {
+            computedDrawn = computeDrawnNumbersFromSeed(seed);
+            if (chainDrawn.length > 0) drawsMatch = chainDrawn.every((n,i) => Number(n) === computedDrawn[i]);
+          }
+        }
+        setVerifyResult({
+          gameType:"bingo-mp", roundId:rid.toString(),
+          entryFee:r[0], prizePool:r[4], mode:Number(r[5]),
+          state, playerCount:Number(r[7]), maxPlayers:Number(r[1]),
+          winners:r[8], seeded, entropySeqNum:r[10].toString(),
+          startTime:Number(r[3]), seed, chainDrawn:chainDrawn.map(Number),
+          computedDrawn, drawsMatch,
+        });
+        setVerifyLoading(false);
+        return;
+      }
+      // ── Single-bet lookup (coinflip / diceroll / bingo) ───────────────────
       const seq = BigInt(verifySeq.trim());
       let bet = null, gameType = null, contractAddr = null;
       try {
@@ -919,14 +943,14 @@ export default function App() {
           if (b.player !== "0x0000000000000000000000000000000000000000") { bet=b; gameType="diceroll"; contractAddr=DICEROLL; }
         } catch {}
       }
-          if (!bet && BINGO) {
-      try {
-        const b = await pub.readContract({address:BINGO, abi:BG_ABI, functionName:"getBet", args:[seq]});
-        if (b.player !== "0x0000000000000000000000000000000000000000") { bet=b; gameType="bingo"; contractAddr=BINGO; }
-      } catch {}
-    }
-    if (!bet) { setVerifyErr("No bet found for this sequence number. Check the number and try again."); setVerifyLoading(false); return; }
-    const reqTx = localStorage.getItem(`txhash:${gameType==="coinflip"?"cf":gameType==="bingo"?"bg":"dr"}-${seq}`);
+      if (!bet && BINGO) {
+        try {
+          const b = await pub.readContract({address:BINGO, abi:BG_ABI, functionName:"getBet", args:[seq]});
+          if (b.player !== "0x0000000000000000000000000000000000000000") { bet=b; gameType="bingo"; contractAddr=BINGO; }
+        } catch {}
+      }
+      if (!bet) { setVerifyErr("No bet found for this sequence number. Check the number and try again."); setVerifyLoading(false); return; }
+      const reqTx = localStorage.getItem(`txhash:${gameType==="coinflip"?"cf":gameType==="bingo"?"bg":"dr"}-${seq}`);
       let callbackTx = null;
       try {
         const latest = await pub.getBlockNumber();
@@ -958,55 +982,6 @@ export default function App() {
   const BMP_MODES = ["Any Line","Blackout","Corners","X-Factor"];
   const BMP_STATES = ["Open","Locked","Finished","Cancelled"];
 
-  const doVerifyMPRound = async () => {
-    if (!pub || !BINGO_MP || !mpRoundId.trim()) return;
-    setMpVerifyLoading(true); setMpVerifyResult(null); setMpVerifyErr(null);
-    try {
-      const rid = BigInt(mpRoundId.trim());
-      const r = await pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getRound", args:[rid]});
-      // r is positional: [entryFee, maxPlayers, timerDuration, startTime, prizePool, mode, state, playerCount, winners, seeded, entropySeqNum]
-      const state = Number(r[6]);
-      const seeded = r[9];
-      let seed = null, chainDrawn = [], computedDrawn = [], drawsMatch = null;
-      if (seeded) {
-        try {
-          seed = await pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getRandomSeed", args:[rid]});
-        } catch {}
-        try {
-          chainDrawn = await pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getDrawnNumbers", args:[rid]});
-        } catch {}
-        if (seed) {
-          computedDrawn = computeDrawnNumbersFromSeed(seed);
-          if (chainDrawn.length > 0) {
-            drawsMatch = chainDrawn.every((n,i) => Number(n) === computedDrawn[i]);
-          }
-        }
-      }
-      let players = [];
-      try {
-        players = await pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getPlayers", args:[rid]});
-      } catch {}
-      setMpVerifyResult({
-        roundId: rid.toString(),
-        entryFee: r[0],
-        maxPlayers: Number(r[1]),
-        startTime: Number(r[3]),
-        prizePool: r[4],
-        mode: Number(r[5]),
-        state,
-        playerCount: Number(r[7]),
-        winners: r[8],
-        seeded,
-        entropySeqNum: r[10].toString(),
-        players,
-        seed,
-        chainDrawn: chainDrawn.map(Number),
-        computedDrawn,
-        drawsMatch,
-      });
-    } catch { setMpVerifyErr("Round not found or network error. Check the round ID and your network."); }
-    setMpVerifyLoading(false);
-  };
 
   const sortedLb = [...lb].sort((a,b)=>lbSrt==="volume"?Number(b.volume-a.volume):Number(b.pnl-a.pnl)).slice(0,10);
   const topByPnl = [...lb].sort((a,b)=>Number(b.pnl-a.pnl)).slice(0,3);
@@ -2121,7 +2096,7 @@ export default function App() {
                                     >
                                       {copiedSeq===tx.seqNum?"copied!":"seq: "+tx.seqNum}
                                     </span>
-                                    <a href="https://entropy-explorer.pyth.network/" target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--blue)",background:"rgba(108,99,255,0.1)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:3,padding:"1px 6px",fontFamily:"'Inter',sans-serif",fontWeight:600,textDecoration:"none"}}>Verify ↗</a>
+                                    <button onClick={()=>{const rid=tx.id.replace("bmp-","");setVerifySeq("Round #"+rid);setVerifyBmpRoundId(rid);setVerifyResult(null);setVerifyErr(null);document.getElementById("verify-section")?.scrollIntoView({behavior:"smooth",block:"start"});}} style={{fontSize:9,color:"var(--blue)",background:"rgba(108,99,255,0.1)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:3,padding:"1px 6px",cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:600}}>Verify ↗</button>
                                   </div>
                                 </div>
                               ) : (
@@ -2178,7 +2153,7 @@ export default function App() {
                 <div className="card" style={{display:"flex",flexDirection:"column",gap:12}}>
                   <div style={{fontSize:11,color:"var(--sub)",lineHeight:1.6}}>Paste or tap "Verify ↗" on any transaction above to audit its outcome directly from the blockchain.</div>
                   <div style={{display:"flex",gap:8}}>
-                    <input className="inp" placeholder="Sequence number (e.g. 73911)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
+                    <input className="inp" placeholder="Sequence number or Round # (e.g. 73911)" value={verifySeq} onChange={e=>{setVerifySeq(e.target.value);setVerifyBmpRoundId(null);setVerifyResult(null);setVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerify()} style={{flex:1,fontSize:14}}/>
                     <button className="btn primary" style={{width:"auto",padding:"0 20px",fontSize:13,flexShrink:0}} onClick={doVerify} disabled={verifyLoading||!verifySeq.trim()}>{verifyLoading?<Spin/>:"Verify"}</button>
                   </div>
                   {verifyErr && <div style={{fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{verifyErr}</div>}
@@ -2236,103 +2211,6 @@ export default function App() {
                     </div>
                   </div>
                 )}
-
-                {/* ── Verify a Round (BMP) ── */}
-                <div id="mp-verify-section" style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"4px 4px 0",display:"flex",alignItems:"center",gap:8}}>
-                  <IcoShield/> VERIFY A MULTIPLAYER ROUND
-                </div>
-                <div className="card" style={{display:"flex",flexDirection:"column",gap:12}}>
-                  <div style={{fontSize:11,color:"var(--sub)",lineHeight:1.6}}>Enter any Multiplayer Bingo round ID to audit its randomness on-chain — verify the seed, the full draw order, and the winners.</div>
-                  <div style={{display:"flex",gap:8}}>
-                    <input className="inp" placeholder="Round ID (e.g. 42)" value={mpRoundId} onChange={e=>{setMpRoundId(e.target.value);setMpVerifyResult(null);setMpVerifyErr(null);}} onKeyDown={e=>e.key==="Enter"&&doVerifyMPRound()} style={{flex:1,fontSize:14}}/>
-                    <button className="btn primary" style={{width:"auto",padding:"0 20px",fontSize:13,flexShrink:0}} onClick={doVerifyMPRound} disabled={mpVerifyLoading||!mpRoundId.trim()}>{mpVerifyLoading?<Spin/>:"Verify"}</button>
-                  </div>
-                  {mpVerifyErr && <div style={{fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{mpVerifyErr}</div>}
-                </div>
-                {mpVerifyResult && (()=>{
-                  const mv = mpVerifyResult;
-                  const stateColor = mv.state===2?"var(--green)":mv.state===3?"var(--red)":mv.state===1?"var(--gold)":"var(--sub)";
-                  const stateBg   = mv.state===2?"rgba(16,185,129,.15)":mv.state===3?"rgba(239,68,68,.15)":mv.state===1?"rgba(245,158,11,.15)":"rgba(255,255,255,.06)";
-                  const stateLabel= ["Open","Locked","Finished","Cancelled"][mv.state]??mv.state;
-                  const modeLabel = ["Any Line","Blackout","Corners","X-Factor"][mv.mode]??mv.mode;
-                  return (
-                    <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
-                        <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>Round #{mv.roundId} &mdash; {modeLabel}</div>
-                        <div style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:stateBg,color:stateColor}}>{stateLabel}</div>
-                      </div>
-                      {[
-                        {label:"Chain",       value:CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"},
-                        {label:"Round ID",    value:`#${mv.roundId}`},
-                        {label:"Mode",        value:modeLabel},
-                        {label:"Entry Fee",   value:usd(mv.entryFee)},
-                        {label:"Prize Pool",  value:usd(mv.prizePool)},
-                        {label:"Players",     value:`${mv.playerCount} / ${mv.maxPlayers}`},
-                        {label:"Started",     value:mv.startTime>0?new Date(mv.startTime*1000).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}):"—"},
-                      ].map(({label,value})=>(
-                        <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                          <span style={{fontSize:11,color:"var(--sub)"}}>{label}</span>
-                          <span style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
-                        </div>
-                      ))}
-                      {/* Winners */}
-                      <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                        <div style={{fontSize:11,color:"var(--sub)",marginBottom:6}}>Winners ({mv.winners.length})</div>
-                        {mv.winners.length===0
-                          ? <span style={{fontSize:11,color:"var(--dim)"}}>None yet</span>
-                          : mv.winners.map(w=>(
-                            <div key={w} className="mono" style={{fontSize:10,color:"var(--green)",marginBottom:2}}>
-                              {w.slice(0,12)}...{w.slice(-10)}
-                            </div>
-                          ))
-                        }
-                      </div>
-                      {/* Seed */}
-                      <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                          <span style={{fontSize:11,color:"var(--sub)"}}>{mv.seeded?"Random Seed":"Random Seed"}</span>
-                          {mv.seed
-                            ? <button onClick={()=>navigator.clipboard.writeText(mv.seed)} title="Copy" className="mono" style={{fontSize:9,color:"var(--sub)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"2px 6px",cursor:"pointer"}}>{mv.seed.slice(0,10)}...{mv.seed.slice(-8)}</button>
-                            : <span style={{fontSize:11,color:"var(--dim)"}}>Not yet seeded</span>
-                          }
-                        </div>
-                      </div>
-                      {/* Draw verification */}
-                      {mv.seed && (
-                        <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                            <span style={{fontSize:11,color:"var(--sub)"}}>Draw Verification</span>
-                            {mv.drawsMatch===null
-                              ? <span style={{fontSize:11,color:"var(--gold)"}}>Seed reproduced (draw not stored yet)</span>
-                              : mv.drawsMatch
-                              ? <span style={{fontSize:11,color:"var(--green)"}}>✓ {mv.chainDrawn.length} numbers match seed</span>
-                              : <span style={{fontSize:11,color:"var(--red)"}}>⚠ Mismatch detected</span>
-                            }
-                          </div>
-                        </div>
-                      )}
-                      {/* Drawn numbers preview */}
-                      {mv.computedDrawn.length>0 && (
-                        <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-                          <div style={{fontSize:11,color:"var(--sub)",marginBottom:8}}>Draw Order (from seed, all 75)</div>
-                          <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-                            {mv.computedDrawn.slice(0,30).map((n,i)=>(
-                              <span key={i} style={{fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:4,background:"rgba(108,99,255,0.15)",color:"var(--blue)",minWidth:24,textAlign:"center"}}>{n}</span>
-                            ))}
-                            {mv.computedDrawn.length>30 && <span style={{fontSize:10,color:"var(--sub)",alignSelf:"center"}}>+{mv.computedDrawn.length-30} more</span>}
-                          </div>
-                        </div>
-                      )}
-                      {/* Explorer link */}
-                      <div style={{padding:"9px 0"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                          <span style={{fontSize:11,color:"var(--sub)"}}>Contract</span>
-                          <a href={`${EXPLORER}/address/${BINGO_MP}`} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View on BaseScan ↗</a>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
 
                 {/* Sign out */}
                 <button
