@@ -2158,7 +2158,69 @@ export default function App() {
                   </div>
                   {verifyErr && <div style={{fontSize:12,color:"var(--red)",background:"rgba(239,68,68,.08)",border:"1px solid rgba(239,68,68,.2)",borderRadius:8,padding:"10px 14px"}}>{verifyErr}</div>}
                 </div>
-                {verifyResult && (
+                {verifyResult && verifyResult.gameType === "bingo-mp" ? (() => {
+                  const mv = verifyResult;
+                  const stateLabel = ["Open","Locked","Finished","Cancelled"][mv.state] ?? mv.state;
+                  const stateColor = mv.state===2?"var(--green)":mv.state===3?"var(--red)":mv.state===1?"var(--gold)":"var(--sub)";
+                  const stateBg    = mv.state===2?"rgba(16,185,129,.15)":mv.state===3?"rgba(239,68,68,.15)":mv.state===1?"rgba(245,158,11,.15)":"rgba(255,255,255,.06)";
+                  const modeLabel  = ["Any Line","Blackout","Corners","X-Factor"][mv.mode] ?? mv.mode;
+                  return (
+                    <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+                        <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>Multiplayer Bingo &mdash; Round #{mv.roundId}</div>
+                        <div style={{fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,background:stateBg,color:stateColor}}>{stateLabel}</div>
+                      </div>
+                      {[
+                        {label:"Chain",      value:CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"},
+                        {label:"Round ID",   value:`#${mv.roundId}`},
+                        {label:"Mode",       value:modeLabel},
+                        {label:"Entry Fee",  value:usd(mv.entryFee)},
+                        {label:"Prize Pool", value:usd(mv.prizePool)},
+                        {label:"Players",    value:`${mv.playerCount} / ${mv.maxPlayers}`},
+                        {label:"Started",    value:mv.startTime>0?new Date(mv.startTime*1000).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}):"—"},
+                        {label:"Entropy Seq #", value:`#${mv.entropySeqNum}`},
+                      ].map(({label,value})=>(
+                        <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                          <span style={{fontSize:11,color:"var(--sub)"}}>{label}</span>
+                          <span style={{fontSize:11,color:"var(--tx)"}}>{value}</span>
+                        </div>
+                      ))}
+                      <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                        <div style={{fontSize:11,color:"var(--sub)",marginBottom:6}}>Winners ({mv.winners.length})</div>
+                        {mv.winners.length===0
+                          ? <span style={{fontSize:11,color:"var(--dim)"}}>None</span>
+                          : mv.winners.map(w=><div key={w} className="mono" style={{fontSize:10,color:"var(--green)",marginBottom:2}}>{w.slice(0,12)}...{w.slice(-10)}</div>)
+                        }
+                      </div>
+                      <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <span style={{fontSize:11,color:"var(--sub)"}}>Random Seed</span>
+                          {mv.seed
+                            ? <button onClick={()=>navigator.clipboard.writeText(mv.seed)} title="Copy" className="mono" style={{fontSize:9,color:"var(--sub)",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:3,padding:"2px 6px",cursor:"pointer"}}>{mv.seed.slice(0,10)}...{mv.seed.slice(-8)}</button>
+                            : <span style={{fontSize:11,color:"var(--dim)"}}>Not yet seeded</span>}
+                        </div>
+                      </div>
+                      {mv.seed && (
+                        <div style={{padding:"9px 0",borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{fontSize:11,color:"var(--sub)"}}>Draw Verification</span>
+                            {mv.drawsMatch===null
+                              ? <span style={{fontSize:11,color:"var(--gold)"}}>Seed reproduced</span>
+                              : mv.drawsMatch
+                              ? <span style={{fontSize:11,color:"var(--green)"}}>✓ {mv.chainDrawn.length} numbers match</span>
+                              : <span style={{fontSize:11,color:"var(--red)"}}>⚠ Mismatch</span>}
+                          </div>
+                        </div>
+                      )}
+                      <div style={{padding:"9px 0"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <span style={{fontSize:11,color:"var(--sub)"}}>Pyth Entropy</span>
+                          <a href={`${PYTH_EXPLORER}&sequence=${mv.entropySeqNum}`} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"var(--blue)",textDecoration:"none"}}>View randomness ↗</a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })() : verifyResult && (
                   <div className="card fi" style={{display:"flex",flexDirection:"column",gap:0}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
                       <div style={{fontSize:13,fontWeight:700,color:"var(--tx)"}}>
