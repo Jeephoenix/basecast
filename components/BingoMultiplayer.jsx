@@ -592,7 +592,7 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
         </>
       )}
 
-      <div style={{ fontSize: 10, color: "var(--dim)", textAlign: "center" }}>Pyth Entropy v2 · Provably fair</div>
+      <div style={{ fontSize: 10, color: "var(--dim)", textAlign: "center" }}>Pyth Entropy v2 · Provably fair </div>
     </div>
   );
 }
