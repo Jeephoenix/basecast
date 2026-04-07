@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { usePublicClient, useWalletClient, useAccount } from "wagmi";
-import { formatUnits } from "viem";
+import { formatUnits, keccak256, encodeAbiParameters } from "viem";
 
 const BINGO_MP_ABI = [
   { name: "joinRound",       type: "function", stateMutability: "nonpayable", inputs: [{ name: "roundId", type: "uint256" }], outputs: [] },
@@ -23,14 +23,17 @@ const BINGO_MP_ABI = [
       { name: "playerCount",   type: "uint256" },
       { name: "winners",       type: "address[]" },
       { name: "seeded",        type: "bool"    },
+      { name: "entropySeqNum", type: "uint64"  },
     ],
   },
+  { name: "getPlayerRounds", type: "function", stateMutability: "view", inputs: [{ name: "player", type: "address" }], outputs: [{ type: "uint256[]" }] },
   { name: "getPlayers",      type: "function", stateMutability: "view", inputs: [{ name: "roundId", type: "uint256" }], outputs: [{ type: "address[]" }] },
   { name: "getDrawnNumbers", type: "function", stateMutability: "view", inputs: [{ name: "roundId", type: "uint256" }], outputs: [{ type: "uint8[]" }] },
   { name: "getPlayerCard",   type: "function", stateMutability: "view", inputs: [{ name: "roundId", type: "uint256" }, { name: "player", type: "address" }], outputs: [{ type: "uint8[25]" }] },
   { name: "getOpenRounds",   type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256[]" }] },
   { name: "timeUntilLock",   type: "function", stateMutability: "view", inputs: [{ name: "roundId", type: "uint256" }], outputs: [{ type: "uint256" }] },
   { name: "getEntropyFee",   type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { name: "getRandomSeed",   type: "function", stateMutability: "view", inputs: [{ name: "roundId", type: "uint256" }], outputs: [{ type: "bytes32" }] },
 ];
 
 const USDC_ABI = [
@@ -48,6 +51,25 @@ const fmtTimer = (s) => {
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 };
 const shortAddr = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
+// Mirrors the Solidity _drawNumbers() function exactly.
+// Given the Pyth bytes32 seed, returns the 75-number draw order.
+function computeDrawnNumbers(randomSeed) {
+  const drawSeed = keccak256(encodeAbiParameters(
+    [{ type: "bytes32" }, { type: "string" }],
+    [randomSeed, "draw"]
+  ));
+  const pool = Array.from({ length: 75 }, (_, i) => i + 1);
+  for (let i = 74; i > 0; i--) {
+    const h = keccak256(encodeAbiParameters(
+      [{ type: "bytes32" }, { type: "uint8" }],
+      [drawSeed, i]
+    ));
+    const j = Number(BigInt(h) % BigInt(i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool;
+}
 
 function Spin() {
   return (
@@ -129,12 +151,14 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
   const [myRounds,     setMyRounds]     = useState({});
   const [cards,        setCards]        = useState({});
   const [drawnNumbers, setDrawnNumbers] = useState({});
-  const [loading,      setLoading]      = useState(true);
-  const [joining,      setJoining]      = useState(null);
-  const [locking,      setLocking]      = useState(null);
-  const [finalizing,   setFinalizing]   = useState(null);
-  const [err,          setErr]          = useState(null);
+  const [loading,       setLoading]       = useState(true);
+  const [joining,       setJoining]       = useState(null);
+  const [locking,       setLocking]       = useState(null);
+  const [finalizing,    setFinalizing]    = useState(null);
+  const [err,           setErr]           = useState(null);
   const [selectedRound, setSelectedRound] = useState(null);
+  // previewDrawn: drawn numbers computed client-side for seeded-but-not-finalized rounds
+  const [previewDrawn,  setPreviewDrawn]  = useState({});
 
   const readContract = useCallback((fn, args = []) =>
     publicClient.readContract({ address: contractAddress, abi: BINGO_MP_ABI, functionName: fn, args }),
@@ -181,11 +205,11 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
       roundData.forEach(r => { if (r.joined) joined[r.id.toString()] = true; });
       setMyRounds(joined);
 
-      // Load cards and drawn numbers
+      // Load cards, drawn numbers, and preview data
       await Promise.all(roundData.map(async (r) => {
         const key = r.id.toString();
 
-        // Cards are available immediately after joining (any state)
+        // Cards available immediately after joining (all states)
         if (r.joined && address) {
           try {
             const card = await readContract("getPlayerCard", [r.id, address]);
@@ -193,11 +217,21 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
           } catch {}
         }
 
-        // Drawn numbers available after finalization (state = FINISHED)
+        // Finalized rounds: fetch drawn numbers from chain
         if (r.state === 2) {
           try {
             const drawn = await readContract("getDrawnNumbers", [r.id]);
             setDrawnNumbers(p => ({ ...p, [key]: Array.from(drawn) }));
+          } catch {}
+        }
+
+        // Seeded but not yet finalized: compute drawn numbers client-side from seed.
+        // The seed is public and the draw is deterministic, so this preview is exact.
+        if (r.state === 1 && r.seeded) {
+          try {
+            const seed = await readContract("getRandomSeed", [r.id]);
+            const preview = computeDrawnNumbers(seed);
+            setPreviewDrawn(p => ({ ...p, [key]: preview }));
           } catch {}
         }
       }));
@@ -231,6 +265,7 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
         functionName: "joinRound", args: [roundId],
       });
       await publicClient.waitForTransactionReceipt({ hash: h });
+      try { localStorage.setItem(`txhash:bmp-${roundId}`, h); } catch {}
       await loadRounds();
       refetchBalance?.();
       setSelectedRound(roundId.toString());
@@ -414,9 +449,10 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
                 LOCKED ROUNDS
               </div>
               {lockedRounds.map((r) => {
-                const key          = r.id.toString();
-                const isFinalizing = finalizing === key;
-                const myCard       = cards[key];
+                const key           = r.id.toString();
+                const isFinalizing  = finalizing === key;
+                const myCard        = cards[key];
+                const preview       = previewDrawn[key] || [];
                 const needsFinalize = r.seeded;
 
                 return (
@@ -442,25 +478,40 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
                     )}
 
                     {needsFinalize && (
-                      <div style={{ marginBottom: 12 }}>
-                        <div style={{ fontSize: 12, color: "var(--sub)", marginBottom: 8 }}>
-                          Pyth seed received. Anyone can finalize this round.
+                      <>
+                        {/* Preview drawn numbers — computed from the public Pyth seed */}
+                        <div style={{ marginBottom: 12 }}>
+                          <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 6 }}>
+                            Numbers drawn ({preview.length}) — preview from seed
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                            {preview.map((n, i) => (
+                              <span key={i} style={{
+                                width: 28, height: 28, display: "inline-flex", alignItems: "center",
+                                justifyContent: "center", borderRadius: 6,
+                                background: "rgba(108,99,255,.15)", border: "1px solid rgba(108,99,255,.25)",
+                                fontSize: 11, fontWeight: 700, color: "var(--tx)",
+                              }}>{n}</span>
+                            ))}
+                          </div>
                         </div>
                         <button
                           className="btn primary"
-                          style={{ width: "100%", fontSize: 13, padding: "10px 0" }}
+                          style={{ width: "100%", fontSize: 13, padding: "10px 0", marginBottom: myRounds[key] && myCard ? 14 : 0 }}
                           disabled={isFinalizing}
                           onClick={() => handleFinalize(r.id)}
                         >
                           {isFinalizing ? <><Spin /> Finalizing…</> : "Finalize Round & Pay Winners"}
                         </button>
-                      </div>
+                      </>
                     )}
 
                     {myRounds[key] && myCard && (
-                      <div style={{ marginTop: 8 }}>
-                        <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 8, textAlign: "center" }}>Your card</div>
-                        <BingoCard card={myCard} drawnNumbers={[]} />
+                      <div style={{ marginTop: needsFinalize ? 0 : 8 }}>
+                        <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 8, textAlign: "center" }}>
+                          {needsFinalize ? "Your card — matched numbers highlighted" : "Your card"}
+                        </div>
+                        <BingoCard card={myCard} drawnNumbers={needsFinalize ? preview : []} />
                       </div>
                     )}
                   </div>
@@ -541,7 +592,7 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
         </>
       )}
 
-      <div style={{ fontSize: 10, color: "var(--dim)", textAlign: "center" }}>Pyth Entropy v2 · Provably fair · Gas-optimised v3</div>
+      <div style={{ fontSize: 10, color: "var(--dim)", textAlign: "center" }}>Pyth Entropy v2 · Provably fair</div>
     </div>
   );
 }
