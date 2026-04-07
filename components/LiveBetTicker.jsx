@@ -6,6 +6,7 @@ import { usePublicClient } from "wagmi";
 const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
 const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
 const BINGO    = process.env.NEXT_PUBLIC_BINGO_ADDRESS;
+const BINGO_MP = process.env.NEXT_PUBLIC_BINGO_MULTIPLAYER_ADDRESS;
 
 const BET_RESOLVED_EVENT = {
   name: "BetResolved",
@@ -18,6 +19,37 @@ const BET_RESOLVED_EVENT = {
     { name: "won",    type: "bool",    indexed: false },
   ],
 };
+
+const ROUND_FINISHED_EVENT = {
+  name: "RoundFinished",
+  type: "event",
+  inputs: [
+    { name: "roundId",    type: "uint256",   indexed: true  },
+    { name: "winners",    type: "address[]", indexed: false },
+    { name: "payoutEach", type: "uint256",   indexed: false },
+    { name: "houseCut",   type: "uint256",   indexed: false },
+  ],
+};
+
+const BMP_GET_ROUND_ABI = [
+  {
+    name: "getRound", type: "function", stateMutability: "view",
+    inputs:  [{ name: "roundId", type: "uint256" }],
+    outputs: [
+      { name: "entryFee",      type: "uint256" },
+      { name: "maxPlayers",    type: "uint256" },
+      { name: "timerDuration", type: "uint256" },
+      { name: "startTime",     type: "uint256" },
+      { name: "prizePool",     type: "uint256" },
+      { name: "mode",          type: "uint8"   },
+      { name: "state",         type: "uint8"   },
+      { name: "playerCount",   type: "uint256" },
+      { name: "winners",       type: "address[]" },
+      { name: "seeded",        type: "bool"    },
+      { name: "entropySeqNum", type: "uint64"  },
+    ],
+  },
+];
 
 const IcoCoin = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFD166" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -48,10 +80,23 @@ const IcoBingo = () => (
   </svg>
 );
 
+const IcoBingoMP = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6C63FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <line x1="3"  y1="9"  x2="21" y2="9"/>
+    <line x1="3"  y1="15" x2="21" y2="15"/>
+    <line x1="9"  y1="3"  x2="9"  y2="21"/>
+    <line x1="15" y1="3"  x2="15" y2="21"/>
+    <circle cx="7" cy="7" r="1.5" fill="#6C63FF" stroke="none"/>
+    <circle cx="17" cy="17" r="1.5" fill="#6C63FF" stroke="none"/>
+  </svg>
+);
+
 const GAME_META = {
-  coinflip: { label: "Coin Flip", Icon: IcoCoin  },
-  diceroll: { label: "Dice Roll", Icon: IcoDice  },
-  bingo:    { label: "Bingo",     Icon: IcoBingo },
+  coinflip:  { label: "Coin Flip",      Icon: IcoCoin     },
+  diceroll:  { label: "Dice Roll",      Icon: IcoDice     },
+  bingo:     { label: "Bingo",          Icon: IcoBingo    },
+  "bingo-mp":{ label: "Bingo MP",       Icon: IcoBingoMP  },
 };
 
 const DEMO = [
@@ -121,14 +166,43 @@ export default function LiveBetTicker() {
       BINGO    && { address: BINGO,    game: "bingo"    },
     ].filter(Boolean);
 
-    if (!contracts.length) return;
+    // Helper: resolve a RoundFinished log into one ticker entry per winner
+    async function bmpLogsToEntries(logs) {
+      const entries = [];
+      for (const l of logs) {
+        try {
+          const roundId = l.args.roundId;
+          const r = await pub.readContract({
+            address: BINGO_MP,
+            abi: BMP_GET_ROUND_ABI,
+            functionName: "getRound",
+            args: [roundId],
+          });
+          const entryFee   = r[0]; // positional: entryFee
+          const winners    = l.args.winners;
+          const payoutEach = l.args.payoutEach;
+          for (const winner of winners) {
+            entries.push({
+              id:     `bingo-mp-${roundId}-${winner}-${l.blockNumber}`,
+              game:   "bingo-mp",
+              player: shortAddr(winner),
+              wager:  entryFee,
+              won:    true,
+              payout: payoutEach,
+            });
+          }
+        } catch {}
+      }
+      return entries;
+    }
 
     async function seed() {
       try {
         const latest = await pub.getBlockNumber();
         const from   = latest > 2000n ? latest - 2000n : 0n;
 
-        const allLogs = (await Promise.all(
+        // BetResolved logs from standard game contracts
+        const betLogs = (await Promise.all(
           contracts.map(({ address, game }) =>
             pub.getLogs({ address, event: BET_RESOLVED_EVENT, fromBlock: from, toBlock: "latest" })
               .then(logs => logs.map(l => ({ ...l, game })))
@@ -136,21 +210,40 @@ export default function LiveBetTicker() {
           )
         )).flat().sort((a, b) => Number(b.blockNumber - a.blockNumber)).slice(0, 40);
 
-        if (allLogs.length > 0) {
-          setBets(allLogs.map(l => ({
-            id:     `${l.game}-${l.args.seqNum}`,
-            game:   l.game,
-            player: shortAddr(l.args.player),
-            wager:  l.args.wager,
-            won:    l.args.won,
-            payout: l.args.payout,
-          })));
+        const betEntries = betLogs.map(l => ({
+          id:     `${l.game}-${l.args.seqNum}`,
+          game:   l.game,
+          player: shortAddr(l.args.player),
+          wager:  l.args.wager,
+          won:    l.args.won,
+          payout: l.args.payout,
+        }));
+
+        // RoundFinished logs from BingoMultiplayer
+        let bmpEntries = [];
+        if (BINGO_MP) {
+          try {
+            const bmpLogs = await pub.getLogs({
+              address: BINGO_MP,
+              event: ROUND_FINISHED_EVENT,
+              fromBlock: from,
+              toBlock: "latest",
+            });
+            bmpEntries = await bmpLogsToEntries(bmpLogs.slice(-10));
+          } catch {}
         }
+
+        const all = [...betEntries, ...bmpEntries]
+          .sort((a, b) => Number((b.blockNumber || 0n) - (a.blockNumber || 0n)))
+          .slice(0, 60);
+
+        if (all.length > 0) setBets(all);
       } catch {}
     }
 
     seed();
 
+    // Watch BetResolved on standard contracts
     for (const { address, game } of contracts) {
       try {
         const unwatch = pub.watchContractEvent({
@@ -169,6 +262,24 @@ export default function LiveBetTicker() {
               }));
               return [...fresh, ...prev].slice(0, 60);
             });
+          },
+        });
+        unwatchers.current.push(unwatch);
+      } catch {}
+    }
+
+    // Watch RoundFinished on BingoMultiplayer
+    if (BINGO_MP) {
+      try {
+        const unwatch = pub.watchContractEvent({
+          address: BINGO_MP,
+          abi: [ROUND_FINISHED_EVENT],
+          eventName: "RoundFinished",
+          async onLogs(logs) {
+            const fresh = await bmpLogsToEntries(logs);
+            if (fresh.length > 0) {
+              setBets(prev => [...fresh, ...prev].slice(0, 60));
+            }
           },
         });
         unwatchers.current.push(unwatch);
