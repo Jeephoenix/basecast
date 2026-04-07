@@ -76,6 +76,7 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
     // Packed card: 25 numbers × 7 bits each = 175 bits, stored in one uint256 slot
     mapping(uint256 => mapping(address => uint256)) public  playerCards;
     mapping(uint64  => uint256)                     private _seqToRound;
+    mapping(address => uint256[])                   private _playerRounds;
 
     uint256 public roundCount;
     uint256 public houseFunds;
@@ -163,6 +164,7 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
         hasJoined[roundId][msg.sender] = true;
         r.players.push(msg.sender);
         r.prizePool += r.entryFee;
+        _playerRounds[msg.sender].push(roundId);
 
         emit PlayerJoined(roundId, msg.sender, r.players.length);
 
@@ -413,14 +415,19 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
         RoundState state,
         uint256    playerCount,
         address[]  memory winners,
-        bool       seeded
+        bool       seeded,
+        uint64     entropySeqNum
     ) {
         Round storage r = rounds[roundId];
         return (
             r.entryFee, r.maxPlayers, r.timerDuration,
             r.startTime, r.prizePool, r.mode, r.state,
-            r.players.length, r.winners, r.seeded
+            r.players.length, r.winners, r.seeded, r.entropySeqNum
         );
+    }
+
+    function getPlayerRounds(address player) external view returns (uint256[] memory) {
+        return _playerRounds[player];
     }
 
     /// @notice Returns a player's bingo card. Available immediately after joining —
@@ -468,6 +475,15 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
     }
 
     function getEntropyFee() external view returns (uint256) { return entropy.getFeeV2(); }
+
+    /// @notice Returns the Pyth random seed for a seeded round.
+    ///         The seed is public so clients can compute drawn numbers off-chain
+    ///         and preview card matches before finalizeRound() is called.
+    function getRandomSeed(uint256 roundId) external view returns (bytes32) {
+        Round storage r = rounds[roundId];
+        require(r.seeded, "Seed not available yet");
+        return r.randomSeed;
+    }
 
     receive() external payable {}
 
