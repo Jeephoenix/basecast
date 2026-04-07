@@ -475,24 +475,29 @@ export default function App() {
             bmpLast.map(id => pub.readContract({address:BINGO_MP, abi:BMP_ABI, functionName:"getRound", args:[id]}))
           );
           bmpEntries = bmpRounds.map((r, i) => {
-            const roundId  = bmpLast[i];
-            const state    = Number(r.state);
+            const roundId = bmpLast[i];
+            // getRound returns a positional array: [entryFee,maxPlayers,timerDuration,
+            // startTime,prizePool,mode,state,playerCount,winners,seeded,entropySeqNum]
+            const entryFee      = r[0];
+            const startTime     = r[3];
+            const prizePool     = r[4];
+            const state         = Number(r[6]);
+            const winners       = r[8];
+            const entropySeqNum = r[10];
             if (state !== 2) return null; // only FINISHED rounds
-            const winners    = r.winners;
-            const isWinner   = winners.some(w => w.toLowerCase() === address.toLowerCase());
+            const isWinner    = winners.some(w => w.toLowerCase() === address.toLowerCase());
             const winnerCount = winners.length;
-            const prizePool   = r.prizePool;
             const payout      = isWinner && winnerCount > 0
               ? (prizePool * 9000n / 10000n / BigInt(winnerCount))
               : 0n;
             return {
               id:`bmp-${roundId}`, type:"bingo", subLabel:"Multiplayer",
-              wager:r.entryFee, payout,
+              wager: entryFee, payout,
               status: isWinner ? 1 : 2,
-              timestamp: Number(r.startTime),
+              timestamp: Number(startTime),
               won: isWinner,
               txHash: localStorage.getItem(`txhash:bmp-${roundId}`) || undefined,
-              seqNum: r.entropySeqNum.toString(),
+              seqNum: entropySeqNum.toString(),
             };
           }).filter(Boolean);
         } catch {}
