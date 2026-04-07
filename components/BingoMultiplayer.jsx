@@ -51,6 +51,10 @@ const fmtTimer = (s) => {
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 };
 const shortAddr = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+function ordinal(n) {
+  const s = ["th","st","nd","rd"], v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
 
 // Check whether a bingo card satisfies the win condition given a set of drawn numbers.
 // card is a flat 25-element array (5×5 row-major). mode matches the contract enum.
@@ -127,7 +131,7 @@ function Badge({ label, color, bg }) {
   );
 }
 
-function BingoCard({ card, drawnNumbers }) {
+function BingoCard({ card, drawnNumbers, justRevealedNum }) {
   const drawn = new Set((drawnNumbers || []).map(Number));
   const cols  = ["B", "I", "N", "G", "O"];
   return (
@@ -136,15 +140,23 @@ function BingoCard({ card, drawnNumbers }) {
         <div key={c} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "var(--blue)", padding: "4px 0", letterSpacing: 1 }}>{c}</div>
       ))}
       {(card || Array(25).fill(0)).map((num, i) => {
-        const hit = drawn.has(Number(num));
+        const hit       = drawn.has(Number(num));
+        const justHit   = justRevealedNum != null && Number(num) === Number(justRevealedNum);
         return (
           <div key={i} style={{
             height: 44, display: "flex", alignItems: "center", justifyContent: "center",
             borderRadius: 8, fontSize: 13, fontWeight: 700, transition: "all .2s",
-            background: hit ? "rgba(108,99,255,0.25)" : "rgba(255,255,255,0.05)",
-            border: hit ? "1px solid rgba(108,99,255,0.5)" : "1px solid rgba(255,255,255,0.08)",
+            background: justHit
+              ? "rgba(0,245,160,0.35)"
+              : hit ? "rgba(108,99,255,0.25)" : "rgba(255,255,255,0.05)",
+            border: justHit
+              ? "1px solid rgba(0,245,160,0.8)"
+              : hit ? "1px solid rgba(108,99,255,0.5)" : "1px solid rgba(255,255,255,0.08)",
             color: hit ? "#fff" : "var(--sub)",
-            boxShadow: hit ? "0 0 8px rgba(108,99,255,0.3)" : "none",
+            boxShadow: justHit
+              ? "0 0 14px rgba(0,245,160,0.5)"
+              : hit ? "0 0 8px rgba(108,99,255,0.3)" : "none",
+            transform: justHit ? "scale(1.08)" : "scale(1)",
           }}>
             {num || ""}
           </div>
@@ -198,6 +210,30 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
   const [previewDrawn,  setPreviewDrawn]  = useState({});
   // winnerCards: winner card(s) per round, used to compute the winning draw count
   const [winnerCards,   setWinnerCards]   = useState({});
+  // reveal state for finished rounds: how many numbers have been revealed so far
+  const [revealStates,    setRevealStates]    = useState({});
+  const [justRevealedMP,  setJustRevealedMP]  = useState({});
+  const revealTimers = useRef({});
+
+  // Advance the reveal by one number for a finished round
+  const handleReveal = useCallback((key, drawn, winCount) => {
+    const current = revealStates[key] ?? 0;
+    if (current >= winCount) return;
+    const newIndex   = current + 1;
+    const revealedNum = drawn[current];
+    setRevealStates(p    => ({ ...p, [key]: newIndex }));
+    setJustRevealedMP(p  => ({ ...p, [key]: revealedNum }));
+    clearTimeout(revealTimers.current[key]);
+    revealTimers.current[key] = setTimeout(
+      () => setJustRevealedMP(p => ({ ...p, [key]: null })),
+      700
+    );
+  }, [revealStates]);
+
+  useEffect(() => {
+    const timers = revealTimers.current;
+    return () => Object.values(timers).forEach(clearTimeout);
+  }, []);
 
   const readContract = useCallback((fn, args = []) =>
     publicClient.readContract({ address: contractAddress, abi: BINGO_MP_ABI, functionName: fn, args }),
@@ -588,10 +624,19 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
 
                 // Trim drawn numbers to the winning draw — the exact draw on which
                 // a winner completed their card. Numbers after that draw are irrelevant.
-                const winCount   = isFinished
+                const winCount     = isFinished
                   ? findWinningDrawCount(winnerCards[key] || [], allDrawn, r.mode)
                   : allDrawn.length;
-                const drawn      = allDrawn.slice(0, winCount);
+                const drawn        = allDrawn.slice(0, winCount);
+
+                // Reveal state for this round
+                const revealIdx    = revealStates[key] ?? 0;
+                const revealDone   = revealIdx >= winCount;
+                const revealedSoFar = drawn.slice(0, revealIdx);
+                const justRevNum   = justRevealedMP[key] ?? null;
+                const nextLabel    = !revealDone && drawn.length > 0
+                  ? `Reveal ${ordinal(revealIdx + 1)} number`
+                  : null;
 
                 return (
                   <div key={key} className="card" style={{ border: iWon ? "1px solid rgba(0,245,160,.3)" : "1px solid var(--bd)" }}>
@@ -604,7 +649,7 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
                       />
                     </div>
 
-                    {iWon && (
+                    {iWon && revealDone && (
                       <div style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", background: "rgba(0,245,160,.08)", border: "1px solid rgba(0,245,160,.2)", borderRadius: 8, padding: "8px 12px", marginBottom: 10, textAlign: "center" }}>
                         You won {usd(r.prizePool * 9000n / 10000n / BigInt(r.winners.length))}
                       </div>
@@ -613,32 +658,74 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
                     <div style={{ fontSize: 12, color: "var(--sub)", display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 10 }}>
                       <span>{r.playerCount.toString()} players</span>
                       <span>Prize pool: {usd(r.prizePool)}</span>
-                      {isFinished && r.winners.length > 0 && (
+                      {isFinished && r.winners.length > 0 && revealDone && (
                         <span>Winner{r.winners.length > 1 ? "s" : ""}: {r.winners.map(shortAddr).join(", ")}</span>
                       )}
                     </div>
 
                     {isFinished && drawn.length > 0 && (
-                      <div style={{ marginBottom: isMine && myCard ? 14 : 0 }}>
-                        <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 6 }}>
-                          Numbers drawn ({drawn.length}{winCount < allDrawn.length ? ` of ${allDrawn.length} — stopped at winning draw` : ""})
+                      <>
+                        {/* Progress bar */}
+                        <div style={{ background: "rgba(255,255,255,.06)", borderRadius: 6, height: 6, marginBottom: 10, overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%", borderRadius: 6, transition: "width .3s",
+                            background: revealDone
+                              ? "linear-gradient(90deg,#6C63FF,#00F5A0)"
+                              : "linear-gradient(90deg,#6C63FF,#4F46E5)",
+                            width: drawn.length > 0 ? `${(revealIdx / winCount) * 100}%` : "0%",
+                          }} />
                         </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                          {drawn.map((n, i) => (
-                            <span key={i} style={{
-                              width: 28, height: 28, display: "inline-flex", alignItems: "center", justifyContent: "center",
-                              borderRadius: 6, background: "rgba(108,99,255,.15)", border: "1px solid rgba(108,99,255,.25)",
-                              fontSize: 11, fontWeight: 700, color: "var(--tx)",
-                            }}>{n}</span>
-                          ))}
-                        </div>
-                      </div>
+
+                        {/* Revealed numbers so far */}
+                        {revealedSoFar.length > 0 && (
+                          <div style={{ marginBottom: 10 }}>
+                            <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 6 }}>
+                              Numbers drawn ({revealIdx} / {winCount})
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                              {revealedSoFar.map((n, i) => {
+                                const isJust = Number(n) === Number(justRevNum);
+                                return (
+                                  <span key={i} style={{
+                                    width: 28, height: 28, display: "inline-flex", alignItems: "center",
+                                    justifyContent: "center", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                    transition: "all .25s",
+                                    background: isJust ? "rgba(0,245,160,.3)"  : "rgba(108,99,255,.15)",
+                                    border:     isJust ? "1px solid rgba(0,245,160,.8)" : "1px solid rgba(108,99,255,.25)",
+                                    color:      isJust ? "var(--green)" : "var(--tx)",
+                                    transform:  isJust ? "scale(1.15)" : "scale(1)",
+                                    boxShadow:  isJust ? "0 0 10px rgba(0,245,160,.4)" : "none",
+                                  }}>{n}</span>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Reveal button or done banner */}
+                        {!revealDone ? (
+                          <button
+                            className="btn"
+                            style={{ width: "100%", fontSize: 13, padding: "10px 0", marginBottom: (isMine && myCard) ? 14 : 0,
+                              background: "rgba(108,99,255,.12)", border: "1px solid rgba(108,99,255,.35)", color: "var(--blue)" }}
+                            onClick={() => handleReveal(key, drawn, winCount)}
+                          >
+                            {nextLabel}
+                          </button>
+                        ) : (
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--green)", background: "rgba(0,245,160,.07)", border: "1px solid rgba(0,245,160,.2)", borderRadius: 8, padding: "8px 12px", marginBottom: (isMine && myCard) ? 14 : 0, textAlign: "center" }}>
+                            {isFinished && r.winners.length > 0
+                              ? `🎉 Winner found after ${winCount} draw${winCount !== 1 ? "s" : ""}!`
+                              : `All ${winCount} numbers drawn`}
+                          </div>
+                        )}
+                      </>
                     )}
 
                     {isMine && myCard && (
-                      <div style={{ marginTop: 14 }}>
+                      <div style={{ marginTop: 6 }}>
                         <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 8, textAlign: "center" }}>Your card</div>
-                        <BingoCard card={myCard} drawnNumbers={drawn} />
+                        <BingoCard card={myCard} drawnNumbers={revealedSoFar} justRevealedNum={justRevNum} />
                       </div>
                     )}
                   </div>
