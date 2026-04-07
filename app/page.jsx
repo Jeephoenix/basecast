@@ -2111,8 +2111,18 @@ export default function App() {
                               <div style={{fontSize:12,fontWeight:700,color:tx.won?"var(--green)":"var(--red)"}}>{tx.won?`+${usd(tx.payout)}`:`-${usd(tx.wager)}`}</div>
                               {tx.txHash && <a href={`${EXPLORER}/tx/${tx.txHash}`} target="_blank" rel="noopener noreferrer" className="mono" style={{fontSize:10,color:"var(--blue)",textDecoration:"none"}}>{tx.txHash.slice(0,6)}...{tx.txHash.slice(-4)} ↗</a>}
                               {tx.id.startsWith("bmp-") ? (
-                                <div style={{fontSize:9,color:"var(--sub)",marginTop:2,textAlign:"right"}}>
-                                  Round #{tx.id.replace("bmp-","")}
+                                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2,marginTop:2}}>
+                                  <span style={{fontSize:9,color:"var(--sub)"}}>Round #{tx.id.replace("bmp-","")}</span>
+                                  <div style={{display:"flex",alignItems:"center",gap:4}}>
+                                    <span
+                                      onClick={()=>{navigator.clipboard.writeText(tx.seqNum);setCopiedSeq(tx.seqNum);setTimeout(()=>setCopiedSeq(null),2000);}}
+                                      title="Tap to copy"
+                                      style={{fontSize:9,color:copiedSeq===tx.seqNum?"var(--green)":"var(--sub)",cursor:"pointer",transition:"color .2s",userSelect:"none"}}
+                                    >
+                                      {copiedSeq===tx.seqNum?"copied!":"seq: "+tx.seqNum}
+                                    </span>
+                                    <a href="https://entropy-explorer.pyth.network/" target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--blue)",background:"rgba(108,99,255,0.1)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:3,padding:"1px 6px",fontFamily:"'Inter',sans-serif",fontWeight:600,textDecoration:"none"}}>Verify ↗</a>
+                                  </div>
                                 </div>
                               ) : (
                                 <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:4,marginTop:2}}>
