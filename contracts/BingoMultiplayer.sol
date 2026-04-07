@@ -7,93 +7,95 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@pythnetwork/entropy-sdk-solidity/IEntropyConsumer.sol";
 import "@pythnetwork/entropy-sdk-solidity/IEntropyV2.sol";
 
-/// @title BingoMultiplayer — BaseCast Provably Fair Multiplayer Bingo
-/// @notice Self-contained multiplayer bingo. Handles USDC internally.
-/// @dev Zero changes needed to GameVault, Bingo, or any other contract.
+/// @title  BingoMultiplayer v3 — BaseCast (Gas-Optimised)
+/// @notice Three changes eliminate the callback gas-limit failure:
+///         1. Cards are packed into a mapping at join time — no in-callback regen.
+///         2. The Pyth callback only stores the seed (~30 k gas) and emits an event.
+///         3. Anyone calls finalizeRound() in a separate tx; resolution uses
+///            25-bit position bitmaps so pattern checks are single bitwise ops.
 
 contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
     using SafeERC20 for IERC20;
 
-    // ─── Pyth Entropy ─────────────────────────────────────────────────────────
-    // Base Sepolia: 0x41c9e39574F40Ad34c79f1C99B66A45eFB830d4C
-    // Base Mainnet: 0x4374e5a8b9C22271E9EB878A2AA31DE97DF15DA
+    // ─── Immutables ───────────────────────────────────────────────────────────
     IEntropyV2 public immutable entropy;
-
-    // ─── USDC ─────────────────────────────────────────────────────────────────
-    // Base Sepolia: 0x036CbD53842c5426634e7929541eC2318f3dCF7e
-    // Base Mainnet: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
-    IERC20 public immutable usdc;
-
-    // ─── GameVault (receives 10% house cut) ───────────────────────────────────
-    address public immutable vault;
+    IERC20     public immutable usdc;
+    address    public immutable vault;
 
     // ─── Owner ────────────────────────────────────────────────────────────────
     address public owner;
     bool    public paused;
 
-    // ─── Game Modes ───────────────────────────────────────────────────────────
-    enum GameMode {
-        CLASSIC,   // Any line — row, column, or diagonal
-        BLACKOUT,  // Full card — all 25 numbers
-        CORNERS,   // Four corners only
-        X_FACTOR   // Both diagonals (X shape)
-        // More modes can be added here in future upgrades
-    }
+    // ─── Game Modes / States ──────────────────────────────────────────────────
+    enum GameMode   { CLASSIC, BLACKOUT, CORNERS, X_FACTOR }
+    enum RoundState { WAITING, LOCKED, FINISHED, CANCELLED }
 
-    // ─── Round States ─────────────────────────────────────────────────────────
-    enum RoundState {
-        WAITING,   // Open — accepting players
-        LOCKED,    // Drawing in progress
-        FINISHED,  // Complete — winners paid
-        CANCELLED  // Cancelled — refunds sent
-    }
+    // ─── 25-bit Position Bitmap Masks ─────────────────────────────────────────
+    // Grid layout (index = bit position, row-major):
+    //  0  1  2  3  4
+    //  5  6  7  8  9
+    // 10 11 12 13 14
+    // 15 16 17 18 19
+    // 20 21 22 23 24
+    uint256 private constant ROW_0       = 0x0000001F;
+    uint256 private constant ROW_1       = 0x000003E0;
+    uint256 private constant ROW_2       = 0x00007C00;
+    uint256 private constant ROW_3       = 0x000F8000;
+    uint256 private constant ROW_4       = 0x01F00000;
+    uint256 private constant COL_0       = (1<<0)|(1<<5)|(1<<10)|(1<<15)|(1<<20);
+    uint256 private constant COL_1       = (1<<1)|(1<<6)|(1<<11)|(1<<16)|(1<<21);
+    uint256 private constant COL_2       = (1<<2)|(1<<7)|(1<<12)|(1<<17)|(1<<22);
+    uint256 private constant COL_3       = (1<<3)|(1<<8)|(1<<13)|(1<<18)|(1<<23);
+    uint256 private constant COL_4       = (1<<4)|(1<<9)|(1<<14)|(1<<19)|(1<<24);
+    uint256 private constant DIAG1       = (1<<0)|(1<<6)|(1<<12)|(1<<18)|(1<<24);
+    uint256 private constant DIAG2       = (1<<4)|(1<<8)|(1<<12)|(1<<16)|(1<<20);
+    uint256 private constant CORNERS_MSK = (1<<0)|(1<<4)|(1<<20)|(1<<24);
+    uint256 private constant FULL_MSK    = (1<<25)-1;
 
     // ─── Structs ──────────────────────────────────────────────────────────────
     struct Round {
-        uint256   entryFee;          // USDC per player (6 decimals)
-        uint256   maxPlayers;        // Owner configurable
-        uint256   timerDuration;     // Seconds after first join before lock
-        uint256   startTime;         // Timestamp of first player joining
-        uint256   prizePool;         // Total USDC collected
-        GameMode  mode;              // Pattern type
-        RoundState state;            // Current state
-        bytes32   randomSeed;        // From Pyth Entropy
-        uint8[]   drawnNumbers;      // 1–75 drawn numbers
-        address[] players;           // Joined player addresses
-        address[] winners;           // Winner address(es) for ties
-        uint64    entropySeqNum;     // Pyth sequence number
-        bool      entropyRequested;  // Whether Pyth has been called
+        uint256    entryFee;
+        uint256    maxPlayers;
+        uint256    timerDuration;
+        uint256    startTime;
+        uint256    prizePool;
+        GameMode   mode;
+        RoundState state;
+        bytes32    randomSeed;       // Stored by lightweight callback
+        uint8[]    drawnNumbers;     // Stored by finalizeRound
+        address[]  players;
+        address[]  winners;
+        uint64     entropySeqNum;
+        bool       entropyRequested;
+        bool       seeded;           // True once callback received → ready to finalize
     }
 
     // ─── State ────────────────────────────────────────────────────────────────
-    mapping(uint256 => Round)              public rounds;
-    mapping(uint256 => mapping(address => bool)) public hasJoined;
-    mapping(uint64  => uint256)            private _seqToRound;
+    mapping(uint256 => Round)                       public  rounds;
+    mapping(uint256 => mapping(address => bool))    public  hasJoined;
+    // Packed card: 25 numbers × 7 bits each = 175 bits, stored in one uint256 slot
+    mapping(uint256 => mapping(address => uint256)) public  playerCards;
+    mapping(uint64  => uint256)                     private _seqToRound;
 
     uint256 public roundCount;
-    uint256 public houseFunds;     // Accumulated 10% house cuts
-    uint256 public constant HOUSE_CUT_BPS = 1000; // 10%
-    uint256 public constant WINNER_BPS    = 9000; // 90%
+    uint256 public houseFunds;
+    uint256 public constant HOUSE_CUT_BPS = 1000;
+    uint256 public constant WINNER_BPS    = 9000;
 
     // ─── Events ───────────────────────────────────────────────────────────────
-    event RoundCreated(
-        uint256 indexed roundId,
-        uint256 entryFee,
-        uint256 maxPlayers,
-        uint256 timerDuration,
-        GameMode mode
-    );
-    event PlayerJoined(uint256 indexed roundId, address indexed player, uint256 playerCount);
-    event RoundLocked(uint256 indexed roundId, uint256 prizePool, uint256 playerCount);
-    event NumbersDrawn(uint256 indexed roundId, uint8[] drawnNumbers);
-    event RoundFinished(uint256 indexed roundId, address[] winners, uint256 payoutEach, uint256 houseCut);
-    event RoundCancelled(uint256 indexed roundId, uint256 refundAmount);
-    event HouseWithdrawn(uint256 amount);
+    event RoundCreated   (uint256 indexed roundId, uint256 entryFee, uint256 maxPlayers, uint256 timerDuration, GameMode mode);
+    event PlayerJoined   (uint256 indexed roundId, address indexed player, uint256 playerCount);
+    event RoundLocked    (uint256 indexed roundId, uint256 prizePool, uint256 playerCount);
+    event EntropyReceived(uint256 indexed roundId, bytes32 seed);
+    event NumbersDrawn   (uint256 indexed roundId, uint8[] drawnNumbers);
+    event RoundFinished  (uint256 indexed roundId, address[] winners, uint256 payoutEach, uint256 houseCut);
+    event RoundCancelled (uint256 indexed roundId, uint256 refundAmount);
+    event HouseWithdrawn (uint256 amount);
 
     // ─── Modifiers ────────────────────────────────────────────────────────────
-    modifier onlyOwner()     { require(msg.sender == owner, "Not owner"); _; }
-    modifier whenNotPaused() { require(!paused, "Paused"); _; }
-    modifier roundExists(uint256 id) { require(id < roundCount, "Round not found"); _; }
+    modifier onlyOwner()              { require(msg.sender == owner, "Not owner"); _; }
+    modifier whenNotPaused()          { require(!paused,             "Paused");    _; }
+    modifier roundExists(uint256 id)  { require(id < roundCount,     "Not found"); _; }
 
     // ─── Constructor ──────────────────────────────────────────────────────────
     constructor(address _usdc, address _vault, address _entropy) {
@@ -106,27 +108,18 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
         owner   = msg.sender;
     }
 
-    // ─── Required by IEntropyConsumer ─────────────────────────────────────────
-    function getEntropy() internal view override returns (address) {
-        return address(entropy);
-    }
+    function getEntropy() internal view override returns (address) { return address(entropy); }
 
     // ─── Owner: Create Round ──────────────────────────────────────────────────
-
-    /// @notice Owner creates a new round with full configuration
-    /// @param entryFee     USDC entry fee in 6 decimals (e.g. 5000000 = $5)
-    /// @param maxPlayers   Maximum players allowed (min 2)
-    /// @param timerSeconds Seconds after first join before round locks
-    /// @param mode         Game mode (0=CLASSIC 1=BLACKOUT 2=CORNERS 3=X_FACTOR)
     function createRound(
         uint256  entryFee,
         uint256  maxPlayers,
         uint256  timerSeconds,
         GameMode mode
     ) external onlyOwner whenNotPaused {
-        require(entryFee   >= 100_000,  "Min entry $0.10");
-        require(maxPlayers >= 2,         "Min 2 players");
-        require(maxPlayers <= 100,       "Max 100 players");
+        require(entryFee     >= 100_000, "Min entry $0.10");
+        require(maxPlayers   >= 2,       "Min 2 players");
+        require(maxPlayers   <= 100,     "Max 100 players");
         require(timerSeconds >= 30,      "Min 30s timer");
         require(timerSeconds <= 3600,    "Max 1hr timer");
 
@@ -142,33 +135,30 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
     }
 
     // ─── Player: Join Round ───────────────────────────────────────────────────
-
-    /// @notice Join an open round by paying the entry fee
-    /// @param roundId The round to join
+    /// @notice Pay entry fee and receive a unique bingo card stored on-chain.
+    ///         The card is generated immediately — players can see it before the draw.
     function joinRound(uint256 roundId)
         external nonReentrant whenNotPaused roundExists(roundId)
     {
         Round storage r = rounds[roundId];
+        require(r.state == RoundState.WAITING,   "Round not open");
+        require(!hasJoined[roundId][msg.sender],  "Already joined");
+        require(r.players.length < r.maxPlayers,  "Round full");
 
-        require(r.state == RoundState.WAITING,  "Round not open");
-        require(!hasJoined[roundId][msg.sender], "Already joined");
-        require(r.players.length < r.maxPlayers, "Round full");
-
-        // Check timer hasn't expired (if at least 1 player already in)
         if (r.players.length > 0) {
-            require(
-                block.timestamp < r.startTime + r.timerDuration,
-                "Round timer expired"
-            );
+            require(block.timestamp < r.startTime + r.timerDuration, "Timer expired");
         }
 
-        // Collect USDC directly into this contract
         usdc.safeTransferFrom(msg.sender, address(this), r.entryFee);
 
-        // Record first join time for timer
-        if (r.players.length == 0) {
-            r.startTime = block.timestamp;
-        }
+        if (r.players.length == 0) r.startTime = block.timestamp;
+
+        // Generate card from roundId + join-order index + address, store packed
+        playerCards[roundId][msg.sender] = _generatePackedCard(
+            roundId,
+            r.players.length,
+            msg.sender
+        );
 
         hasJoined[roundId][msg.sender] = true;
         r.players.push(msg.sender);
@@ -176,16 +166,10 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
 
         emit PlayerJoined(roundId, msg.sender, r.players.length);
 
-        // Auto-lock if max players reached
-        if (r.players.length == r.maxPlayers) {
-            _lockAndDraw(roundId);
-        }
+        if (r.players.length == r.maxPlayers) _lockAndDraw(roundId);
     }
 
-    // ─── Lock Round (anyone can trigger after timer expires) ──────────────────
-
-    /// @notice Lock the round and request randomness. Callable by anyone
-    ///         after the timer expires. Owner can call anytime.
+    // ─── Lock Round ───────────────────────────────────────────────────────────
     function lockRound(uint256 roundId)
         external nonReentrant roundExists(roundId)
     {
@@ -194,37 +178,30 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
         require(r.players.length > 0,          "No players");
 
         bool timerExpired = block.timestamp >= r.startTime + r.timerDuration;
-        bool isOwner      = msg.sender == owner;
+        require(timerExpired || msg.sender == owner, "Timer not expired");
 
-        require(timerExpired || isOwner, "Timer not expired yet");
-
-        // Cancel if less than 2 players
-        if (r.players.length < 2) {
-            _cancelRound(roundId);
-            return;
-        }
+        if (r.players.length < 2) { _cancelRound(roundId); return; }
 
         _lockAndDraw(roundId);
     }
 
-    // ─── Internal: Lock + Request Entropy ─────────────────────────────────────
+    // ─── Internal: Request Entropy ────────────────────────────────────────────
     function _lockAndDraw(uint256 roundId) internal {
         Round storage r = rounds[roundId];
         r.state = RoundState.LOCKED;
-
         emit RoundLocked(roundId, r.prizePool, r.players.length);
 
-        // Request Pyth Entropy — one call resolves everything
         uint256 fee = entropy.getFeeV2();
-        require(address(this).balance >= fee, "Insufficient ETH for Pyth fee");
+        require(address(this).balance >= fee, "Insufficient ETH for Pyth");
 
         uint64 seqNum = entropy.requestV2{value: fee}();
-        r.entropySeqNum     = seqNum;
-        r.entropyRequested  = true;
+        r.entropySeqNum    = seqNum;
+        r.entropyRequested = true;
         _seqToRound[seqNum] = roundId;
     }
 
-    // ─── Pyth Entropy Callback ────────────────────────────────────────────────
+    // ─── Pyth Callback — LIGHTWEIGHT (~30 k gas, never hits gas cap) ──────────
+    /// @dev Only stores the seed and flips `seeded`. All heavy work is in finalizeRound.
     function entropyCallback(
         uint64  seqNum,
         address,
@@ -232,203 +209,179 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
     ) internal override {
         uint256 roundId = _seqToRound[seqNum];
         Round storage r = rounds[roundId];
-
-        require(r.state == RoundState.LOCKED, "Round not locked");
+        require(r.state == RoundState.LOCKED, "Not locked");
 
         r.randomSeed = randomNumber;
+        r.seeded     = true;
 
-        // Generate all drawn numbers from the seed
-        r.drawnNumbers = _drawNumbers(randomNumber);
+        emit EntropyReceived(roundId, randomNumber);
+    }
 
+    // ─── Finalize Round (anyone can call after entropy arrives) ───────────────
+    /// @notice Draws numbers from the Pyth seed and resolves winners.
+    ///         Separated from the callback so it runs with sufficient gas.
+    function finalizeRound(uint256 roundId)
+        external nonReentrant roundExists(roundId)
+    {
+        Round storage r = rounds[roundId];
+        require(r.state == RoundState.LOCKED, "Not locked");
+        require(r.seeded,                     "Entropy not received yet");
+
+        r.drawnNumbers = _drawNumbers(r.randomSeed);
         emit NumbersDrawn(roundId, r.drawnNumbers);
 
-        // Resolve winners
         _resolveRound(roundId);
     }
 
-    // ─── Resolve Winners ──────────────────────────────────────────────────────
+    // ─── Winner Resolution (bitmap-based) ─────────────────────────────────────
+    /// @dev Cost: O(75 reveals × N players × 25 positions) — no keccak in inner loop.
+    ///      Pattern checks are single bitwise AND operations.
     function _resolveRound(uint256 roundId) internal {
-        Round storage r = rounds[roundId];
+        Round storage r     = rounds[roundId];
+        uint256 numPlayers  = r.players.length;
 
-        address[] memory winners = new address[](r.players.length);
-        uint256 winnerCount = 0;
-        uint256 winningReveal = 75; // The drawn number index at which win detected
+        // Unpack every player's card once upfront
+        uint8[][] memory cards = new uint8[][](numPlayers);
+        for (uint256 p; p < numPlayers;) {
+            uint256 packed = playerCards[roundId][r.players[p]];
+            cards[p] = new uint8[](25);
+            for (uint8 i; i < 25;) {
+                cards[p][i] = uint8((packed >> (i * 7)) & 0x7F);
+                unchecked { i++; }
+            }
+            unchecked { p++; }
+        }
 
-        // Check each player's card against drawn numbers progressively
-        // Find the earliest number reveal at which any player wins
-        for (uint256 reveal = 1; reveal <= r.drawnNumbers.length;) {
-            // Build set of drawn numbers up to this reveal
-            // Check all players at this reveal count
-            for (uint256 p = 0; p < r.players.length;) {
-                uint8[25] memory card = _generateCard(r.randomSeed, r.players[p]);
-                bool[25]  memory matched = _matchNumbers(card, r.drawnNumbers, reveal);
-                if (_checkPattern(matched, r.mode)) {
-                    if (reveal < winningReveal) {
-                        // New earliest win — reset winners
-                        winnerCount  = 0;
-                        winningReveal = reveal;
+        // One 25-bit matched-position mask per player
+        uint256[] memory posMasks = new uint256[](numPlayers);
+        address[] memory potWinners = new address[](numPlayers);
+        uint256 winnerCount;
+
+        // Progressive reveal — stops as soon as any player wins
+        for (uint256 reveal; reveal < 75;) {
+            uint8 num = r.drawnNumbers[reveal];
+
+            // Update matched-position masks
+            for (uint256 p; p < numPlayers;) {
+                for (uint8 pos; pos < 25;) {
+                    if (cards[p][pos] == num) {
+                        posMasks[p] |= (1 << pos);
+                        break;
                     }
-                    if (reveal == winningReveal) {
-                        winners[winnerCount++] = r.players[p];
-                    }
+                    unchecked { pos++; }
                 }
                 unchecked { p++; }
             }
+
+            // Check all players for winning pattern (O(1) per player via bitmap)
+            for (uint256 p; p < numPlayers;) {
+                if (_checkPatternBitmap(posMasks[p], r.mode)) {
+                    potWinners[winnerCount++] = r.players[p];
+                }
+                unchecked { p++; }
+            }
+
             if (winnerCount > 0) break;
             unchecked { reveal++; }
         }
 
-        // Pay out
         if (winnerCount > 0) {
-            // Store winners
             for (uint256 i; i < winnerCount;) {
-                r.winners.push(winners[i]);
+                r.winners.push(potWinners[i]);
                 unchecked { i++; }
             }
 
-            uint256 houseCut    = (r.prizePool * HOUSE_CUT_BPS) / 10_000;
-            uint256 winnerPool  = r.prizePool - houseCut;
-            uint256 payoutEach  = winnerPool / winnerCount;
+            uint256 houseCut   = (r.prizePool * HOUSE_CUT_BPS) / 10_000;
+            uint256 winnerPool = r.prizePool - houseCut;
+            uint256 payoutEach = winnerPool / winnerCount;
 
-            // Send winnings to each winner
             for (uint256 i; i < winnerCount;) {
-                usdc.safeTransfer(winners[i], payoutEach);
+                usdc.safeTransfer(potWinners[i], payoutEach);
                 unchecked { i++; }
             }
 
-            // Accumulate house cut (owner withdraws separately)
             houseFunds += houseCut;
-
             r.state = RoundState.FINISHED;
             emit RoundFinished(roundId, r.winners, payoutEach, houseCut);
-
         } else {
-            // Nobody won after all 75 numbers — extremely rare
-            // Split prize pool equally as refund
             _cancelRound(roundId);
         }
     }
 
-    // ─── Internal: Cancel Round ───────────────────────────────────────────────
-    function _cancelRound(uint256 roundId) internal {
-        Round storage r = rounds[roundId];
-        r.state = RoundState.CANCELLED;
-
-        // Refund all players directly from this contract
-        uint256 refundAmount = r.entryFee;
-        for (uint256 i; i < r.players.length;) {
-            usdc.safeTransfer(r.players[i], refundAmount);
-            unchecked { i++; }
+    // ─── Bitmap Pattern Check — O(1) ──────────────────────────────────────────
+    function _checkPatternBitmap(uint256 mask, GameMode mode)
+        internal pure returns (bool)
+    {
+        if (mode == GameMode.CLASSIC) {
+            return (mask & ROW_0 == ROW_0) || (mask & ROW_1 == ROW_1) ||
+                   (mask & ROW_2 == ROW_2) || (mask & ROW_3 == ROW_3) ||
+                   (mask & ROW_4 == ROW_4) ||
+                   (mask & COL_0 == COL_0) || (mask & COL_1 == COL_1) ||
+                   (mask & COL_2 == COL_2) || (mask & COL_3 == COL_3) ||
+                   (mask & COL_4 == COL_4) ||
+                   (mask & DIAG1 == DIAG1) || (mask & DIAG2 == DIAG2);
         }
-
-        emit RoundCancelled(roundId, refundAmount);
+        if (mode == GameMode.BLACKOUT) return mask & FULL_MSK    == FULL_MSK;
+        if (mode == GameMode.CORNERS)  return mask & CORNERS_MSK == CORNERS_MSK;
+        if (mode == GameMode.X_FACTOR) return (mask & DIAG1 == DIAG1) && (mask & DIAG2 == DIAG2);
+        return false;
     }
 
     // ─── Card Generation ──────────────────────────────────────────────────────
-
-    /// @dev Each player gets a unique 5x5 card from roundSeed + their address
-    function _generateCard(bytes32 seed, address player)
-        internal pure returns (uint8[25] memory card)
+    /// @dev Fisher-Yates on 1–75, take first 25, pack into uint256 (7 bits × 25).
+    ///      Unique per (roundId, join-order, player address).
+    function _generatePackedCard(uint256 roundId, uint256 playerIndex, address player)
+        internal pure returns (uint256 packed)
     {
-        bytes32 playerSeed = keccak256(abi.encode(seed, player, "card"));
+        bytes32 seed = keccak256(abi.encode(roundId, playerIndex, player, "basecast-bingo-v3"));
         uint8[75] memory pool;
         for (uint8 i; i < 75;) { pool[i] = i + 1; unchecked { i++; } }
-
-        // Fisher-Yates shuffle using player-specific seed
         for (uint8 i = 74; i > 0;) {
-            uint8 j = uint8(
-                uint256(keccak256(abi.encode(playerSeed, i))) % (i + 1)
-            );
+            uint8 j = uint8(uint256(keccak256(abi.encode(seed, i))) % (i + 1));
             (pool[i], pool[j]) = (pool[j], pool[i]);
             unchecked { i--; }
         }
-        for (uint8 i; i < 25;) { card[i] = pool[i]; unchecked { i++; } }
+        for (uint8 i; i < 25;) {
+            packed |= uint256(pool[i]) << (i * 7);
+            unchecked { i++; }
+        }
     }
 
-    /// @dev Draw 75 numbers in shuffled order from round seed
-    function _drawNumbers(bytes32 seed)
-        internal pure returns (uint8[] memory drawn)
-    {
+    // ─── Number Draw ──────────────────────────────────────────────────────────
+    function _drawNumbers(bytes32 seed) internal pure returns (uint8[] memory drawn) {
         bytes32 drawSeed = keccak256(abi.encode(seed, "draw"));
         uint8[75] memory pool;
         for (uint8 i; i < 75;) { pool[i] = i + 1; unchecked { i++; } }
-
         for (uint8 i = 74; i > 0;) {
-            uint8 j = uint8(
-                uint256(keccak256(abi.encode(drawSeed, i))) % (i + 1)
-            );
+            uint8 j = uint8(uint256(keccak256(abi.encode(drawSeed, i))) % (i + 1));
             (pool[i], pool[j]) = (pool[j], pool[i]);
             unchecked { i--; }
         }
-
         drawn = new uint8[](75);
         for (uint8 i; i < 75;) { drawn[i] = pool[i]; unchecked { i++; } }
     }
 
-    // ─── Number Matching ──────────────────────────────────────────────────────
-    function _matchNumbers(
-        uint8[25] memory card,
-        uint8[]   memory drawn,
-        uint256   revealCount
-    ) internal pure returns (bool[25] memory matched) {
-        for (uint8 i; i < 25;) {
-            for (uint256 j; j < revealCount;) {
-                if (card[i] == drawn[j]) { matched[i] = true; break; }
-                unchecked { j++; }
-            }
+    // ─── Cancel ───────────────────────────────────────────────────────────────
+    function _cancelRound(uint256 roundId) internal {
+        Round storage r = rounds[roundId];
+        r.state = RoundState.CANCELLED;
+        uint256 amt = r.entryFee;
+        for (uint256 i; i < r.players.length;) {
+            usdc.safeTransfer(r.players[i], amt);
             unchecked { i++; }
         }
+        emit RoundCancelled(roundId, amt);
     }
 
-    // ─── Pattern Checkers ─────────────────────────────────────────────────────
-    function _checkPattern(bool[25] memory m, GameMode mode)
-        internal pure returns (bool)
-    {
-        if (mode == GameMode.CLASSIC)  return _checkAnyLine(m);
-        if (mode == GameMode.BLACKOUT) return _checkFull(m);
-        if (mode == GameMode.CORNERS)  return m[0] && m[4] && m[20] && m[24];
-        if (mode == GameMode.X_FACTOR) {
-            return m[0]&&m[6]&&m[12]&&m[18]&&m[24]   // diagonal 1
-                && m[4]&&m[8]&&m[12]&&m[16]&&m[20];   // diagonal 2
-        }
-        return false;
-    }
-
-    function _checkAnyLine(bool[25] memory m) internal pure returns (bool) {
-        // Rows
-        for (uint8 r; r < 5;) {
-            uint8 b = r * 5;
-            if (m[b]&&m[b+1]&&m[b+2]&&m[b+3]&&m[b+4]) return true;
-            unchecked { r++; }
-        }
-        // Cols
-        for (uint8 c; c < 5;) {
-            if (m[c]&&m[c+5]&&m[c+10]&&m[c+15]&&m[c+20]) return true;
-            unchecked { c++; }
-        }
-        // Diagonals
-        if (m[0]&&m[6]&&m[12]&&m[18]&&m[24]) return true;
-        if (m[4]&&m[8]&&m[12]&&m[16]&&m[20]) return true;
-        return false;
-    }
-
-    function _checkFull(bool[25] memory m) internal pure returns (bool) {
-        for (uint8 i; i < 25;) { if (!m[i]) return false; unchecked { i++; } }
-        return true;
-    }
-
-    // ─── Owner: Withdraw House Funds ──────────────────────────────────────────
-
-    /// @notice Owner withdraws accumulated house cut at any time
+    // ─── Owner: Withdraw ──────────────────────────────────────────────────────
     function withdrawHouseFunds() external onlyOwner nonReentrant {
-        uint256 amount = houseFunds;
-        require(amount > 0, "Nothing to withdraw");
+        uint256 amt = houseFunds;
+        require(amt > 0, "Nothing to withdraw");
         houseFunds = 0;
-        usdc.safeTransfer(owner, amount);
-        emit HouseWithdrawn(amount);
+        usdc.safeTransfer(owner, amt);
+        emit HouseWithdrawn(amt);
     }
 
-    /// @notice Owner withdraws specific amount of house funds
     function withdrawHouseFunds(uint256 amount) external onlyOwner nonReentrant {
         require(amount <= houseFunds, "Exceeds house funds");
         houseFunds -= amount;
@@ -436,21 +389,12 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
         emit HouseWithdrawn(amount);
     }
 
-    // ─── Owner: Emergency Cancel ──────────────────────────────────────────────
-
-    /// @notice Emergency cancel — refunds all players, cannot steal funds
-    function emergencyCancel(uint256 roundId)
-        external onlyOwner roundExists(roundId)
-    {
+    function emergencyCancel(uint256 roundId) external onlyOwner roundExists(roundId) {
         Round storage r = rounds[roundId];
-        require(
-            r.state == RoundState.WAITING || r.state == RoundState.LOCKED,
-            "Cannot cancel"
-        );
+        require(r.state == RoundState.WAITING || r.state == RoundState.LOCKED, "Cannot cancel");
         _cancelRound(roundId);
     }
 
-    // ─── Owner: Config ────────────────────────────────────────────────────────
     function setPaused(bool _p) external onlyOwner { paused = _p; }
 
     function transferOwnership(address newOwner) external onlyOwner {
@@ -458,64 +402,46 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
         owner = newOwner;
     }
 
-    // ─── ETH receive (for Pyth fee funding) ──────────────────────────────────
-    receive() external payable {}
-
-    function withdrawEth(uint256 amount) external onlyOwner {
-        require(address(this).balance >= amount, "Insufficient ETH");
-        (bool ok,) = owner.call{value: amount}("");
-        require(ok, "Transfer failed");
-    }
-
     // ─── View Functions ───────────────────────────────────────────────────────
-
     function getRound(uint256 roundId) external view returns (
-        uint256   entryFee,
-        uint256   maxPlayers,
-        uint256   timerDuration,
-        uint256   startTime,
-        uint256   prizePool,
-        GameMode  mode,
+        uint256    entryFee,
+        uint256    maxPlayers,
+        uint256    timerDuration,
+        uint256    startTime,
+        uint256    prizePool,
+        GameMode   mode,
         RoundState state,
-        uint256   playerCount,
-        address[] memory winners
+        uint256    playerCount,
+        address[]  memory winners,
+        bool       seeded
     ) {
         Round storage r = rounds[roundId];
         return (
             r.entryFee, r.maxPlayers, r.timerDuration,
             r.startTime, r.prizePool, r.mode, r.state,
-            r.players.length, r.winners
+            r.players.length, r.winners, r.seeded
         );
     }
 
-    function getPlayers(uint256 roundId)
-        external view returns (address[] memory)
+    /// @notice Returns a player's bingo card. Available immediately after joining —
+    ///         players can see their card before the round locks.
+    function getPlayerCard(uint256 roundId, address player)
+        external view returns (uint8[25] memory card)
     {
+        require(hasJoined[roundId][player], "Player has not joined this round");
+        uint256 packed = playerCards[roundId][player];
+        for (uint8 i; i < 25;) {
+            card[i] = uint8((packed >> (i * 7)) & 0x7F);
+            unchecked { i++; }
+        }
+    }
+
+    function getPlayers(uint256 roundId) external view returns (address[] memory) {
         return rounds[roundId].players;
     }
 
-    function getDrawnNumbers(uint256 roundId)
-        external view returns (uint8[] memory)
-    {
+    function getDrawnNumbers(uint256 roundId) external view returns (uint8[] memory) {
         return rounds[roundId].drawnNumbers;
-    }
-
-    /// @notice Get a player's card for a specific round (after round is locked)
-    function getPlayerCard(uint256 roundId, address player)
-        external view returns (uint8[25] memory)
-    {
-        Round storage r = rounds[roundId];
-        require(
-            r.state == RoundState.LOCKED   ||
-            r.state == RoundState.FINISHED ||
-            r.state == RoundState.CANCELLED,
-            "Round not started yet"
-        );
-        return _generateCard(r.randomSeed, player);
-    }
-
-    function getEntropyFee() external view returns (uint256) {
-        return entropy.getFeeV2();
     }
 
     function getOpenRounds() external view returns (uint256[] memory) {
@@ -539,5 +465,15 @@ contract BingoMultiplayer is ReentrancyGuard, IEntropyConsumer {
         uint256 lockAt = r.startTime + r.timerDuration;
         if (block.timestamp >= lockAt) return 0;
         return lockAt - block.timestamp;
+    }
+
+    function getEntropyFee() external view returns (uint256) { return entropy.getFeeV2(); }
+
+    receive() external payable {}
+
+    function withdrawEth(uint256 amount) external onlyOwner {
+        require(address(this).balance >= amount, "Insufficient ETH");
+        (bool ok,) = owner.call{value: amount}("");
+        require(ok, "ETH transfer failed");
     }
 }
