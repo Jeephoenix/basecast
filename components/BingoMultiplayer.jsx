@@ -131,12 +131,10 @@ function Badge({ label, color, bg }) {
   );
 }
 
-function PythVerifyChip({ seqNum, explorer, entropyAddress }) {
+function PythVerifyChip({ seqNum }) {
   if (!seqNum && seqNum !== 0n) return null;
   const seq = seqNum.toString();
-  const href = explorer && entropyAddress
-    ? `${explorer}/address/${entropyAddress}`
-    : null;
+  const href = `https://entropy-explorer.pyth.network/`;
   const inner = (
     <div style={{
       display: "inline-flex", alignItems: "center", gap: 5,
@@ -597,11 +595,7 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
                         {/* Pyth entropy verification chip */}
                         {r.entropySeqNum != null && r.entropySeqNum !== 0n && (
                           <div style={{ marginBottom: 10 }}>
-                            <PythVerifyChip
-                              seqNum={r.entropySeqNum}
-                              explorer={explorer}
-                              entropyAddress={process.env.NEXT_PUBLIC_ENTROPY_ADDRESS}
-                            />
+                            <PythVerifyChip seqNum={r.entropySeqNum} />
                           </div>
                         )}
 
@@ -685,19 +679,15 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
                         gap: 10,
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, overflow: "hidden" }}>
                         <span style={{ fontWeight: 700, fontSize: 13, color: "var(--tx)", whiteSpace: "nowrap" }}>Round #{key}</span>
-                        <span style={{ fontSize: 11, color: "var(--sub)", whiteSpace: "nowrap" }}>{MODE_SHORT[r.mode]}</span>
-                        {iWon && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--green)", background: "rgba(0,245,160,.1)", border: "1px solid rgba(0,245,160,.25)", borderRadius: 20, padding: "2px 8px", whiteSpace: "nowrap" }}>You won</span>}
+                        <span style={{ fontSize: 11, color: "var(--sub)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{MODE_SHORT[r.mode]}</span>
+                        {iWon && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--green)", background: "rgba(0,245,160,.1)", border: "1px solid rgba(0,245,160,.25)", borderRadius: 20, padding: "2px 8px", whiteSpace: "nowrap", flexShrink: 0 }}>You won</span>}
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                         {r.entropySeqNum != null && r.entropySeqNum !== 0n && (
                           <span onClick={e => e.stopPropagation()}>
-                            <PythVerifyChip
-                              seqNum={r.entropySeqNum}
-                              explorer={explorer}
-                              entropyAddress={process.env.NEXT_PUBLIC_ENTROPY_ADDRESS}
-                            />
+                            <PythVerifyChip seqNum={r.entropySeqNum} />
                           </span>
                         )}
                         <Badge
