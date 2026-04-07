@@ -52,6 +52,43 @@ const fmtTimer = (s) => {
 };
 const shortAddr = (a) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
+// Check whether a bingo card satisfies the win condition given a set of drawn numbers.
+// card is a flat 25-element array (5×5 row-major). mode matches the contract enum.
+function checkWin(card, drawnSet, mode) {
+  const hit = (i) => drawnSet.has(Number(card[i]));
+  if (mode === 0) { // Any Line
+    for (let r = 0; r < 5; r++) {
+      if ([0,1,2,3,4].every(c => hit(r * 5 + c))) return true;
+    }
+    for (let c = 0; c < 5; c++) {
+      if ([0,1,2,3,4].every(r => hit(r * 5 + c))) return true;
+    }
+    if ([0,6,12,18,24].every(hit)) return true;
+    if ([4,8,12,16,20].every(hit)) return true;
+    return false;
+  }
+  if (mode === 1) return card.every((_, i) => hit(i)); // Blackout
+  if (mode === 2) return [0,4,20,24].every(hit);       // Corners
+  if (mode === 3) return [0,4,6,8,12,16,18,20,24].every(hit); // X-Factor
+  return false;
+}
+
+// Walk through drawn numbers one-by-one and return how many it took for any
+// card in `allCards` to satisfy the win condition. Returns drawn.length if no
+// earlier win is detected (safe fallback).
+function findWinningDrawCount(allCards, drawn, mode) {
+  if (!allCards || allCards.length === 0 || !drawn || drawn.length === 0) {
+    return drawn?.length ?? 0;
+  }
+  for (let count = 1; count <= drawn.length; count++) {
+    const drawnSet = new Set(drawn.slice(0, count).map(Number));
+    for (const card of allCards) {
+      if (checkWin(card, drawnSet, mode)) return count;
+    }
+  }
+  return drawn.length;
+}
+
 // Mirrors the Solidity _drawNumbers() function exactly.
 // Given the Pyth bytes32 seed, returns the 75-number draw order.
 function computeDrawnNumbers(randomSeed) {
@@ -159,6 +196,8 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
   const [selectedRound, setSelectedRound] = useState(null);
   // previewDrawn: drawn numbers computed client-side for seeded-but-not-finalized rounds
   const [previewDrawn,  setPreviewDrawn]  = useState({});
+  // winnerCards: winner card(s) per round, used to compute the winning draw count
+  const [winnerCards,   setWinnerCards]   = useState({});
 
   const readContract = useCallback((fn, args = []) =>
     publicClient.readContract({ address: contractAddress, abi: BINGO_MP_ABI, functionName: fn, args }),
@@ -217,12 +256,25 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
           } catch {}
         }
 
-        // Finalized rounds: fetch drawn numbers from chain
+        // Finalized rounds: fetch drawn numbers and winner cards from chain
         if (r.state === 2) {
           try {
             const drawn = await readContract("getDrawnNumbers", [r.id]);
             setDrawnNumbers(p => ({ ...p, [key]: Array.from(drawn) }));
           } catch {}
+
+          // Fetch each winner's card so we can compute the exact winning draw count
+          if (r.winners && r.winners.length > 0) {
+            try {
+              const fetchedWinnerCards = await Promise.all(
+                r.winners.map(w => readContract("getPlayerCard", [r.id, w]))
+              );
+              setWinnerCards(p => ({
+                ...p,
+                [key]: fetchedWinnerCards.map(c => Array.from(c)),
+              }));
+            } catch {}
+          }
         }
 
         // Seeded but not yet finalized: compute drawn numbers client-side from seed.
@@ -531,8 +583,15 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
                 const isFinished = r.state === 2;
                 const isMine     = !!myRounds[key];
                 const myCard     = cards[key];
-                const drawn      = drawnNumbers[key] || [];
+                const allDrawn   = drawnNumbers[key] || [];
                 const iWon       = isFinished && r.winners.some(w => w.toLowerCase() === address?.toLowerCase());
+
+                // Trim drawn numbers to the winning draw — the exact draw on which
+                // a winner completed their card. Numbers after that draw are irrelevant.
+                const winCount   = isFinished
+                  ? findWinningDrawCount(winnerCards[key] || [], allDrawn, r.mode)
+                  : allDrawn.length;
+                const drawn      = allDrawn.slice(0, winCount);
 
                 return (
                   <div key={key} className="card" style={{ border: iWon ? "1px solid rgba(0,245,160,.3)" : "1px solid var(--bd)" }}>
@@ -561,7 +620,9 @@ export default function BingoMultiplayer({ contractAddress, usdcAddress, balance
 
                     {isFinished && drawn.length > 0 && (
                       <div style={{ marginBottom: isMine && myCard ? 14 : 0 }}>
-                        <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 6 }}>Numbers drawn ({drawn.length})</div>
+                        <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 6 }}>
+                          Numbers drawn ({drawn.length}{winCount < allDrawn.length ? ` of ${allDrawn.length} — stopped at winning draw` : ""})
+                        </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                           {drawn.map((n, i) => (
                             <span key={i} style={{
