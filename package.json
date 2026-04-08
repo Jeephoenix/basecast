@@ -13,7 +13,7 @@
     "deploy:main": "hardhat run scripts/deploy.js --network base"
   },
   "dependencies": {
-    "@next/swc-linux-x64-gnu": "^16.2.2",
+    "@next/swc-linux-x64-gnu": "^14.2.33",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "^5.96.1",
     "bs58": "^6.0.0",
