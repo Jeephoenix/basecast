@@ -4,6 +4,7 @@
 import { AppFooter, ConsentModal, hasConsented } from "@/components/PolicyModal";
 import LiveBetTicker from "@/components/LiveBetTicker";
 import BingoGame    from "@/components/BingoGame";
+import BTCPredict   from "@/components/BTCPredict";
 import { useState, useEffect, useCallback } from "react";
 import {
   useAccount, useChainId, useSwitchChain,
@@ -33,7 +34,8 @@ const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
 const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
 const BINGO    = process.env.NEXT_PUBLIC_BINGO_ADDRESS;
 const BINGO_MP = process.env.NEXT_PUBLIC_BINGO_MULTIPLAYER_ADDRESS;
-const REFERRAL = process.env.NEXT_PUBLIC_REFERRAL_ADDRESS;
+const REFERRAL    = process.env.NEXT_PUBLIC_REFERRAL_ADDRESS;
+const BTCPREDICT  = process.env.NEXT_PUBLIC_BTCPREDICT_ADDRESS;
 const USDC     = process.env.NEXT_PUBLIC_USDC_ADDRESS;
 const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
 const EXPLORER = CHAIN_ID === 8453 ? "https://basescan.org" : "https://sepolia.basescan.org";
@@ -1008,6 +1010,7 @@ export default function App() {
   const IcoCoin    = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>;
   const IcoDice    = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor"/></svg>;
   const IcoBingo   = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>;
+  const IcoBtcPredict = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 12 6 8 10 14 14 9 18 13 22 9"/><circle cx="12" cy="4" r="1.5" fill="currentColor" stroke="none"/></svg>;
   const IcoShield  = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
   const IcoChevron = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
   const IcoRefresh = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>;
@@ -1557,9 +1560,10 @@ export default function App() {
             {/* Game sub-tabs */}
             <div style={{display:"flex",borderBottom:"1px solid var(--bd)",marginBottom:16,overflowX:"auto"}}>
               {[
-                {id:"coinflip",Icon:IcoCoin,  label:"Coin Flip"},
-                {id:"dice",    Icon:IcoDice,  label:"Dice Roll"},
-                {id:"bingo",   Icon:IcoBingo, label:"Bingo"},
+                {id:"coinflip",   Icon:IcoCoin,       label:"Coin Flip"},
+                {id:"dice",       Icon:IcoDice,       label:"Dice Roll"},
+                {id:"bingo",      Icon:IcoBingo,      label:"Bingo"},
+                {id:"btcpredict", Icon:IcoBtcPredict, label:"BTC Predict"},
               ].map(({id,Icon,label})=>(
                 <button key={id} className={`gametab${tab===id?" on":""}`} onClick={()=>setTab(id)} style={{display:"flex",alignItems:"center",gap:6}}>
                   <Icon/>{label}
@@ -1690,6 +1694,19 @@ export default function App() {
             {/* ── Bingo ── */}
             {tab==="bingo" && isConnected && authed && (
               <div className="fi"><BingoGame balance={bal} refetchBalance={fetchStats} vaultMax={vault.max} vaultMin={vault.min} mpAddress={BINGO_MP} usdcAddress={USDC} explorer={EXPLORER}/></div>
+            )}
+
+            {/* ── BTC Predict ── */}
+            {tab==="btcpredict" && isConnected && authed && (
+              <BTCPredict
+                balance={bal}
+                refetchBalance={fetchStats}
+                walletAddress={address}
+                btcPredictAddress={BTCPREDICT}
+                usdcAddress={USDC}
+                explorer={EXPLORER}
+                chainId={CHAIN_ID}
+              />
             )}
 
           </div>
