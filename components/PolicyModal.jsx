@@ -657,20 +657,16 @@ export function AppFooter() {
         <div style={{ fontFamily: "'Inter',sans-serif" }}>
           <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 16 }}>
             <a
-              href="https://x.com/basecast_"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Follow on X"
+              aria-disabled="true"
+              title="X / Twitter (temporarily suspended)"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 34, height: 34, borderRadius: 9,
                 background: "rgba(255,255,255,0.05)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 color: "#9094B0", textDecoration: "none",
-                transition: "all .15s",
+                opacity: 0.35, cursor: "not-allowed", pointerEvents: "none",
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(108,99,255,0.5)"; e.currentTarget.style.color = "#F0F2FF"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#9094B0"; }}
             >
               <IcoX />
             </a>
