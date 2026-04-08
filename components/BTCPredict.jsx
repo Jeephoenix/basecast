@@ -208,6 +208,7 @@ export default function BTCPredict({ address }) {
 
   // ── Place bet ─────────────────────────────────────────────────────────────
   const placeBet = async () => {
+    if (!address) { setBetErr("Connect your wallet first"); return; }
     if (!round || round.phase !== "open" || round.myBet) return;
     const amt = parseFloat(wager);
     if (isNaN(amt) || amt < MIN_BET || amt > MAX_BET) {
@@ -374,7 +375,13 @@ export default function BTCPredict({ address }) {
 
       {/* ── Bet UI / My bet ──────────────────────────────────────────── */}
       {round && (
-        round.myBet ? (
+        !address ? (
+          /* No wallet */
+          <div className="card" style={{ padding: "28px 20px", textAlign: "center", color: "var(--sub)", fontSize: 13 }}>
+            <div style={{ fontSize: 24, marginBottom: 8 }}>🔗</div>
+            Connect your wallet to place a prediction
+          </div>
+        ) : round.myBet ? (
           /* Already bet */
           <div className="card" style={{ padding: "18px 20px", textAlign: "center" }}>
             <div style={{ fontSize: 11, color: "var(--sub)", marginBottom: 12, letterSpacing: "1px" }}>YOUR PREDICTION</div>
@@ -533,7 +540,7 @@ export default function BTCPredict({ address }) {
 
       {/* Disclaimer */}
       <div style={{ fontSize: 10, color: "var(--dim)", textAlign: "center", padding: "2px 0 4px" }}>
-        Prediction credits · price data via Binance
+        price data via Binance
       </div>
     </div>
   );
