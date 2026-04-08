@@ -6,6 +6,20 @@ import { usePublicClient, useWalletClient, useAccount } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import BingoMultiplayer from "@/components/BingoMultiplayer";
 
+// ── Friendly blockchain error messages ────────────────────────────────────────
+function friendlyTxError(e) {
+  const raw = (e?.shortMessage || e?.message || "").toLowerCase();
+  if (raw.includes("user rejected") || raw.includes("user denied") || raw.includes("rejected the request"))
+    return "Transaction cancelled.";
+  if (raw.includes("exceeds the balance") || raw.includes("insufficient funds") || raw.includes("exceeds balance"))
+    return "Not enough ETH for gas fees. You need a small amount of ETH in your wallet to cover network fees — your USDC balance is separate from gas.";
+  if (raw.includes("allowance") || raw.includes("transfer amount exceeds allowance"))
+    return "USDC approval failed. Please try again.";
+  if (raw.includes("execution reverted"))
+    return "Transaction reverted by the contract. Please check your wager limits and try again.";
+  return e?.shortMessage || e?.message || "Transaction failed. Please try again.";
+}
+
 // ── ABI ───────────────────────────────────────────────────────────────────────
 const BINGO_ABI = [
   { name:"placeTurbo",   type:"function", stateMutability:"payable",
@@ -447,7 +461,7 @@ if (vaultMin > 0n && w < vaultMin) { setError(`Bet too low — min bet is ${usd(
       setPhase("pending");
       if (seq !== null) pollResult(seq, receipt.blockNumber);
     } catch(e) {
-      setError(e.shortMessage || e.message || "Transaction failed");
+      setError(friendlyTxError(e));
       setPhase("idle");
     }
   }, [address, wc, pub, wager, mode, pattern, vaultMax, vaultMin]);
