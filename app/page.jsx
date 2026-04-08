@@ -13,6 +13,20 @@ import {
 import { ConnectButton }                      from "@rainbow-me/rainbowkit";
 import { parseUnits, formatUnits, keccak256, encodeAbiParameters } from "viem";
 
+// ── Friendly blockchain error messages ────────────────────────────────────────
+function friendlyTxError(e) {
+  const raw = (e?.shortMessage || e?.message || "").toLowerCase();
+  if (raw.includes("user rejected") || raw.includes("user denied") || raw.includes("rejected the request"))
+    return "Transaction cancelled.";
+  if (raw.includes("exceeds the balance") || raw.includes("insufficient funds") || raw.includes("exceeds balance"))
+    return "Not enough ETH for gas fees. You need a small amount of ETH in your wallet to cover network fees — your USDC balance is separate from gas.";
+  if (raw.includes("allowance") || raw.includes("transfer amount exceeds allowance"))
+    return "USDC approval failed. Please try again.";
+  if (raw.includes("execution reverted"))
+    return "Transaction reverted by the contract. Please check your wager limits and try again.";
+  return e?.shortMessage || e?.message || "Transaction failed. Please try again.";
+}
+
 // ── Addresses ─────────────────────────────────────────────────────────────────
 const VAULT    = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
 const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
@@ -856,7 +870,7 @@ export default function App() {
         setCfS("settled");
       });
     } catch(e){
-      setCfErr(e.shortMessage||e.message||"Failed");
+      setCfErr(friendlyTxError(e));
       setCfS("idle");
     }
   };
@@ -893,7 +907,7 @@ export default function App() {
         setDS("settled");
       });
     } catch(e){
-      setDErr(e.shortMessage||e.message||"Failed");
+      setDErr(friendlyTxError(e));
       setDS("idle");
     }
   };
