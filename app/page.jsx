@@ -2,6 +2,7 @@
 // app/page.jsx — BaseCast v2
 
 import { AppFooter, ConsentModal, hasConsented } from "@/components/PolicyModal";
+import Onboarding from "@/components/Onboarding";
 import LiveBetTicker from "@/components/LiveBetTicker";
 import BingoGame    from "@/components/BingoGame";
 import { useState, useEffect, useCallback } from "react";
@@ -39,6 +40,7 @@ const CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || "84532");
 const EXPLORER = CHAIN_ID === 8453 ? "https://basescan.org" : "https://sepolia.basescan.org";
 const PYTH_CHAIN    = CHAIN_ID === 8453 ? "base" : "base-sepolia";
 const PYTH_EXPLORER = `https://entropy-explorer.pyth.network/?chain=${PYTH_CHAIN}`;
+const ONBOARDING_KEY = "bc_onboarding_seen";
 
 // ── ABIs ──────────────────────────────────────────────────────────────────────
 const USDC_ABI = [
@@ -438,6 +440,8 @@ export default function App() {
   const [light, setLight] = useState(false);
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingSeen, setOnboardingSeen] = useState(false);
   const [myPnl,   setMyPnl]   = useState(null);
   const [copied,    setCopied]    = useState(false);
   const [copiedSeq, setCopiedSeq] = useState(null);
@@ -450,6 +454,22 @@ export default function App() {
     if (address && getSession(address)) setAuthed(true);
     else setAuthed(false);
   }, [address]);
+
+  useEffect(() => {
+    if (isConnected) {
+      setShowOnboarding(false);
+      return;
+    }
+    const seen = localStorage.getItem(ONBOARDING_KEY) === "1";
+    setOnboardingSeen(seen);
+    if (!seen) setShowOnboarding(true);
+  }, [isConnected]);
+
+  const finishOnboarding = () => {
+    localStorage.setItem(ONBOARDING_KEY, "1");
+    setOnboardingSeen(true);
+    setShowOnboarding(false);
+  };
 
   const fetchMyPnl = useCallback(async () => {
     if (!pub || !VAULT || !address) return;
@@ -1025,6 +1045,9 @@ export default function App() {
       <style>{CSS}</style>
 
       {showConsent && <ConsentModal onAccept={() => setShowConsent(false)} />}
+      {showOnboarding && !isConnected && (
+        <Onboarding onSkip={finishOnboarding} onComplete={finishOnboarding} />
+      )}
 
       {/* ── Header + Ticker (sticky together) ──────────────────────────── */}
       <div style={{position:"sticky",top:0,zIndex:50}}>
@@ -1055,7 +1078,7 @@ export default function App() {
             {({account,chain,openChainModal,openConnectModal,mounted}) => {
               if (!mounted) return null;
               if (!account) return (
-                <button onClick={openConnectModal} className="btn" style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:12,width:"auto"}}>Connect</button>
+                <button onClick={() => onboardingSeen ? openConnectModal() : setShowOnboarding(true)} className="btn" style={{background:"linear-gradient(135deg,#6C63FF,#4F46E5)",color:"#fff",padding:"7px 14px",borderRadius:8,fontSize:12,width:"auto"}}>Connect</button>
               );
               return (
                 <button onClick={() => setShowNetworkMenu(v=>!v)} className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"6px 10px",borderRadius:8,fontSize:12,width:"auto",gap:5}}>
@@ -1134,7 +1157,7 @@ export default function App() {
                 <ConnectButton.Custom>
                   {({openConnectModal,mounted}) => mounted && (
                     <button
-                      onClick={openConnectModal}
+                      onClick={() => onboardingSeen ? openConnectModal() : setShowOnboarding(true)}
                       style={{
                         display:"inline-flex",alignItems:"center",justifyContent:"center",gap:10,
                         padding:"15px 36px",
