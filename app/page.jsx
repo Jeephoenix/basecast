@@ -440,8 +440,14 @@ export default function App() {
   const [light, setLight] = useState(false);
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardingSeen, setOnboardingSeen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem(ONBOARDING_KEY) !== "1";
+  });
+  const [onboardingSeen, setOnboardingSeen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(ONBOARDING_KEY) === "1";
+  });
   const [myPnl,   setMyPnl]   = useState(null);
   const [copied,    setCopied]    = useState(false);
   const [copiedSeq, setCopiedSeq] = useState(null);
