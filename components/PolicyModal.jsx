@@ -657,15 +657,16 @@ export function AppFooter() {
         <div style={{ fontFamily: "'Inter',sans-serif" }}>
           <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 16 }}>
             <a
-              aria-disabled="true"
-              title="X / Twitter (temporarily suspended)"
+              href="https://x.com/basecast_"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="X / Twitter"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
                 width: 34, height: 34, borderRadius: 9,
                 background: "rgba(255,255,255,0.05)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 color: "#9094B0", textDecoration: "none",
-                opacity: 0.35, cursor: "not-allowed", pointerEvents: "none",
               }}
             >
               <IcoX />
