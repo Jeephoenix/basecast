@@ -67,15 +67,20 @@ export default function Onboarding({ onSkip, onComplete }) {
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); onSkip?.(); }
+    };
+    window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", onKey);
     };
-  }, []);
+  }, [onSkip]);
 
   return (
     <div className="bc-onboarding" role="dialog" aria-modal="true" aria-label="BaseCast onboarding">
       <style>{`
-        .bc-onboarding{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;width:100vw;min-height:100vh;min-height:100dvh;padding:22px;background:#050611;overflow:hidden;isolation:isolate}
+        .bc-onboarding{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;width:100vw;min-height:100vh;min-height:100dvh;padding:22px;background:rgba(5,6,17,0.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);overflow:hidden;isolation:isolate}
         .bc-onboarding::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 16% 8%,rgba(96,200,255,.20),transparent 34%),radial-gradient(circle at 88% 16%,rgba(255,209,102,.17),transparent 32%),radial-gradient(circle at 50% 100%,rgba(108,99,255,.18),transparent 38%),linear-gradient(155deg,#050611 0%,#090821 46%,#040812 100%);z-index:0}
         .bc-onboarding::after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:56px 56px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.75),transparent 78%);z-index:0;pointer-events:none}
         .bc-onboarding-card{position:relative;z-index:1;width:min(94vw,560px);overflow:hidden;border:1px solid rgba(255,255,255,.15);border-radius:32px;background:linear-gradient(150deg,rgba(15,18,38,.98),rgba(7,8,21,.99));box-shadow:0 32px 100px rgba(0,0,0,.72),0 0 100px rgba(108,99,255,.18);animation:bcPanelIn .34s ease both}
@@ -99,6 +104,8 @@ export default function Onboarding({ onSkip, onComplete }) {
         .bc-btn.secondary{background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.12);color:#C7CBDF}
         .bc-btn.primary{color:white;background:linear-gradient(135deg,#6C63FF,#2563EB);box-shadow:0 12px 34px rgba(108,99,255,.36)}
         .bc-btn.ghost{background:transparent;color:#9094B0;padding:8px 10px}
+        .bc-btn.link{background:transparent;color:#9094B0;text-decoration:underline;text-underline-offset:3px;font-weight:600;font-size:13px;padding:13px 12px}
+        .bc-btn.link:hover{color:#F0F2FF}
         .bc-topline{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
         @keyframes bcPanelIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
         @keyframes bcSlide{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
@@ -143,9 +150,15 @@ export default function Onboarding({ onSkip, onComplete }) {
           </div>
 
           <div className="bc-actions">
-            <button className="bc-btn secondary" onClick={() => step === 0 ? onSkip() : setStep(step - 1)}>
-              {step === 0 ? "Skip" : "Back"}
-            </button>
+            {step === 0 ? (
+              <button className="bc-btn link" onClick={onSkip} aria-label="Skip onboarding">
+                Skip intro
+              </button>
+            ) : (
+              <button className="bc-btn secondary" onClick={() => setStep(step - 1)} aria-label="Previous step">
+                Back
+              </button>
+            )}
             {isLast ? (
               <ConnectButton.Custom>
                 {({ openConnectModal, mounted }) => mounted && (
