@@ -451,14 +451,10 @@ export default function App() {
   const [autoD,  setAutoD]  = useState(AUTO_INIT);
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem(ONBOARDING_KEY) !== "1";
-  });
-  const [onboardingSeen, setOnboardingSeen] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(ONBOARDING_KEY) === "1";
-  });
+  // Start as null on both server + client to avoid the "onboarding flashes on
+  // refresh" SSR hydration mismatch. The effect below resolves it on mount.
+  const [showOnboarding, setShowOnboarding] = useState(null);
+  const [onboardingSeen, setOnboardingSeen] = useState(false);
   const [myPnl,   setMyPnl]   = useState(null);
   const [copied,    setCopied]    = useState(false);
   const [copiedSeq, setCopiedSeq] = useState(null);
@@ -473,13 +469,10 @@ export default function App() {
   }, [address]);
 
   useEffect(() => {
-    if (isConnected) {
-      setShowOnboarding(false);
-      return;
-    }
     const seen = localStorage.getItem(ONBOARDING_KEY) === "1";
     setOnboardingSeen(seen);
-    if (!seen) setShowOnboarding(true);
+    if (isConnected || seen) setShowOnboarding(false);
+    else setShowOnboarding(true);
   }, [isConnected]);
 
   const finishOnboarding = () => {
@@ -1143,7 +1136,7 @@ export default function App() {
     <div style={{minHeight:"100vh"}}>
 
       {showConsent && <ConsentModal onAccept={() => setShowConsent(false)} />}
-      {showOnboarding && !isConnected && (
+      {showOnboarding === true && !isConnected && (
         <Onboarding onSkip={finishOnboarding} onComplete={finishOnboarding} />
       )}
 
