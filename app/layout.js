@@ -1,6 +1,28 @@
 // app/layout.js
+import { Inter, JetBrains_Mono, Orbitron } from "next/font/google";
 import { Providers } from "@/lib/wagmi";
+import { Toaster } from "sonner";
 import "@rainbow-me/rainbowkit/styles.css";
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+  display: "swap",
+});
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  weight: ["900"],
+  variable: "--font-orbitron",
+  display: "swap",
+});
 
 export const metadata = {
   title:       "BaseCast — Provably Fair Casino on Base",
@@ -8,6 +30,7 @@ export const metadata = {
   metadataBase: new URL("https://www.basecast.org/"),
   keywords:    ["BaseCast", "crypto casino", "on-chain casino", "Base blockchain", "provably fair", "USDC casino", "CoinFlip", "DiceRoll", "Bingo", "Pyth Entropy"],
   authors:     [{ name: "BaseCast", url: "https://www.basecast.org" }],
+  manifest:    "/site.webmanifest",
   other: {
     "base:app_id": "69cd4bf319afd75ffc3d3b31",
   },
@@ -33,24 +56,41 @@ export const metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/logo.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: "/logo.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#6C63FF",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any"/>
-        <link rel="icon" href="/logo.png" type="image/png" sizes="512x512"/>
-        <link rel="apple-touch-icon" href="/logo.png"/>
-        <link rel="manifest" href="/site.webmanifest"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1"/>
-        <meta name="theme-color" content="#6C63FF"/>
-        <link rel="preconnect" href="https://fonts.googleapis.com"/>
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@900&family=Courgette&display=swap" rel="stylesheet"/>
-      </head>
+    <html lang="en" className={`${inter.variable} ${jetbrains.variable} ${orbitron.variable}`}>
       <body style={{ margin: 0, background: "#08090D" }}>
         <Providers>{children}</Providers>
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          richColors
+          closeButton
+          toastOptions={{
+            style: {
+              background: "rgba(15,18,38,0.96)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "#F0F2FF",
+              backdropFilter: "blur(12px)",
+            },
+          }}
+        />
       </body>
     </html>
   );
