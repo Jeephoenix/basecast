@@ -4,8 +4,12 @@
 import { AppFooter, ConsentModal, hasConsented } from "@/components/PolicyModal";
 import Onboarding from "@/components/Onboarding";
 import LiveBetTicker from "@/components/LiveBetTicker";
-import BingoGame    from "@/components/BingoGame";
-import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
+const BingoGame = dynamic(() => import("@/components/BingoGame"), {
+  ssr: false,
+  loading: () => <div className="card" style={{textAlign:"center",padding:48,color:"var(--sub)"}}>Loading Bingo…</div>,
+});
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   useAccount, useChainId, useSwitchChain,
   usePublicClient, useWalletClient,
@@ -13,6 +17,11 @@ import {
 } from "wagmi";
 import { ConnectButton }                      from "@rainbow-me/rainbowkit";
 import { parseUnits, formatUnits, keccak256, encodeAbiParameters } from "viem";
+import SocialLinks from "@/components/SocialLinks";
+import Address from "@/components/Address";
+import { Skeleton, SkeletonRow } from "@/components/Skeleton";
+import { fmtUsd, fmtPnl, fmtNum, shortAddr as shortAddrFmt } from "@/lib/format";
+import { notify } from "@/lib/notify";
 
 // ── Friendly blockchain error messages ────────────────────────────────────────
 function friendlyTxError(e) {
@@ -155,8 +164,8 @@ const BET_RESOLVED_EVENT = {name:"BetResolved",type:"event",inputs:[
 ]};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const usd  = (v) => `$${parseFloat(formatUnits(v||0n,6)).toFixed(2)}`;
-const pnl  = (v) => `${v<0n?"-":"+"}$${parseFloat(formatUnits(v<0n?-v:v,6)).toFixed(2)}`;
+const usd = (v) => fmtUsd(v ?? 0n);
+const pnl = (v) => fmtPnl(v ?? 0n);
 function refCode(addr) {
   return addr.slice(2, 10).toUpperCase();
 }
@@ -224,79 +233,8 @@ const DOTS = {
   6:[[28,28],[72,28],[28,50],[72,50],[28,72],[72,72]],
 };
 
-// ── CSS ───────────────────────────────────────────────────────────────────────
-const CSS = `
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#07050f;--s1:rgba(255,255,255,0.04);--s2:rgba(255,255,255,0.07);--bd:rgba(255,255,255,0.1);
-  --blue:#6C63FF;--blue2:#4F46E5;--green:#00F5A0;--red:#FF4D6D;
-  --gold:#FFD166;--tx:#F0F2FF;--sub:#9094B0;--dim:#3D4060;
-  --nav-bg:#0b0c18;
-}
-.light{--bg:#ffffff;--s1:rgba(255,255,255,0.95);--s2:rgba(255,255,255,0.98);--bd:rgba(0,0,0,0.1);--tx:#0A0B1A;--sub:#5560A0;--dim:#9AA5CC;--blue:#4338CA;--blue2:#3730A3;--green:#059669;--gold:#D97706;--red:#DC2626;--nav-bg:#ffffff;}
-body{background:linear-gradient(125deg,#07050f 0%,#120a2e 30%,#0a1628 60%,#07050f 100%);background-attachment:fixed;color:var(--tx);font-family:'Inter',sans-serif;min-height:100vh}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#6C63FF,#00F5A0);border-radius:4px}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin2{to{transform:rotate(360deg)}}
-@keyframes flip{0%{transform:rotateY(0)}50%{transform:rotateY(900deg) scale(1.2)}100%{transform:rotateY(1800deg)}}
-@keyframes roll{0%{transform:rotate(0)}40%{transform:rotate(360deg) scale(1.1)}100%{transform:rotate(720deg)}}
-@keyframes winPop{0%,100%{box-shadow:none}50%{box-shadow:0 0 28px rgba(16,185,129,0.5)}}
-@keyframes loseShk{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-@keyframes signPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0.4)}50%{box-shadow:0 0 0 10px rgba(37,99,235,0)}}
-.fi{animation:fadeIn .3s ease}
-.flip{animation:flip 1.4s cubic-bezier(.4,0,.2,1) forwards}
-.roll{animation:roll 1.2s cubic-bezier(.4,0,.2,1) forwards}
-.win{animation:winPop .8s ease}
-.lose{animation:loseShk .4s ease}
-.sp{animation:spin2 .8s linear infinite}
-.spulse{animation:signPulse 2s ease infinite}
-.btn{border:none;border-radius:10px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
-.primary{background:linear-gradient(135deg,#6C63FF,#4F46E5);color:#fff;padding:14px;width:100%;font-size:15px;box-shadow:0 4px 20px rgba(108,99,255,0.35)}
-.primary:hover:not(:disabled){background:linear-gradient(135deg,#7C74FF,#6C63FF);transform:translateY(-2px);box-shadow:0 6px 28px rgba(108,99,255,0.5)}
-.primary:disabled{opacity:.4;cursor:not-allowed}
-.choice{background:var(--s2);border:1.5px solid var(--bd);color:var(--sub);padding:14px;flex:1;font-size:14px}
-.choice.sel{border-color:var(--blue);background:rgba(108,99,255,.28);color:var(--tx);box-shadow:inset 0 0 0 1px rgba(108,99,255,.25)}
-.choice:hover:not(:disabled){border-color:var(--blue);color:var(--tx)}
-.inp{background:var(--s2);border:1.5px solid var(--bd);border-radius:10px;color:var(--tx);font-family:'Inter',sans-serif;font-size:18px;font-weight:600;padding:12px 16px;width:100%;outline:none}
-.inp:focus{border-color:var(--blue)}
-.card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:20px;backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,0.4)}
-.tab{background:none;border:none;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;font-size:14px;font-weight:500;padding:12px 20px;cursor:pointer;color:var(--sub);transition:all .15s}
-.tab.on{color:var(--tx);border-bottom-color:var(--blue)}
-.mono{font-family:'JetBrains Mono',monospace}
-@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-.shimmer{background:linear-gradient(90deg,#00F5A0,#a8ff78,#FFD166,#00D4AA,#00F5A0);background-size:300%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 2.5s linear infinite;font-weight:700}
-.nav-bar{display:flex;background:var(--nav-bg);border-bottom:1px solid var(--bd)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 8px;border:none;border-bottom:none;background:none;cursor:pointer;color:var(--sub);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;transition:all .15s;outline:none}
-.nav-item.active{color:var(--tx)}
-.nav-item:hover:not(.active){color:var(--tx)}
-.nav-icon-pill{display:flex;align-items:center;justify-content:center;width:52px;height:32px;border-radius:16px;transition:background .15s}
-.nav-item.active .nav-icon-pill{background:rgba(255,255,255,0.13)}
-.game-card-btn{width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--bd);border-radius:12px;margin-bottom:8px;background:var(--s2);cursor:pointer;text-align:left;color:var(--tx);transition:border-color .15s,background .15s;font-family:'Inter',sans-serif}
-.game-card-btn:hover{border-color:var(--blue);background:rgba(108,99,255,.1)}
-.gametab{background:none;border:none;border-bottom:2px solid transparent;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;padding:10px 16px;cursor:pointer;color:var(--sub);transition:all .15s;white-space:nowrap}
-.gametab.on{color:var(--tx);border-bottom-color:var(--blue)}
-@media(max-width:520px){
-  .hdr{padding:10px 12px!important}
-  .hdr-logo{font-size:13px!important}
-  .hdr-right{gap:6px!important}
-  .stats-bar>div{padding:6px 10px!important}
-  .main-pad{padding:14px 10px 90px!important}
-  .card{padding:14px!important;border-radius:14px!important}
-  .primary{padding:12px!important;font-size:14px!important}
-  .choice{padding:11px!important;font-size:13px!important}
-  .inp{font-size:16px!important;padding:10px 13px!important}
-  .nav-bar{position:fixed;bottom:0;left:0;right:0;z-index:50;border-top:1px solid var(--bd);border-bottom:none;padding-bottom:env(safe-area-inset-bottom,0)}
-  .nav-item{padding:8px 4px 6px;font-size:10px}
-  .top-stats-bar{display:none!important}
-}
-@media(min-width:521px){
-  .main-content-wrap{max-width:680px!important}
-}
-@keyframes glowPulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
-.stat-pill{display:inline-flex;align-items:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 13px;font-size:11px;font-weight:600;color:var(--sub);white-space:nowrap}
-.glow-card{transition:border-color .2s,transform .2s,box-shadow .2s}.glow-card:hover{border-color:rgba(108,99,255,0.5)!important;transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,0.3)}
-.social-link{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:var(--s2);border:1px solid var(--bd);color:var(--sub);transition:all .15s;cursor:pointer;text-decoration:none}.social-link:hover{border-color:var(--blue);color:var(--tx);transform:translateY(-2px)}
-.divider-line{width:100%;height:1px;background:linear-gradient(90deg,transparent,rgba(108,99,255,0.3),rgba(0,245,160,0.2),transparent);margin:4px 0}
+// ── CSS (now in app/globals.css) ──────────────────────────────────────────────
+const CSS = `/* moved to app/globals.css */
 `;
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -330,27 +268,93 @@ const Die = ({n=1,size=64,anim=false}) => (
   </div>
 );
 
-const QuickBtns = ({set}) => (
-  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-    {["1","5","10","25","50"].map(v=>(
-      <button key={v} className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"5px 12px",fontSize:12,borderRadius:7,width:"auto"}}
-        onClick={()=>set(v)}>${v}</button>
-    ))}
-  </div>
-);
+const QuickBtns = ({set, current, max}) => {
+  const cur = parseFloat(current || 0) || 0;
+  const ops = [
+    { label:"½",   fn:() => set(String(Math.max(1, +(cur/2).toFixed(2)))) },
+    { label:"2×",  fn:() => set(String(+(cur*2).toFixed(2) || 1)) },
+    { label:"Max", fn:() => set(max ? String(+parseFloat(formatUnits(max,6)).toFixed(2)) : "100") },
+  ];
+  return (
+    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+      {["1","5","10","25","50"].map(v=>(
+        <button key={v} className="btn" aria-label={`Set wager to $${v}`} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"5px 12px",fontSize:12,borderRadius:7,width:"auto"}}
+          onClick={()=>set(v)}>${v}</button>
+      ))}
+      <span style={{width:1,background:"var(--bd)",margin:"2px 2px"}} aria-hidden="true"/>
+      {ops.map(o=>(
+        <button key={o.label} className="btn" aria-label={`Adjust wager: ${o.label}`} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--blue)",padding:"5px 12px",fontSize:12,borderRadius:7,width:"auto",fontWeight:700}} onClick={o.fn}>{o.label}</button>
+      ))}
+    </div>
+  );
+};
 
-const PayInfo = ({wager,mult}) => (
-  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.15)",borderRadius:8,padding:"10px 14px"}}>
-    <div>
-      <div style={{fontSize:10,color:"var(--sub)"}}>WIN PAYOUT</div>
-      <div style={{fontSize:16,color:"var(--green)",marginTop:2,fontWeight:600}}>${(parseFloat(wager||0)*mult).toFixed(2)}</div>
+const PayInfo = ({wager,mult}) => {
+  const winProb = mult > 0 ? Math.min(99, +(98 / mult).toFixed(1)) : 0;
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,background:"rgba(37,99,235,.06)",border:"1px solid rgba(37,99,235,.15)",borderRadius:8,padding:"10px 14px"}}>
+      <div>
+        <div style={{fontSize:10,color:"var(--sub)"}}>WIN PAYOUT</div>
+        <div style={{fontSize:15,color:"var(--green)",marginTop:2,fontWeight:700}}>{fmtUsd((parseFloat(wager||0)*mult), 0)}</div>
+      </div>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:10,color:"var(--sub)"}}>WIN CHANCE</div>
+        <div style={{fontSize:15,color:"var(--tx)",marginTop:2,fontWeight:700}}>{winProb}%</div>
+      </div>
+      <div style={{textAlign:"right"}}>
+        <div style={{fontSize:10,color:"var(--sub)"}}>MULTIPLIER</div>
+        <div style={{fontSize:15,color:"var(--gold)",fontWeight:700,marginTop:2}}>{mult}×</div>
+      </div>
     </div>
-    <div style={{textAlign:"right"}}>
-      <div style={{fontSize:10,color:"var(--sub)"}}>MULTIPLIER</div>
-      <div style={{fontSize:16,color:"var(--gold)",fontWeight:600,marginTop:2}}>{mult}×</div>
+  );
+};
+
+// ── Auto-bet panel ────────────────────────────────────────────────────────────
+const AutoBetPanel = ({ cfg, setCfg, busy, disabled, onStart, onStop }) => {
+  const [open, setOpen] = useState(false);
+  const running = cfg.on;
+  const pnlColor = cfg.sessionPnl > 0 ? "var(--green)" : cfg.sessionPnl < 0 ? "var(--red)" : "var(--sub)";
+  return (
+    <div className="card" style={{padding:"10px 14px",display:"flex",flexDirection:"column",gap:open||running?10:0}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+        <button onClick={()=>setOpen(o=>!o)} disabled={running} aria-expanded={open} style={{background:"none",border:"none",color:"var(--tx)",fontSize:12,fontWeight:700,letterSpacing:"1.5px",cursor:running?"default":"pointer",display:"flex",alignItems:"center",gap:6,padding:0,fontFamily:"'Inter',sans-serif",opacity:running?0.7:1}}>
+          AUTO BET <span style={{fontSize:10,color:"var(--sub)",transition:"transform .2s",display:"inline-block",transform:open||running?"rotate(180deg)":"none"}}>▾</span>
+        </button>
+        {running ? (
+          <div style={{display:"flex",alignItems:"center",gap:10,fontSize:11}}>
+            <span style={{color:"var(--sub)"}}>{cfg.remaining} left</span>
+            <span style={{color:pnlColor,fontWeight:700}}>{cfg.sessionPnl>=0?"+":""}${cfg.sessionPnl.toFixed(2)}</span>
+            <button onClick={onStop} style={{background:"rgba(255,77,109,.12)",border:"1px solid rgba(255,77,109,.35)",color:"var(--red)",borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Stop</button>
+          </div>
+        ) : (
+          <span style={{fontSize:10,color:"var(--sub)"}}>{open?"Auto-place rounds with stop limits":"Off"}</span>
+        )}
+      </div>
+      {(open || running) && !running && (
+        <>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+            <label style={{display:"flex",flexDirection:"column",gap:4}}>
+              <span style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>ROUNDS</span>
+              <input type="number" min="1" max="500" value={cfg.rounds} onChange={e=>setCfg(c=>({...c,rounds:e.target.value.replace(/[^0-9]/g,"")||""}))} className="inp" style={{padding:"7px 9px",fontSize:13}}/>
+            </label>
+            <label style={{display:"flex",flexDirection:"column",gap:4}}>
+              <span style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>STOP +$</span>
+              <input type="number" min="0" placeholder="∞" value={cfg.stopWin} onChange={e=>setCfg(c=>({...c,stopWin:e.target.value}))} className="inp" style={{padding:"7px 9px",fontSize:13}}/>
+            </label>
+            <label style={{display:"flex",flexDirection:"column",gap:4}}>
+              <span style={{fontSize:9,color:"var(--sub)",letterSpacing:"1px"}}>STOP -$</span>
+              <input type="number" min="0" placeholder="∞" value={cfg.stopLoss} onChange={e=>setCfg(c=>({...c,stopLoss:e.target.value}))} className="inp" style={{padding:"7px 9px",fontSize:13}}/>
+            </label>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+            <span style={{fontSize:10,color:"var(--dim)"}}>Each round signs separately. Stop anytime.</span>
+            <button onClick={onStart} disabled={busy||disabled||!Number(cfg.rounds)} style={{background:"linear-gradient(135deg,#6C63FF,#2563EB)",border:"none",color:"#fff",padding:"7px 18px",borderRadius:8,fontSize:12,fontWeight:700,cursor:busy||disabled||!Number(cfg.rounds)?"not-allowed":"pointer",opacity:busy||disabled||!Number(cfg.rounds)?0.5:1,fontFamily:"'Inter',sans-serif"}}>Start auto</button>
+          </div>
+        </>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 // ── Sign-in screen ────────────────────────────────────────────────────────────
 function SignScreen({isSigning,error,onSign}) {
@@ -437,7 +441,14 @@ export default function App() {
   const [lbNames, setLbNames] = useState({});
   const [usernameErr, setUsernameErr] = useState("");
   const [usernameSaving, setUsernameSaving] = useState(false);
-  const [light, setLight] = useState(false);
+  const [muted, setMuted] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("bc_muted") === "1";
+  });
+  const [lastBet, setLastBet] = useState(null); // {game, args}
+  const AUTO_INIT = { on:false, rounds:10, remaining:0, stopWin:"", stopLoss:"", sessionPnl:0, lastResult:null };
+  const [autoCf, setAutoCf] = useState(AUTO_INIT);
+  const [autoD,  setAutoD]  = useState(AUTO_INIT);
   const [showNetworkMenu, setShowNetworkMenu] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -867,36 +878,47 @@ export default function App() {
     },2000);
   };
 
+  const haptic = (ms = 12) => { try { navigator.vibrate?.(ms); } catch {} };
+  const winSound = () => { if (!muted) playWin(); };
+  const loseSound = () => { if (!muted) playLose(); };
+
   const doFlip = async () => {
     if (!hasConsented()) { setShowConsent(true); return; }
     setCfErr(null); setCfRes(null);
+    let toastId;
     try {
       const w = parseUnits(cfWager,6);
-      if (vault.max > 0n && w > vault.max) { setCfErr(`Bet too high — max bet is ${usd(vault.max)}`); return; }
-      if (vault.min > 0n && w < vault.min) { setCfErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
-      setCfS("approving"); await ensureAllow(w);
+      if (vault.max > 0n && w > vault.max) { notify.error(`Bet too high — max bet is ${usd(vault.max)}`); return; }
+      if (vault.min > 0n && w < vault.min) { notify.error(`Bet too low — min bet is ${usd(vault.min)}`); return; }
+      setCfS("approving"); toastId = notify.loading("Approving USDC…"); await ensureAllow(w);
       const fee = await pub.readContract({address:COINFLIP,abi:CF_ABI,functionName:"getEntropyFee"});
-      setCfS("placing");
+      setCfS("placing"); notify.loading("Placing bet…", { id: toastId });
       const {request} = await pub.simulateContract({
         address:COINFLIP,abi:CF_ABI,functionName:"placeBet",
         args:[w, cfChoice==="HEADS"?0:1],
         value:fee, account:address,
       });
       const hash = await wc.writeContract(request);
+      haptic(20);
       const rx   = await pub.waitForTransactionReceipt({hash});
       const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
       if(seq!==null) localStorage.setItem(`txhash:cf-${seq}`, hash);
       setCfS("pending");
+      notify.txSuccess(toastId, { msg: "Bet placed — waiting for Pyth…", hash });
+      setLastBet({ game: "coinflip" });
       if(seq!==null) pollBet(seq,COINFLIP,CF_ABI,(bet)=>{
         const won = bet.status===1;
         const res = (parseInt(bet.randomSeed.slice(-2),16)&1)===0?"HEADS":"TAILS";
-        won ? playWin() : playLose();
+        if (won) { winSound(); haptic(40); notify.success(`You won ${usd(bet.payout)}!`); }
+        else     { loseSound(); haptic(8); }
         setCfCoin(res);
-        setCfRes({won,payout:bet.payout,wager:bet.wager,result:res,hash});
+        setCfRes({won,payout:bet.payout,wager:bet.wager,result:res,hash,seq:seq?.toString(),settledAt:Date.now()});
         setCfS("settled");
       });
     } catch(e){
-      setCfErr(friendlyTxError(e));
+      const msg = friendlyTxError(e);
+      setCfErr(msg);
+      if (toastId) notify.txError(toastId, { message: msg }); else notify.error(msg);
       setCfS("idle");
     }
   };
@@ -904,13 +926,14 @@ export default function App() {
   const doDice = async () => {
     if (!hasConsented()) { setShowConsent(true); return; }
     setDErr(null); setDRes(null);
+    let toastId;
     try {
       const w = parseUnits(dWager,6);
-      if (vault.max > 0n && w > vault.max) { setDErr(`Bet too high — max bet is ${usd(vault.max)}`); return; }
-      if (vault.min > 0n && w < vault.min) { setDErr(`Bet too low — min bet is ${usd(vault.min)}`); return; }
-      setDS("approving"); await ensureAllow(w);
+      if (vault.max > 0n && w > vault.max) { notify.error(`Bet too high — max bet is ${usd(vault.max)}`); return; }
+      if (vault.min > 0n && w < vault.min) { notify.error(`Bet too low — min bet is ${usd(vault.min)}`); return; }
+      setDS("approving"); toastId = notify.loading("Approving USDC…"); await ensureAllow(w);
       const fee = await pub.readContract({address:DICEROLL,abi:DR_ABI,functionName:"getEntropyFee"});
-      setDS("placing");
+      setDS("placing"); notify.loading("Placing bet…", { id: toastId });
       let req;
       if(dMode==="range"){
         const {request} = await pub.simulateContract({address:DICEROLL,abi:DR_ABI,functionName:"placeBetRange",args:[w,dHigh],value:fee,account:address});
@@ -920,23 +943,93 @@ export default function App() {
         req=request;
       }
       const hash = await wc.writeContract(req);
+      haptic(20);
       const rx   = await pub.waitForTransactionReceipt({hash});
       const seq  = rx.logs.at(-1)?.topics?.[1] ? BigInt(rx.logs.at(-1).topics[1]) : null;
       if(seq!==null) localStorage.setItem(`txhash:dr-${seq}`, hash);
       setDS("pending");
+      notify.txSuccess(toastId, { msg: "Bet placed — rolling…", hash });
+      setLastBet({ game: "dice" });
       if(seq!==null) pollBet(seq,DICEROLL,DR_ABI,(bet)=>{
         const won = bet.status===1;
         const rolled = Number(bet.rolledNumber);
-        won ? playWin() : playLose();
+        if (won) { winSound(); haptic(40); notify.success(`You won ${usd(bet.payout)}!`); }
+        else     { loseSound(); haptic(8); }
         setDNum(rolled);
-        setDRes({won,payout:bet.payout,wager:bet.wager,rolled,hash});
+        setDRes({won,payout:bet.payout,wager:bet.wager,rolled,hash,seq:seq?.toString(),settledAt:Date.now()});
         setDS("settled");
       });
     } catch(e){
-      setDErr(friendlyTxError(e));
+      const msg = friendlyTxError(e);
+      setDErr(msg);
+      if (toastId) notify.txError(toastId, { message: msg }); else notify.error(msg);
       setDS("idle");
     }
   };
+
+  // Auto-bet: chain rounds for Coin Flip when enabled
+  useEffect(() => {
+    if (!autoCf.on || !cfRes || cfS !== "settled") return;
+    const delta = cfRes.won
+      ? parseFloat(formatUnits(cfRes.payout - cfRes.wager, 6))
+      : -parseFloat(formatUnits(cfRes.wager, 6));
+    const newPnl = +(autoCf.sessionPnl + delta).toFixed(2);
+    const remaining = autoCf.remaining - 1;
+    const sw = parseFloat(autoCf.stopWin)  || 0;
+    const sl = parseFloat(autoCf.stopLoss) || 0;
+    const hitStopWin  = sw > 0 && newPnl >=  sw;
+    const hitStopLoss = sl > 0 && newPnl <= -sl;
+    if (remaining <= 0 || hitStopWin || hitStopLoss) {
+      setAutoCf(a => ({ ...a, on:false, remaining:0, sessionPnl:newPnl, lastResult:cfRes.settledAt }));
+      notify.success(hitStopWin ? `Auto stopped — profit target hit (+$${newPnl})`
+                                : hitStopLoss ? `Auto stopped — loss limit hit ($${newPnl})`
+                                : `Auto finished — net ${newPnl>=0?"+":""}$${newPnl}`);
+    } else {
+      setAutoCf(a => ({ ...a, remaining, sessionPnl:newPnl, lastResult:cfRes.settledAt }));
+      const t = setTimeout(() => { doFlip(); }, 1100);
+      return () => clearTimeout(t);
+    }
+  }, [cfRes?.settledAt, cfS]);
+
+  // Auto-bet: chain rounds for Dice
+  useEffect(() => {
+    if (!autoD.on || !dRes || dS !== "settled") return;
+    const delta = dRes.won
+      ? parseFloat(formatUnits(dRes.payout - dRes.wager, 6))
+      : -parseFloat(formatUnits(dRes.wager, 6));
+    const newPnl = +(autoD.sessionPnl + delta).toFixed(2);
+    const remaining = autoD.remaining - 1;
+    const sw = parseFloat(autoD.stopWin)  || 0;
+    const sl = parseFloat(autoD.stopLoss) || 0;
+    const hitStopWin  = sw > 0 && newPnl >=  sw;
+    const hitStopLoss = sl > 0 && newPnl <= -sl;
+    if (remaining <= 0 || hitStopWin || hitStopLoss) {
+      setAutoD(a => ({ ...a, on:false, remaining:0, sessionPnl:newPnl, lastResult:dRes.settledAt }));
+      notify.success(hitStopWin ? `Auto stopped — profit target hit (+$${newPnl})`
+                                : hitStopLoss ? `Auto stopped — loss limit hit ($${newPnl})`
+                                : `Auto finished — net ${newPnl>=0?"+":""}$${newPnl}`);
+    } else {
+      setAutoD(a => ({ ...a, remaining, sessionPnl:newPnl, lastResult:dRes.settledAt }));
+      const t = setTimeout(() => { doDice(); }, 1100);
+      return () => clearTimeout(t);
+    }
+  }, [dRes?.settledAt, dS]);
+
+  // Repeat-last-bet hotkey (Space) when on a game tab and not typing
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.code !== "Space") return;
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (!authed || !isConnected || navSection !== "games") return;
+      if (busy(cfS) || busy(dS)) return;
+      e.preventDefault();
+      if (tab === "coinflip") doFlip();
+      else if (tab === "dice") doDice();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  });
 
   const busy = s => ["approving","placing","pending"].includes(s);
 
@@ -1047,8 +1140,7 @@ export default function App() {
   const IcoTxBingo = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>;
 
   return (
-    <div className={light?"light":""} style={{minHeight:"100vh",background:light?"#ffffff":"transparent",transition:"background 0.4s ease"}}>
-      <style>{CSS}</style>
+    <div style={{minHeight:"100vh"}}>
 
       {showConsent && <ConsentModal onAccept={() => setShowConsent(false)} />}
       {showOnboarding && !isConnected && (
@@ -1094,10 +1186,15 @@ export default function App() {
               );
             }}
           </ConnectButton.Custom>
-          <button className="btn" onClick={()=>setLight(l=>!l)} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--tx)",padding:"7px 10px",borderRadius:8,width:"auto"}}>
-            {light
-              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <button
+            className="icon-btn"
+            aria-label={muted ? "Unmute sound effects" : "Mute sound effects"}
+            title={muted ? "Sound off" : "Sound on"}
+            onClick={() => setMuted(m => { const nv = !m; try { localStorage.setItem("bc_muted", nv ? "1" : "0"); } catch {} return nv; })}
+            style={{padding:"7px 10px",borderRadius:8,width:"auto"}}>
+            {muted
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
             }
           </button>
         </div>
@@ -1258,20 +1355,7 @@ export default function App() {
                 <div style={{fontWeight:700,fontSize:13,color:"var(--tx)",marginBottom:4}}>Join the Community</div>
                 <div style={{fontSize:11,color:"var(--sub)"}}>Stay updated on new games and features</div>
               </div>
-              <div style={{display:"flex",gap:8}}>
-                <a href="https://x.com/basecast_" target="_blank" rel="noopener noreferrer" className="social-link" title="X / Twitter">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.736l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                </a>
-                <a href="https://t.me/base_cast" target="_blank" rel="noopener noreferrer" className="social-link" title="Telegram">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-                </a>
-                <a href="https://discord.gg/EKT5QF3s8" target="_blank" rel="noopener noreferrer" className="social-link" title="Discord">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.002.022.015.043.032.057a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-                </a>
-                <a href="https://github.com/Jeephoenix/basecast" target="_blank" rel="noopener noreferrer" className="social-link" title="GitHub">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
-                </a>
-              </div>
+              <SocialLinks/>
             </div>
 
           </div>
@@ -1396,7 +1480,7 @@ export default function App() {
             </div>
             <div className="card" style={{padding:0,overflow:"hidden"}}>
               {lbLd?(
-                <div style={{display:"flex",justifyContent:"center",padding:32}}><Spin size={22}/></div>
+                <div style={{padding:14}}><SkeletonRow count={3} height={48}/></div>
               ):topByPnl.length===0?(
                 <div style={{textAlign:"center",padding:"28px 24px"}}>
                   <div style={{fontSize:28,marginBottom:8}}>🏆</div>
@@ -1409,15 +1493,15 @@ export default function App() {
                     const medal=["🥇","🥈","🥉"][i];
                     const borderColor=["var(--gold)","#9CA3AF","#D97706"][i];
                     const serverName=lbNames[p.address.toLowerCase()];
-                    const name=serverName||getLbName(p.address);
-                    const hasUname=!!serverName||name!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;
+                    const isMe=p.address===address;
                     return(
                       <div key={p.address} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 18px",borderBottom:i<2?"1px solid var(--bd)":"none",borderLeft:`3px solid ${borderColor}`}}>
                         <div style={{fontSize:20,width:28,textAlign:"center",flexShrink:0}}>{medal}</div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:600,color:p.address===address?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUname?"'Inter',sans-serif":"'JetBrains Mono',monospace"}}>
-                            {name}{p.address===address&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.1)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
-                          </div>
+                        <div style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,color:isMe?"var(--blue)":"var(--tx)",overflow:"hidden"}}>
+                          {serverName
+                            ? <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"inline-block",maxWidth:"100%"}}>{serverName}</span>
+                            : <Address address={p.address} size={20} head={6} tail={4} truncate />}
+                          {isMe&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.1)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
                         </div>
                         <div style={{fontSize:13,fontWeight:700,color:p.pnl>=0n?"var(--green)":"var(--red)",flexShrink:0}}>{pnl(p.pnl)}</div>
                       </div>
@@ -1621,7 +1705,10 @@ export default function App() {
                       <Coin side={cfRes.result}/>
                       <div style={{fontWeight:700,fontSize:28,color:cfRes.won?"var(--green)":"var(--red)"}}>{cfRes.won?`+${usd(cfRes.payout)}`:`-${usd(cfRes.wager)}`}</div>
                       <div style={{fontSize:12,color:"var(--sub)"}}>Rolled <b style={{color:"var(--tx)"}}>{cfRes.result}</b> &middot; You picked <b style={{color:cfRes.won?"var(--green)":"var(--red)"}}>{cfChoice}</b></div>
-                      <a href={`${EXPLORER}/tx/${cfRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)"}}>View on Explorer ↗</a>
+                      <div style={{display:"flex",gap:14,fontSize:10}}>
+                        <a href={`${EXPLORER}/tx/${cfRes.hash}`} target="_blank" rel="noopener noreferrer" style={{color:"var(--blue)"}}>View tx ↗</a>
+                        {cfRes.seq && <a href={`${PYTH_EXPLORER}&address=${COINFLIP}&sequence=${cfRes.seq}`} target="_blank" rel="noopener noreferrer" style={{color:"var(--gold)"}}>Verify on Pyth ↗</a>}
+                      </div>
                       <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 18px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>{setCfS("idle");setCfRes(null);setCfCoin("HEADS")}}>Play again</button>
                     </div>
                   )}
@@ -1647,10 +1734,11 @@ export default function App() {
                     <span style={{color:"var(--sub)",fontSize:16}}>$</span>
                     <input className="inp" type="number" value={cfWager} onChange={e=>setCfWager(e.target.value)} disabled={busy(cfS)}/>
                   </div>
-                  <QuickBtns set={setCfWager}/>
+                  <QuickBtns set={setCfWager} current={cfWager} max={vault.max && bal && vault.max < bal ? vault.max : bal}/>
                   <PayInfo wager={cfWager} mult={1.94}/>
                 </div>
-                <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(cfS)||!parseFloat(cfWager)||parseFloat(cfWager)>parseFloat(formatUnits(bal,6))} onClick={doFlip}>
+                <AutoBetPanel cfg={autoCf} setCfg={setAutoCf} busy={busy(cfS)} disabled={!parseFloat(cfWager)||parseFloat(cfWager)>parseFloat(formatUnits(bal,6))} onStart={()=>{setAutoCf(a=>({...a,on:true,remaining:Math.max(1,Number(a.rounds)||1),sessionPnl:0}));setTimeout(doFlip,80);}} onStop={()=>setAutoCf(a=>({...a,on:false,remaining:0}))}/>
+                <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(cfS)||autoCf.on||!parseFloat(cfWager)||parseFloat(cfWager)>parseFloat(formatUnits(bal,6))} onClick={doFlip}>
                   {busy(cfS)?<><Spin/>{cfS==="approving"?"Approving...":cfS==="placing"?"Placing...":"Waiting for result..."}</>:<span className="shimmer">FLIP COIN</span>}
                 </button>
                 <div style={{fontSize:10,color:"var(--dim)",textAlign:"center"}}>Pyth Entropy v2 &middot; Provably fair</div>
@@ -1670,7 +1758,10 @@ export default function App() {
                       <Die n={dRes.rolled} size={72}/>
                       <div style={{fontWeight:700,fontSize:28,color:dRes.won?"var(--green)":"var(--red)"}}>{dRes.won?`+${usd(dRes.payout)}`:`-${usd(dRes.wager)}`}</div>
                       <div style={{fontSize:12,color:"var(--sub)"}}>Rolled <b style={{color:"var(--tx)"}}>{dRes.rolled}</b></div>
-                      <a href={`${EXPLORER}/tx/${dRes.hash}`} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--blue)"}}>View on Explorer ↗</a>
+                      <div style={{display:"flex",gap:14,fontSize:10}}>
+                        <a href={`${EXPLORER}/tx/${dRes.hash}`} target="_blank" rel="noopener noreferrer" style={{color:"var(--blue)"}}>View tx ↗</a>
+                        {dRes.seq && <a href={`${PYTH_EXPLORER}&address=${DICEROLL}&sequence=${dRes.seq}`} target="_blank" rel="noopener noreferrer" style={{color:"var(--gold)"}}>Verify on Pyth ↗</a>}
+                      </div>
                       <button className="btn" style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--sub)",padding:"7px 18px",fontSize:12,borderRadius:8,width:"auto"}} onClick={()=>{setDS("idle");setDRes(null);setDNum(1)}}>Roll again</button>
                     </div>
                   )}
@@ -1705,10 +1796,11 @@ export default function App() {
                     <span style={{color:"var(--sub)",fontSize:16}}>$</span>
                     <input className="inp" type="number" value={dWager} onChange={e=>setDWager(e.target.value)} disabled={busy(dS)}/>
                   </div>
-                  <QuickBtns set={setDWager}/>
+                  <QuickBtns set={setDWager} current={dWager} max={vault.max && bal && vault.max < bal ? vault.max : bal}/>
                   <PayInfo wager={dWager} mult={dMode==="range"?1.94:5.82}/>
                 </div>
-                <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(dS)||!parseFloat(dWager)||parseFloat(dWager)>parseFloat(formatUnits(bal,6))} onClick={doDice}>
+                <AutoBetPanel cfg={autoD} setCfg={setAutoD} busy={busy(dS)} disabled={!parseFloat(dWager)||parseFloat(dWager)>parseFloat(formatUnits(bal,6))} onStart={()=>{setAutoD(a=>({...a,on:true,remaining:Math.max(1,Number(a.rounds)||1),sessionPnl:0}));setTimeout(doDice,80);}} onStop={()=>setAutoD(a=>({...a,on:false,remaining:0}))}/>
+                <button className="btn primary" style={{fontSize:15,padding:15}} disabled={busy(dS)||autoD.on||!parseFloat(dWager)||parseFloat(dWager)>parseFloat(formatUnits(bal,6))} onClick={doDice}>
                   {busy(dS)?<><Spin/>{dS==="approving"?"Approving...":dS==="placing"?"Placing...":"Rolling..."}</>:<span className="shimmer">ROLL DICE</span>}
                 </button>
                 <div style={{fontSize:10,color:"var(--dim)",textAlign:"center"}}>Pyth Entropy v2 &middot; Provably fair</div>
@@ -1755,7 +1847,7 @@ export default function App() {
             </div>
 
             {lbLd?(
-              <div style={{display:"flex",justifyContent:"center",padding:64}}><Spin size={32}/></div>
+              <div style={{padding:8}}><SkeletonRow count={6} height={56}/></div>
             ):sortedLb.length===0?(
               <div className="card" style={{textAlign:"center",padding:"56px 24px"}}>
                 <div style={{fontSize:48,marginBottom:12}}>🏆</div>
@@ -1770,36 +1862,25 @@ export default function App() {
                 {/* Podium for top 3 */}
                 {sortedLb.length>=3&&(
                   <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:12,padding:"8px 0 0"}}>
-                    {/* 2nd place */}
-                    {(()=>{const p=sortedLb[1];const sn=lbNames[p.address.toLowerCase()];const n=sn||getLbName(p.address);const hu=!!sn||n!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;return(
-                      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                        <div style={{fontSize:11,fontWeight:600,color:"#9CA3AF",fontFamily:"'Inter',sans-serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace"}}>{n}</div>
-                        <div style={{width:"100%",background:"linear-gradient(180deg,rgba(156,163,175,.15) 0%,rgba(156,163,175,.05) 100%)",border:"1px solid rgba(156,163,175,.3)",borderBottom:"none",borderRadius:"10px 10px 0 0",padding:"16px 8px 10px",textAlign:"center",minHeight:90,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
-                          <div style={{fontSize:28}}>🥈</div>
-                          <div style={{fontSize:11,color:"var(--sub)",fontWeight:600}}>{lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}</div>
+                    {[
+                      {idx:1,emoji:"🥈",sz:28,col:"#9CA3AF",bg:"linear-gradient(180deg,rgba(156,163,175,.15) 0%,rgba(156,163,175,.05) 100%)",bd:"rgba(156,163,175,.3)",pad:"16px 8px 10px",mh:90,vCol:"var(--sub)"},
+                      {idx:0,emoji:"🥇",sz:36,col:"var(--gold)",bg:"linear-gradient(180deg,rgba(245,158,11,.2) 0%,rgba(245,158,11,.05) 100%)",bd:"rgba(245,158,11,.4)",pad:"20px 8px 10px",mh:118,vCol:"var(--gold)"},
+                      {idx:2,emoji:"🥉",sz:24,col:"#D97706",bg:"linear-gradient(180deg,rgba(217,119,6,.12) 0%,rgba(217,119,6,.04) 100%)",bd:"rgba(217,119,6,.3)",pad:"12px 8px 10px",mh:76,vCol:"#D97706"},
+                    ].map(({idx,emoji,sz,col,bg,bd,pad,mh,vCol})=>{
+                      const p=sortedLb[idx]; if(!p) return null;
+                      const sn=lbNames[p.address.toLowerCase()];
+                      return(
+                        <div key={idx} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                          <div style={{fontSize:11,fontWeight:600,color:col,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center"}}>
+                            {sn ? sn : <Address address={p.address} showAvatar={false} head={5} tail={4} />}
+                          </div>
+                          <div style={{width:"100%",background:bg,border:`1px solid ${bd}`,borderBottom:"none",borderRadius:"10px 10px 0 0",padding:pad,textAlign:"center",minHeight:mh,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
+                            <div style={{fontSize:sz}}>{emoji}</div>
+                            <div style={{fontSize:idx===0?12:11,color:vCol,fontWeight:idx===0?700:600}}>{lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}</div>
+                          </div>
                         </div>
-                      </div>
-                    );})()}
-                    {/* 1st place */}
-                    {(()=>{const p=sortedLb[0];const sn=lbNames[p.address.toLowerCase()];const n=sn||getLbName(p.address);const hu=!!sn||n!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;return(
-                      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                        <div style={{fontSize:11,fontWeight:600,color:"var(--gold)",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center"}}>{n}</div>
-                        <div style={{width:"100%",background:"linear-gradient(180deg,rgba(245,158,11,.2) 0%,rgba(245,158,11,.05) 100%)",border:"1px solid rgba(245,158,11,.4)",borderBottom:"none",borderRadius:"10px 10px 0 0",padding:"20px 8px 10px",textAlign:"center",minHeight:118,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
-                          <div style={{fontSize:36}}>🥇</div>
-                          <div style={{fontSize:12,color:"var(--gold)",fontWeight:700}}>{lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}</div>
-                        </div>
-                      </div>
-                    );})()}
-                    {/* 3rd place */}
-                    {(()=>{const p=sortedLb[2];const sn=lbNames[p.address.toLowerCase()];const n=sn||getLbName(p.address);const hu=!!sn||n!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;return(
-                      <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                        <div style={{fontSize:11,fontWeight:600,color:"#D97706",fontFamily:hu?"'Inter',sans-serif":"'JetBrains Mono',monospace",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",textAlign:"center"}}>{n}</div>
-                        <div style={{width:"100%",background:"linear-gradient(180deg,rgba(217,119,6,.12) 0%,rgba(217,119,6,.04) 100%)",border:"1px solid rgba(217,119,6,.3)",borderBottom:"none",borderRadius:"10px 10px 0 0",padding:"12px 8px 10px",textAlign:"center",minHeight:76,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4}}>
-                          <div style={{fontSize:24}}>🥉</div>
-                          <div style={{fontSize:11,color:"#D97706",fontWeight:600}}>{lbSrt==="volume"?usd(p.volume):pnl(p.pnl)}</div>
-                        </div>
-                      </div>
-                    );})()}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1807,8 +1888,6 @@ export default function App() {
                 <div style={{display:"flex",flexDirection:"column",gap:8}}>
                   {sortedLb.map((p,i)=>{
                     const sn=lbNames[p.address.toLowerCase()];
-                    const name=sn||getLbName(p.address);
-                    const hasUname=!!sn||name!==`${p.address.slice(0,8)}...${p.address.slice(-6)}`;
                     const isMe=p.address===address;
                     const rankColor=i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--sub)";
                     const borderColor=i===0?"var(--gold)":i===1?"#9CA3AF":i===2?"#D97706":"var(--bd)";
@@ -1817,11 +1896,11 @@ export default function App() {
                         <div style={{width:30,height:30,borderRadius:"50%",background:i<3?`rgba(${i===0?"245,158,11":i===1?"156,163,175":"217,119,6"},.12)`:"rgba(255,255,255,.04)",border:`1px solid ${rankColor}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:rankColor,flexShrink:0}}>
                           {i+1}
                         </div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:13,fontWeight:hasUname?600:400,color:isMe?"var(--blue)":"var(--tx)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontFamily:hasUname?"'Inter',sans-serif":"'JetBrains Mono',monospace"}}>
-                            {name}
-                            {isMe&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.12)",borderRadius:4,padding:"1px 5px",fontFamily:"'Inter',sans-serif"}}>YOU</span>}
-                          </div>
+                        <div style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,color:isMe?"var(--blue)":"var(--tx)",overflow:"hidden"}}>
+                          {sn
+                            ? <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"inline-block",maxWidth:"100%"}}>{sn}</span>
+                            : <Address address={p.address} size={22} head={6} tail={4} truncate />}
+                          {isMe&&<span style={{marginLeft:6,fontSize:9,color:"var(--blue)",background:"rgba(37,99,235,.12)",borderRadius:4,padding:"1px 5px"}}>YOU</span>}
                         </div>
                         <div style={{textAlign:"right",flexShrink:0}}>
                           <div style={{fontSize:13,fontWeight:700,color:lbSrt==="volume"?"var(--tx)":p.pnl>=0n?"var(--green)":"var(--red)"}}>
@@ -1997,9 +2076,9 @@ export default function App() {
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
                       </div>
-                      <button onClick={copyAddress} style={{background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:4,margin:"4px auto 0",color:copied?"var(--green)":"var(--sub)",fontSize:11,fontFamily:"'JetBrains Mono',monospace",transition:"color .2s",padding:0}}>
+                      <button onClick={copyAddress} aria-label="Copy wallet address" style={{background:"none",border:"none",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6,margin:"4px auto 0",color:copied?"var(--green)":"var(--sub)",fontSize:11,transition:"color .2s",padding:0}}>
                         {copied?<IcoCheck/>:<IcoCopy/>}
-                        {shortAddr(address)}
+                        <Address address={address} showAvatar={false} head={6} tail={4} />
                       </button>
                       <div style={{fontSize:10,color:"var(--dim)",marginTop:3}}>{CHAIN_ID===8453?"Base Mainnet":"Base Sepolia"}</div>
                     </div>
@@ -2099,7 +2178,7 @@ export default function App() {
                 {/* Transaction history */}
                 <div style={{fontWeight:700,fontSize:13,color:"var(--sub)",letterSpacing:"1.5px",padding:"0 4px"}}>TRANSACTION HISTORY</div>
                 {txLoading ? (
-                  <div style={{display:"flex",justifyContent:"center",padding:32}}><Spin size={24}/></div>
+                  <SkeletonRow count={4} height={56}/>
                 ) : txHistory.length===0 ? (
                   <div className="card" style={{textAlign:"center",padding:32,color:"var(--sub)",fontSize:13}}>No transactions yet</div>
                 ) : (
