@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePublicClient } from "wagmi";
+import Address from "./Address";
+
+const EXPLORER = "https://basescan.org";
 
 const COINFLIP = process.env.NEXT_PUBLIC_COINFLIP_ADDRESS;
 const DICEROLL = process.env.NEXT_PUBLIC_DICEROLL_ADDRESS;
@@ -113,21 +116,45 @@ function shortAddr(addr) {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
-function TickerItem({ game, player, wager, won, payout }) {
+function TickerItem({ game, address, player, wager, won, payout, txHash }) {
   const meta = GAME_META[game] || { label: game, Icon: () => null };
   const Icon = meta.Icon;
-  return (
+  const wrap = (children) => txHash ? (
+    <a
+      href={`${EXPLORER}/tx/${txHash}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="View transaction on BaseScan"
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 7,
+        padding: "0 22px",
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+        height: "100%", whiteSpace: "nowrap", flexShrink: 0,
+        textDecoration: "none", color: "inherit",
+        background: won ? "rgba(0,245,160,0.025)" : "rgba(255,77,109,0.025)",
+        transition: "background 0.15s ease",
+      }}
+      onMouseEnter={(e)=>{ e.currentTarget.style.background = won ? "rgba(0,245,160,0.08)" : "rgba(255,77,109,0.08)"; }}
+      onMouseLeave={(e)=>{ e.currentTarget.style.background = won ? "rgba(0,245,160,0.025)" : "rgba(255,77,109,0.025)"; }}
+    >{children}</a>
+  ) : (
     <div style={{
       display: "inline-flex", alignItems: "center", gap: 7,
       padding: "0 22px",
       borderRight: "1px solid rgba(255,255,255,0.06)",
       height: "100%", whiteSpace: "nowrap", flexShrink: 0,
-    }}>
+    }}>{children}</div>
+  );
+  return wrap(
+    <>
       <Icon />
-      <span style={{
-        fontSize: 11, color: "#9094B0",
-        fontFamily: "'JetBrains Mono', monospace",
-      }}>{player}</span>
+      {address ? (
+        <span style={{ fontSize: 11, color: "#9094B0", display: "inline-flex", alignItems: "center" }}>
+          <Address address={address} showAvatar={false} head={6} tail={4} />
+        </span>
+      ) : (
+        <span style={{ fontSize: 11, color: "#9094B0", fontFamily: "'JetBrains Mono', monospace" }}>{player}</span>
+      )}
       <span style={{
         fontSize: 11, fontWeight: 600, color: "#F0F2FF",
         fontFamily: "'Inter', sans-serif",
@@ -144,7 +171,7 @@ function TickerItem({ game, player, wager, won, payout }) {
           ? `+$${typeof payout === "bigint" ? (Number(payout) / 1e6).toFixed(2) : payout.toFixed(2)}`
           : "LOST"}
       </span>
-    </div>
+    </>
   );
 }
 
@@ -185,10 +212,12 @@ export default function LiveBetTicker() {
             entries.push({
               id:     `bingo-mp-${roundId}-${winner}-${l.blockNumber}`,
               game:   "bingo-mp",
+              address: winner,
               player: shortAddr(winner),
               wager:  entryFee,
               won:    true,
               payout: payoutEach,
+              txHash: l.transactionHash,
             });
           }
         } catch {}
@@ -213,10 +242,12 @@ export default function LiveBetTicker() {
         const betEntries = betLogs.map(l => ({
           id:     `${l.game}-${l.args.seqNum}`,
           game:   l.game,
+          address: l.args.player,
           player: shortAddr(l.args.player),
           wager:  l.args.wager,
           won:    l.args.won,
           payout: l.args.payout,
+          txHash: l.transactionHash,
         }));
 
         // RoundFinished logs from BingoMultiplayer
@@ -255,10 +286,12 @@ export default function LiveBetTicker() {
               const fresh = logs.map(l => ({
                 id:     `${game}-${l.args.seqNum}-${Date.now()}`,
                 game,
+                address: l.args.player,
                 player: shortAddr(l.args.player),
                 wager:  l.args.wager,
                 won:    l.args.won,
                 payout: l.args.payout,
+                txHash: l.transactionHash,
               }));
               return [...fresh, ...prev].slice(0, 60);
             });
