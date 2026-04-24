@@ -2,7 +2,7 @@
 // components/PolicyModal.jsx
 // Privacy Policy + Terms of Service modal for BaseCast
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const PRIVACY = `
 PRIVACY POLICY
@@ -146,6 +146,12 @@ const css = `
 export function PolicyModal({ defaultTab = "privacy", onClose }) {
   const [tab, setTab] = useState(defaultTab);
   const content = tab === "privacy" ? PRIVACY : TERMS;
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") { e.preventDefault(); onClose?.(); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <>
